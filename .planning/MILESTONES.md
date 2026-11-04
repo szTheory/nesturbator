@@ -1,5 +1,155 @@
 # Milestones
 
+## v8 PAL region support (Shipped: 2026-11-03)
+
+**Phases completed:** 4 phases (25–27.1), 12 plans, 31 plan tasks.
+**Timeline:** 2026-11-01 → 2026-11-03 (three calendar dates).
+**Change range:** `5997cae^..34ca8d0`, 116 commits, 116 files, 13,733 insertions and 332 deletions.
+**Code:** 56,438 tracked C lines, excluding vendored `libretro.h`; 722 registered CTest tests in `ci`.
+**Requirements:** 7/7 satisfied; all four phase verifications passed (57/57 truths); audit `tech_debt`, with 7/7 integration paths and 5/5 end-to-end flows complete.
+
+The archive CLI counted 15 tasks from summary metadata; the twelve plan
+contracts contain 31 task blocks. This entry uses the plan-contract total and
+records the parser discrepancy without changing phase summaries.
+
+**Key accomplishments:**
+- Added shared region selection and exact PAL timing/audio accounting across all six supported mapper families while preserving NTSC output.
+- Implemented the bounded, source-backed 2A07 DMC model with a wrong-model control, plus region-specific state identity and atomic cross-region refusal.
+- Exposed matching loaded-region AV behavior through the library, runner and libretro adapter, with a named modeled 2C07 palette and explicit color limits.
+- Added Phase 27.1 supplemental validation for PAL five-step endpoints and regional frame counters while keeping Phase 26 as STATE-01's sole owner.
+- Passed the accepted 722-test local workflow and packaged the library, runner and libretro adapter.
+
+**Closeout:** The artifact audit is clear after reconciling the halted traceability quick task against the later Phase 26 verification refresh and v8 audit. No new items were acknowledged; 16 previously acknowledged items remain carried forward. `Known verification overrides: 0 newly acknowledged, 16 carried forward from a prior close (see STATE.md Deferred Items)`. Closeout type: verified.
+
+The audit retains WR-01 baseline metadata that points to an earlier source revision/capture path, while current-candidate campaign evidence was separately verified. Direct 2A07 proof, later held no-op-cycle behavior, PAL reset-edge duration, 2C07 calibration and physical host pacing remain unverified. The older interrupted full-CI/AccuracyCoin campaign remains stopped with unknown outcome.
+
+**Delivery:** v8 is a planning milestone only; no v8 package release, tag, push or hosted action is claimed. Milestone tags are disabled by configuration. The latest published package is v0.1.12, published through merged release PR #56 on 2026-10-31. The interrupted campaign was not restarted.
+
+**Direction:** RM-005 shipped. No next milestone is committed. RM-015 remains the preferred conditional proposal only after bounded native/source triage confirms a core fault; scoped maintenance is the smaller alternative. RM-008 remains consumer-owned. PAL infrastructure is now proven, but Dendy RM-006 still needs Dendy-specific timing evidence and demand. Mid and Long triggers are unchanged. SEED-003 remains partial; SEED-006 is recurring. Seed files were not modified. Five unowned quick-task folders remain in `.planning/quick/` because their milestone ownership is not established.
+
+**Archive:** [product roadmap](milestones/v8-PRODUCT-ROADMAP.md),
+[execution roadmap](milestones/v8-ROADMAP.md),
+[requirements](milestones/v8-REQUIREMENTS.md), [audit](milestones/v8-MILESTONE-AUDIT.md),
+[closeout](milestones/v8-CLOSEOUT.md) and [phase artifacts](milestones/v8-phases/).
+
+---
+
+## v7 Remaining DMA accuracy failures (Shipped: 2026-11-01)
+
+**Phases completed:** 1 phase (24), 5 plans, 15 tasks.
+**Timeline:** 2026-10-31 → 2026-11-01 (two calendar dates).
+**Change range:** `b2a46ff^..1b5a6bd`, 46 commits, 86 files, 11,327 insertions and 338 deletions.
+**Code:** 56,941 lines of owned C, excluding vendored `libretro.h`; 707 registered CTest tests in `ci`.
+**Requirements:** 4/4 satisfied; Phase 24 passed 9/9, with 5/5 traced flows and no blocking gaps; audit `tech_debt`.
+
+**Key accomplishments:**
+- Corrected the five selected NTSC DMA failures with separate source-backed traces, owned wrong-model fixtures and the original pin; the three passing DMA rows and all protected PASS keys remain guarded.
+- Preserved production-reachable native continuation with state format 6, behavior revision 14 and ABI 1, including refusal and compatibility controls.
+- Passed the local 707-test workflow and packaged the library, runner and libretro adapter; the five selected campaign rows passed.
+- Validated candidate-bound hosted CI/Nightly, six-platform frame/audio/state equality, and the unchanged +1% Cachegrind gate (raw results +0.18% to +0.25%).
+- Repaired retained DMA trace completeness and kept hardware claims, pinned expectations, observed core behavior and evidence provenance separate.
+
+The archive CLI reported 3 tasks and no accomplishments. Each of the five plans
+declares 3 tasks, so this entry reconciles the task total to 15 and extracts the
+accomplishments from the plan summaries and final verification.
+
+**Closeout:** The open-artifact audit found no new items; 16 previously
+acknowledged items remain carried forward. The v7 audit records two
+non-blocking items: stale README acceptance wording and inherited branch-wide
+whitespace diagnostics. The older interrupted full-CI/AccuracyCoin outcome
+remains unknown and its restart stop remains active. See the
+[v7 audit](milestones/v7-MILESTONE-AUDIT.md).
+
+**Delivery:** v7 is a planning milestone; no v7 package release or tag was
+created. The latest published package remains v0.1.12. No push, merge or release
+occurred during closeout; the historical campaign stop remains unchanged.
+
+**Direction:** RM-016 shipped. No next milestone is committed. PAL timing
+(RM-005) is the preferred proposal; RM-015 remains conditional on a confirmed
+core fault, and scoped maintenance is the smaller alternative. Mid and Long
+triggers remain unchanged. SEED-003 remains partial, SEED-006 remains recurring,
+and the seed files were not modified. Four unowned quick-task folders remain in
+`.planning/quick/` rather than being attributed to v7.
+
+**Archive:** [product roadmap](milestones/v7-PRODUCT-ROADMAP.md),
+[execution roadmap](milestones/v7-ROADMAP.md),
+[requirements](milestones/v7-REQUIREMENTS.md), [audit](milestones/v7-MILESTONE-AUDIT.md),
+and [phase artifacts](milestones/v7-phases/).
+
+---
+
+## v6 Player-ready NES and reproducible feedback (Shipped: 2026-10-31; planning milestone)
+
+**Phases completed:** 2 phases (22–23), 7 plans, 15 tasks.
+**Timeline:** 2026-10-30 → 2026-10-31.
+**Change range:** `5519102..f5f9e27`, 43 commits, 55 files, 10,446 insertions and 2,651 deletions.
+**Requirements:** 10/10 satisfied; Phase 22 passed 7/7, Phase 23 passed 9/9; audit `tech_debt`, with 3/3 end-to-end flows and no blockers.
+
+The archive CLI reported 8 tasks. The seven plan summaries record 2, 2, 2, 3,
+2, 2 and 2 tasks (15 total); this entry uses the reconciled summary count and
+leaves the source summaries unchanged.
+
+**Key accomplishments:**
+- Reorganized the README around the player path and added canonical API, runner, release, testing and progress guides with contract checks.
+- Documented loaded-build identity, backup/rollback policy and distinctions among battery saves, native snapshots and host containers.
+- Added a sanitized scene report and bounded two-run cold replay comparing complete frame and audio records.
+- Added native checkpoint preflight for runner/ROM/state identities and kept neutral continuation separate from movie replay.
+- Added evidence guidance that separates repeatability from adapter, host and hardware correctness claims.
+
+**Closeout:** The open-artifact audit was clear; no new records were acknowledged,
+and 16 earlier acknowledged items remain carried forward. The owner approved
+carrying the v6 audit's documented non-blocking debt; no phase or requirement
+was waived. See the [closeout record](milestones/v6-CLOSEOUT.md) and
+[milestone audit](milestones/v6-MILESTONE-AUDIT.md).
+
+**Delivery:** No v6 package release is claimed. Release PR #56 (0.1.12) remains
+open with failed and cancelled checks; v0.1.11 remains the latest published
+package. Automatic publication is authorized only after all required release
+checks are green, so PR #56 was not published. `git.create_tag` is disabled in
+project configuration; no v6 tag was created.
+
+**Direction:** RM-014 shipped. No next milestone is committed. The default next
+candidate is the five remaining DMA failures; RM-015 may move ahead only if
+bounded triage confirms a core fault. PAL is the regional alternative and
+scoped maintenance the smaller option. Mid and Long triggers remain unchanged.
+The two pre-v6 quick tasks remain in `.planning/quick/` because they have no
+milestone provenance.
+
+**Archive:** [product roadmap](milestones/v6-PRODUCT-ROADMAP.md),
+[execution roadmap](milestones/v6-ROADMAP.md),
+[requirements](milestones/v6-REQUIREMENTS.md),
+[phase artifacts](milestones/v6-phases/).
+
+---
+
+## v5 NMI, VBlank and sprite-0 timing (Shipped: 2026-10-30)
+
+**Delivered:** Games and hosts get tested sprite-0, VBlank/NMI and interrupt poll/takeover behavior across the library, runner and libretro adapter, with deterministic state continuation and explicit JAM presentation.
+
+**Phases completed:** 3 phases (19–21), 27 plans, 68 tasks.
+**Timeline:** 2026-10-25 → 2026-10-30 (six calendar dates).
+**Requirements:** 11/11 satisfied; three current passed verifications, eight integration groups and eleven end-to-end flows ([audit](milestones/v5-MILESTONE-AUDIT.md), `tech_debt`, no blocking gaps).
+
+**Key accomplishments:**
+- AccuracyCoin names guest JAM in every stage; actual adapter run-ahead preserves the frozen picture and silence without reusing a diverged timeline.
+- Sprite evaluation follows OAMADDR and its rendering reset; both sprite-0 target rows pass with owned dot-level evidence.
+- Split PPUSTATUS sampling and separate NMI line/capture/poll histories satisfy all six NMI/VBlank target rows.
+- Legal instruction polls retain IRQ eligibility; shared resumable BRK/IRQ/NMI entry selects a coherent vector, including held/released inhibited NMI candidates.
+- State format 3 / behavior revision 9 / ABI 1 supports validated native and actual-adapter replay at every entry stage, preserving causal six-platform frame/audio/state hashes.
+- All eleven selected targets and all 114 Phase 21 starting PASS keys pass on six lanes; final baseline is 119 PASS / 27 FAIL, 146 terminal scored rows plus five unscored DRAW entries. Original conformance/host/performance gates pass in the accepted source-bound bundle.
+
+**Closeout:** override closeout for explicitly acknowledged open records, not missing phase verification or waived product requirements.
+
+Known verification overrides: 6 newly acknowledged, 10 carried forward from a prior close (see STATE.md Deferred Items).
+
+**Delivery:** PRs #57, #59 and #61 merged. [Release PR #56](https://github.com/szTheory/nesturbator/pull/56) (0.1.12) remains open at closeout; no new package publication is claimed. The planning archive is committed locally on a closeout branch. Milestone tags are disabled by configuration.
+
+**Debt and evidence:** [closeout record](milestones/v5-CLOSEOUT.md), [integration audit](milestones/v5-INTEGRATION-AUDIT.md), [product direction snapshot](milestones/v5-PRODUCT-ROADMAP.md), [roadmap](milestones/v5-ROADMAP.md), [requirements](milestones/v5-REQUIREMENTS.md). Source-bound hosted acceptance remains historical; local checks and final-head workflow success do not replace collected bundles. The ledger representation is reconciled; other audit debt and physical-tie/provenance limits remain.
+
+**What's next:** select fresh scope with `$gsd-new-milestone`. Preferred remaining DMA, PAL as main alternative, or smaller maintenance-only cleanup; none approved yet.
+
+---
+
 ## v4 Measured NTSC accuracy and robustness (Shipped: 2026-10-24)
 
 **Delivered:** Host builders can trust the RetroArch progression and state checks, read a complete, honest AccuracyCoin baseline at a pinned upstream commit, and rely on bounded evidence that accepted programs run on all six board families through reset, save/load, unload/reload, guest loops and JAM. The baseline is a measurement, not an all-pass claim: 101 of 146 scored rows pass.
@@ -22,6 +172,11 @@
 Known verification overrides: 3 newly acknowledged, 7 carried forward from a prior close (see STATE.md Deferred Items)
 
 **Delivery at close:** Phases 17 and 18 had not merged to main. Exact-head PR #55 CI run 40150921041 passed every check, and Nightly 40150888217 succeeded. Publication is recorded below once observed.
+
+**Delivery reconciliation — 2026-10-30:** PR #55 merged; package release PR #56
+(0.1.12) remains open and includes v4 baseline/robustness plus v5. No package
+publication is claimed. v5 delivered the two JAM tune-up gaps below; later
+accepted vector evidence passes. Other carried debt remains in the product ledger.
 
 **Deferred tech debt:**
 - AccuracyCoin observe records a JAM only as a generic frame failure, and no AccuracyCoin control covers JAM.

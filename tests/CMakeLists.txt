@@ -37,6 +37,39 @@ nesturbator_runner_test(NAME runner.advance
     "frame 1 ticks 714732 sha256 b49e9be44573a4de82d845179d4389a0a6e28e934bd9ab31516a40db2c0b0453"
     "frame 3 ticks 2144196 sha256 b49e9be44573a4de82d845179d4389a0a6e28e934bd9ab31516a40db2c0b0453")
 
+# Region preference applies only to cartridge loads; the no-content test card remains NTSC.
+nesturbator_runner_test(NAME runner.region.auto.no_content
+  ARGS --region auto --frames 1 --hash-frame 1
+  EXIT 0
+  EXPECT "frame 1 ticks 714732 sha256 b49e9be44573a4de82d845179d4389a0a6e28e934bd9ab31516a40db2c0b0453")
+
+# --info reports the effective no-content test-card profile, even when PAL was requested.
+nesturbator_runner_test(NAME runner.info
+  ARGS --info --frames 1
+  EXIT 0
+  EXPECT "info region=ntsc fps=39375000/655171 sample_rate=48000/1")
+nesturbator_runner_test(NAME runner.info.pal_preference.no_content
+  ARGS --info --region pal --frames 1
+  EXIT 0
+  EXPECT "info region=ntsc fps=39375000/655171 sample_rate=48000/1")
+nesturbator_runner_test(NAME runner.usage.info.duplicate
+  ARGS --info --info --frames 1 EXIT 2 IGNORE_STDOUT EXPECT_ERR "--info may be specified once")
+nesturbator_runner_test(NAME runner.usage.info.inventory
+  ARGS --info --accuracycoin-inventory --rom ${CMAKE_CURRENT_BINARY_DIR}/no-inventory.nes
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--info cannot be combined with AccuracyCoin modes")
+nesturbator_runner_test(NAME runner.usage.info.collector
+  ARGS --info --accuracycoin-collect ${CMAKE_CURRENT_BINARY_DIR}/unused-campaign
+    --rom ${CMAKE_CURRENT_BINARY_DIR}/no-inventory.nes
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--info cannot be combined with AccuracyCoin modes")
+nesturbator_runner_test(NAME runner.usage.info.page
+  ARGS --info --accuracycoin-page 2 --rom ${CMAKE_CURRENT_BINARY_DIR}/no-inventory.nes
+    --scoreboard ${CMAKE_CURRENT_BINARY_DIR}/unused-scoreboard
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--info cannot be combined with AccuracyCoin modes")
+nesturbator_runner_test(NAME runner.usage.info.observe
+  ARGS --info --accuracycoin-observe 1 --rom ${CMAKE_CURRENT_BINARY_DIR}/no-inventory.nes
+    --frames 16 --accuracycoin-output ${CMAKE_CURRENT_BINARY_DIR}/unused-observation
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--info cannot be combined with AccuracyCoin modes")
+
 # No --hash-frame: frames run, nothing is printed.
 nesturbator_runner_test(NAME runner.nohash ARGS --frames 2 EXIT 0)
 nesturbator_runner_test(NAME runner.hash_audio.silent
@@ -64,6 +97,14 @@ nesturbator_runner_test(NAME runner.usage.noargs
   EXIT 2 IGNORE_STDOUT)
 nesturbator_runner_test(NAME runner.usage.unknown
   ARGS --bogus EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.region.missing
+  ARGS --frames 1 --region EXIT 2 IGNORE_STDOUT EXPECT_ERR "--region")
+nesturbator_runner_test(NAME runner.usage.region.empty
+  ARGS --region "" --frames 1 EXIT 2 IGNORE_STDOUT EXPECT_ERR "--region")
+nesturbator_runner_test(NAME runner.usage.region.unknown
+  ARGS --region dendy --frames 1 EXIT 2 IGNORE_STDOUT EXPECT_ERR "--region")
+nesturbator_runner_test(NAME runner.usage.region.duplicate
+  ARGS --region auto --region pal --frames 1 EXIT 2 IGNORE_STDOUT EXPECT_ERR "--region")
 # A cartridge path arrives in Phase 3; until then a positional argument is a
 # usage error.
 # D-10: --version is handled where the option loop reaches it, so a bad option
@@ -156,7 +197,7 @@ set(NESTURBATOR_SAVE_FIXTURE ${CMAKE_CURRENT_BINARY_DIR}/save_fixture)
 file(MAKE_DIRECTORY ${NESTURBATOR_SAVE_FIXTURE})
 add_test(NAME runner.save.fixture
   COMMAND runner.save_rom ${NESTURBATOR_SAVE_FIXTURE})
-set_tests_properties(runner.save.fixture PROPERTIES FIXTURES_SETUP runner_save)
+set_tests_properties(runner.save.fixture PROPERTIES FIXTURES_SETUP runner_save TIMEOUT 10)
 function(runner_save_case case)
   add_test(NAME runner.save.${case}
     COMMAND ${CMAKE_COMMAND}
@@ -883,6 +924,30 @@ add_test(NAME accuracycoin.outer_failure
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_campaign.cmake)
 set_tests_properties(accuracycoin.driver accuracycoin.report
   accuracycoin.outer_failure PROPERTIES TIMEOUT 60)
+
+# Provider-side NTSC API/profile facts and offline drift controls.
+add_test(NAME provider.profile
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    -DMODE=contract
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/provider_profile.cmake)
+add_test(NAME provider.profile.controls
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
+    -DMODE=selftest
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/provider/profile-controls"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/provider_profile.cmake)
+add_test(NAME provider.receipt.controls
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
+    -DMODE=selftest
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/provider_receipt.cmake)
+set_tests_properties(provider.profile provider.profile.controls PROPERTIES TIMEOUT 15)
+set_tests_properties(provider.receipt.controls PROPERTIES TIMEOUT 15 RUN_SERIAL TRUE)
+
 if(NESTURBATOR_ACCURACYCOIN_FULL)
   add_test(NAME accuracycoin.campaign
     COMMAND ${CMAKE_COMMAND}
@@ -995,6 +1060,7 @@ target_include_directories(interrupt_entry_production_bus PRIVATE
   ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/include)
 target_compile_definitions(interrupt_entry_production_bus PRIVATE
   nesturbator__bus_read=nesturbator__bus_read_production
+  nesturbator__bus_read_sync=nesturbator__bus_read_sync_production
   nesturbator__bus_write=nesturbator__bus_write_production)
 add_executable(core.interrupt_entry
   core/test_interrupt_entry.c
@@ -1080,6 +1146,9 @@ set_tests_properties(core.state_fork.stress PROPERTIES TIMEOUT 300 COST 60)
 # and resumes frame 0 through successive saved boundaries without replacing the board matrix.
 add_test(NAME core.state_fork.nmi COMMAND core.state_fork --nmi)
 set_tests_properties(core.state_fork.nmi PROPERTIES TIMEOUT 30)
+# STATE-01: a PAL frame-boundary fork retains real pending DMC work and regional sample history.
+add_test(NAME core.state_fork.pal COMMAND core.state_fork --pal)
+set_tests_properties(core.state_fork.pal PROPERTIES TIMEOUT 30)
 # INT-02: extend the retained board-family state-fork executable with a genuine
 # production-action interrupt-entry cut loaded through the native state API.
 add_test(NAME core.state_fork.entry COMMAND core.state_fork --entry)
@@ -1095,6 +1164,9 @@ else()
 endif()
 target_include_directories(core.state_reject PRIVATE ${PROJECT_SOURCE_DIR}/src)
 set_tests_properties(core.state_reject PROPERTIES TIMEOUT 300 COST 60)
+# STATE-01: regional identity, atomic refusal and independent NTSC/PAL bounds use owned content.
+add_test(NAME core.state_reject.regional COMMAND core.state_reject --regional)
+set_tests_properties(core.state_reject.regional PROPERTIES TIMEOUT 30)
 # LR-02 (D-12): RetroArch's second-instance run-ahead mode as a library property. Instance A runs
 # the real timeline, B loads A's state each tick and runs N frames; the visible frames equal the
 # one-instance model's, A equals an uninterrupted run, and the nine ROMs and two stress images
@@ -1349,9 +1421,10 @@ add_test(NAME fuzz.registration
     -DEXECUTION_CORPUS_DIR=${CMAKE_CURRENT_SOURCE_DIR}/fuzz/corpus_execution
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fuzz_registration.cmake)
 
-# D-14: nesturbator_get_palette's copy rules, calibrated sRGB samples and
-# palette invariants.
+# D-14: nesturbator_get_palette's copy rules, NTSC samples and PAL model digest.
 nesturbator_core_test(core.palette core/test_palette.c)
+target_sources(core.palette PRIVATE ../runner/sha256.c)
+target_include_directories(core.palette PRIVATE ${PROJECT_SOURCE_DIR}/runner)
 add_executable(accuracy.scoreboard
   accuracy/test_scoreboard.c
   ../runner/accuracycoin.c
@@ -1427,7 +1500,7 @@ set_tests_properties(accuracy.scoreboard.ci_empty_baseline_rejected PROPERTIES T
 # D-15: the shared host conversion indexes the palette by the low 9 bits and
 # honours both pitches.
 add_executable(host.convert host/test_convert.c)
-target_link_libraries(host.convert PRIVATE nesturbator_host)
+target_link_libraries(host.convert PRIVATE nesturbator_host nesturbator::nesturbator)
 nesturbator_warnings(host.convert)
 add_test(NAME host.convert COMMAND host.convert)
 
@@ -1582,7 +1655,7 @@ foreach(scenario pos none attract startonly)
       ${CMAKE_CURRENT_BINARY_DIR}/nesrunner-movies/nesrunner-${scenario}.nmovie
       nesrunner-${scenario})
   set_tests_properties(runner.nesrunner_movie.${scenario} PROPERTIES
-    FIXTURES_SETUP nesrunner_movies)
+    FIXTURES_SETUP nesrunner_movies TIMEOUT 10)
 endforeach()
 
 # PLAY-01 / D-08: one program replays the movies through the library, reads
@@ -1621,32 +1694,121 @@ add_test(NAME runner.version
     -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_version.cmake)
 
+# REPRO-01/02: replay the public permitted movie twice and compare every
+# native frame record plus both audio representations under nested timeouts.
+add_test(NAME runner.reproduction.cold
+  COMMAND ${CMAKE_COMMAND}
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DMOVIE_WRITER=$<TARGET_FILE:runner.game_movie>"
+    "-DROM=${PROJECT_SOURCE_DIR}/tests/roms/runner.nes"
+    "-DWORK=${PROJECT_BINARY_DIR}/tests/reproduction-cold"
+    -DMODE=cold
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction.cmake)
+set_tests_properties(runner.reproduction.cold PROPERTIES TIMEOUT 180)
+add_test(NAME runner.reproduction.compare_self_test
+  COMMAND ${CMAKE_COMMAND}
+    "-DWORK=${PROJECT_BINARY_DIR}/tests/reproduction-compare-self-test"
+    -DMODE=compare_self_test
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction.cmake)
+set_tests_properties(runner.reproduction.compare_self_test PROPERTIES TIMEOUT 60)
+add_test(NAME runner.reproduction.preflight
+  COMMAND ${CMAKE_COMMAND}
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DNMI_FIXTURE=$<TARGET_FILE:runner.nmi_fixture>"
+    "-DWORK=${PROJECT_BINARY_DIR}/tests/reproduction-preflight"
+    -DMODE=preflight_fixture
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction.cmake)
+set_tests_properties(runner.reproduction.preflight PROPERTIES TIMEOUT 60)
+add_test(NAME runner.reproduction.preflight_self_test
+  COMMAND ${CMAKE_COMMAND}
+    "-DWORK=${PROJECT_BINARY_DIR}/tests/reproduction-preflight-self-test"
+    -DMODE=preflight_self_test
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction.cmake)
+set_tests_properties(runner.reproduction.preflight_self_test PROPERTIES TIMEOUT 60)
+
 # Every script in tests/cmake sets its policy version, so CMake reads it the
 # same way on every runner.
 add_test(NAME cmake.script_policy
   COMMAND ${CMAKE_COMMAND} -DDIR=${CMAKE_CURRENT_SOURCE_DIR}/cmake
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/script_policy.cmake)
 
-# D-07: the README status table equals enum nesturbator_status, and the README keeps its Save
-# states section and the rewind sentence (STATE-05).
+# D-07: the canonical API status table equals enum nesturbator_status, and the
+# guide keeps its Save states section and the rewind sentence (STATE-05).
 add_test(NAME state.status_table
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DDOC=${PROJECT_SOURCE_DIR}/docs/api.md
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/status_table.cmake)
+add_test(NAME state.status_table.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DDOC=${PROJECT_SOURCE_DIR}/docs/api.md
+    -DWORK=${PROJECT_BINARY_DIR}/tests/status-table-selftest
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/status_table.cmake)
+set_tests_properties(state.status_table.self_test PROPERTIES TIMEOUT 60)
+add_test(NAME docs.links
+  COMMAND ${CMAKE_COMMAND} -DREADME=${PROJECT_SOURCE_DIR}/README.md
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/doc_links.cmake)
+add_test(NAME docs.links.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
+    -DWORK=${PROJECT_BINARY_DIR}/tests/docs-links-selftest
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/doc_links.cmake)
+set_tests_properties(docs.links docs.links.self_test PROPERTIES TIMEOUT 60)
+add_test(NAME docs.reproduction
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DDOC=${PROJECT_SOURCE_DIR}/docs/reproduction.md"
+    "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
+    "-DCTEST=${CMAKE_CTEST_COMMAND}"
+    "-DWORK=${PROJECT_BINARY_DIR}/tests/docs-reproduction-contract"
+    "-DSHORT_RUNS=${NESTURBATOR_SHORT_RUNS}"
+    "-DBOOT_TO_PLAY_TARGET=$<TARGET_FILE:runner.boot_to_play>"
+    -DMODE=check
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction_contract.cmake)
+add_test(NAME docs.reproduction.self_test
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DDOC=${PROJECT_SOURCE_DIR}/docs/reproduction.md"
+    "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
+    "-DCTEST=${CMAKE_CTEST_COMMAND}"
+    "-DWORK=${PROJECT_BINARY_DIR}/tests/docs-reproduction-contract-self-test"
+    "-DSHORT_RUNS=${NESTURBATOR_SHORT_RUNS}"
+    "-DBOOT_TO_PLAY_TARGET=$<TARGET_FILE:runner.boot_to_play>"
+    -DMODE=self_test
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction_contract.cmake)
+set_tests_properties(docs.reproduction docs.reproduction.self_test PROPERTIES TIMEOUT 60)
 
-# RUN-03: the exit table is the same in runner/exit_status.h, --help and the README.
+# RUN-03: the exit table is the same in runner/exit_status.h, --help and the canonical runner guide.
 foreach(mode table help)
   add_test(NAME runner.exit.${mode}
     COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DDOC=${PROJECT_SOURCE_DIR}/docs/runner.md
       "-DRUNNER=$<TARGET_FILE:nesturbator-run>" -DMODE=${mode}
       -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_exit_table.cmake)
   set_tests_properties(runner.exit.${mode} PROPERTIES LABELS exit_status)
 endforeach()
+add_test(NAME runner.exit.canonical.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DDOC=${PROJECT_SOURCE_DIR}/docs/runner.md
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    -DWORK=${PROJECT_BINARY_DIR}/tests/runner-exit-canonical-self-test
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_exit_table.cmake)
+set_tests_properties(runner.exit.canonical.self_test PROPERTIES TIMEOUT 60)
 
-# D-22: the options printed by --help and the README runner bullets name the same set.
+# D-22: the options printed by --help and the canonical runner guide name the same set.
 add_test(NAME runner.options.readme
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DDOC=${PROJECT_SOURCE_DIR}/docs/runner.md
     "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_options.cmake)
+add_test(NAME runner.options.canonical.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DDOC=${PROJECT_SOURCE_DIR}/docs/runner.md
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    -DWORK=${PROJECT_BINARY_DIR}/tests/runner-options-canonical-self-test
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_options.cmake)
+set_tests_properties(runner.options.canonical.self_test PROPERTIES TIMEOUT 60)
 
 # D-01 and D-02: vector conversion and fetch stay implemented by the owned C
 # parser; release configuration scripts are outside this scoped policy.
@@ -1779,9 +1941,12 @@ add_test(NAME libretro.vendored
 # RetroArch does, and compares its frame with the runner's image (fixture
 # testframe_ppm) and with four hard-coded pixels (D-05). The module is a
 # run-time input, so the test program depends on it to build it first.
-add_executable(libretro.host libretro/libretro_host.c ${PROJECT_SOURCE_DIR}/runner/movie.c)
+add_executable(libretro.host libretro/libretro_host.c
+  ${PROJECT_SOURCE_DIR}/runner/movie.c
+  ${PROJECT_SOURCE_DIR}/runner/audio_hash.c
+  ${PROJECT_SOURCE_DIR}/runner/sha256.c)
 target_include_directories(libretro.host PRIVATE ${PROJECT_SOURCE_DIR}/libretro
-  ${PROJECT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/runner)
+  ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/runner ${CMAKE_CURRENT_SOURCE_DIR}/runner)
 target_link_libraries(libretro.host PRIVATE nesturbator ${CMAKE_DL_LIBS})
 target_compile_definitions(libretro.host PRIVATE
   $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
@@ -1916,6 +2081,13 @@ add_test(NAME palette.regen
     -DPALGEN=$<TARGET_FILE:palgen>
     -DOUT=${CMAKE_CURRENT_BINARY_DIR}/palette_ntsc.c
     -DREF=${PROJECT_SOURCE_DIR}/src/palette_ntsc.c
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/palette_regen.cmake)
+add_test(NAME palette.regen.pal
+  COMMAND ${CMAKE_COMMAND}
+    -DPALGEN=$<TARGET_FILE:palgen>
+    -DPALETTE_MODE=pal
+    -DOUT=${CMAKE_CURRENT_BINARY_DIR}/palette_pal.inc
+    -DREF=${PROJECT_SOURCE_DIR}/src/palette_pal.inc
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/palette_regen.cmake)
 
 # D-08, D-09, D-11: the vector program runs N65V tests through the shipped
@@ -2301,6 +2473,21 @@ add_test(NAME install.consumer
       "-DCMAKE_EXE_LINKER_FLAGS=${CMAKE_EXE_LINKER_FLAGS}"
     --test-command consumer)
 set_tests_properties(install.consumer PROPERTIES FIXTURES_REQUIRED staged)
+
+# A candidate gameplay scenario must be a real, moved-prefix public consumer.
+# The integration driver owns its install tree and does not use install.stage.
+add_test(NAME install.gameplay
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DBINARY_DIR=${PROJECT_BINARY_DIR}"
+    "-DGENERATOR=${CMAKE_GENERATOR}"
+    "-DC_COMPILER=${CMAKE_C_COMPILER}"
+    "-DBUILD_TYPE=${CMAKE_BUILD_TYPE}"
+    "-DC_FLAGS=${CMAKE_C_FLAGS}"
+    "-DLINK_FLAGS=${CMAKE_EXE_LINKER_FLAGS}"
+    "-DCONFIG=$<CONFIG>"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/qualified_consumer.cmake")
+set_tests_properties(install.gameplay PROPERTIES TIMEOUT 60)
 
 # A C-only project embeds the source tree with add_subdirectory, gets only the
 # library and its listed nesturbator_ helpers, and runs one frame with it.

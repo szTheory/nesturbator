@@ -29,6 +29,7 @@
 #define NT_VERSION                                                                                 \
     NT_STR(NESTURBATOR_VERSION_MAJOR)                                                              \
     "." NT_STR(NESTURBATOR_VERSION_MINOR) "." NT_STR(NESTURBATOR_VERSION_PATCH)
+#define NT_REGION_OPTION_KEY "nesturbator_region"
 
 /* All adapter state. A frontend may keep the module loaded between sessions,
    so retro_deinit returns every one of these to its initial value (L7594). */
@@ -50,6 +51,20 @@ static const uint32_t blank[NT_PIXELS] = {0};
 static bool completed_frame_valid;
 static int16_t mono[NT_AUDIO_CAPACITY];
 static int16_t stereo[NT_AUDIO_CAPACITY * 2u];
+static struct retro_core_option_v2_definition region_option_definitions[] = {
+    {.key = NT_REGION_OPTION_KEY,
+     .desc = "Region preference",
+     .desc_categorized = "Region",
+     .info = "Changes apply only after content reload. Explicit NES 2.0 region metadata takes "
+             "precedence.",
+     .values = {{.value = "Auto", .label = "Auto"},
+                {.value = "NTSC", .label = "NTSC"},
+                {.value = "PAL", .label = "PAL"}},
+     .default_value = "Auto"},
+    {0}};
+static struct retro_core_options_v2 region_options = {NULL, region_option_definitions};
+static struct retro_variable region_variables[] = {
+    {NT_REGION_OPTION_KEY, "Region preference; Auto|NTSC|PAL"}, {NULL, NULL}};
 
 /* The presentation cache and its identity. JAM leaves the native frame buffers unspecified, so
    only this adapter-owned converted frame may be repeated, and it is shown only when it belongs
@@ -99,6 +114,32 @@ static uint64_t read_le64(const uint8_t *b)
     return (uint64_t)read_le32(b) | ((uint64_t)read_le32(b + 4u) << 32);
 }
 
+static void register_region_option(void)
+{
+    unsigned version = 0u;
+
+    if (env_cb == NULL)
+        return;
+    if (env_cb(RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION, &version) && version >= 2u &&
+        env_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2, &region_options))
+        return;
+    (void)env_cb(RETRO_ENVIRONMENT_SET_VARIABLES, region_variables);
+}
+
+static enum nesturbator_region_preference load_region_preference(void)
+{
+    struct retro_variable variable = {NT_REGION_OPTION_KEY, NULL};
+
+    if (env_cb == NULL || !env_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &variable) ||
+        variable.value == NULL)
+        return NESTURBATOR_REGION_PREFERENCE_AUTO;
+    if (strcmp(variable.value, "NTSC") == 0)
+        return NESTURBATOR_REGION_PREFERENCE_NTSC;
+    if (strcmp(variable.value, "PAL") == 0)
+        return NESTURBATOR_REGION_PREFERENCE_PAL;
+    return NESTURBATOR_REGION_PREFERENCE_AUTO;
+}
+
 /* Reset, load_game, unload, init and deinit start a new session. */
 static void invalidate_presentation(void)
 {
@@ -144,6 +185,7 @@ void retro_set_environment(retro_environment_t cb)
     env_cb = cb;
     if (cb != NULL) {
         (void)cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, &no_game);
+        register_region_option();
     }
 }
 
@@ -411,11 +453,12 @@ void retro_cheat_set(unsigned index, bool enabled, const char *code)
 }
 
 /* L7761. A NULL game starts the test card; non-NULL content is loaded through
-   the public NROM API. XRGB8888 is chosen here (L861); the
-   default 0RGB1555 is deprecated (L5620-5647). */
+   the shared region-aware loader. The host option is sampled once here and
+   held until a later successful load or unload. XRGB8888 is chosen here. */
 bool retro_load_game(const struct retro_game_info *game)
 {
     enum retro_pixel_format format = RETRO_PIXEL_FORMAT_XRGB8888;
+    nesturbator_status status;
 
     if (game != NULL && (game->data == NULL || game->size == 0u)) {
         return false;
@@ -426,16 +469,21 @@ bool retro_load_game(const struct retro_game_info *game)
     if (inst == NULL) {
         return false;
     }
-    /* Drop the cached span before the cartridge it points into is released. */
+    if (game != NULL) {
+        const enum nesturbator_region_preference preference = load_region_preference();
+        status = nesturbator_load_cartridge_region(inst, game->data, game->size, preference);
+        if (status != NESTURBATOR_OK)
+            return false;
+    } else {
+        nesturbator_unload_cartridge(inst);
+    }
+    /* The library has now replaced or unloaded content; clear adapter pointers and presentation
+       state only after that operation succeeds, so a refused candidate leaves the active session
+       intact. */
     save_data = NULL;
     save_size = 0u;
     invalidate_presentation();
     free_scratch();
-    nesturbator_unload_cartridge(inst);
-    if (game != NULL &&
-        nesturbator_load_cartridge(inst, game->data, game->size) != NESTURBATOR_OK) {
-        return false;
-    }
     /* Room for the state the presentation identity reads; the test card has none (size 0). */
     scratch_size = nesturbator_state_size(inst);
     if (scratch_size != 0u && (scratch = (uint8_t *)malloc(scratch_size)) == NULL) {
@@ -473,10 +521,12 @@ void retro_unload_game(void)
     nesturbator_unload_cartridge(inst);
 }
 
-/* L7812: 0 is NTSC. */
+/* L7812: report the effective profile of the loaded cartridge. */
 unsigned retro_get_region(void)
 {
-    return RETRO_REGION_NTSC;
+    return inst != NULL && nesturbator_get_region(inst) == NESTURBATOR_REGION_PAL
+               ? RETRO_REGION_PAL
+               : RETRO_REGION_NTSC;
 }
 
 /* L7826, L498-517: RETRO_MEMORY_SAVE_RAM is the battery span. The host reads it to write the

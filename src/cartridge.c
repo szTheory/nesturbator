@@ -23,6 +23,7 @@ struct cartridge_layout {
     size_t ram_work; /* volatile PRG RAM, V */
     size_t ram_nv;   /* battery PRG RAM, N */
     size_t chr_nv;
+    uint8_t effective_region;
     int battery;
     int chr_is_ram;
 };
@@ -148,7 +149,9 @@ static int board_profile_ok(uint16_t mapper, uint8_t submapper, size_t prg_size,
     }
 }
 
-static int validate_image(const uint8_t *image, size_t size, struct cartridge_layout *layout)
+static int validate_image(const uint8_t *image, size_t size,
+                          enum nesturbator_region_preference preference,
+                          struct cartridge_layout *layout)
 {
     size_t total;
     int nes2;
@@ -171,8 +174,8 @@ static int validate_image(const uint8_t *image, size_t size, struct cartridge_la
         size_t prg_ram, prg_nvram, chr_ram, chr_nvram;
         mapper = (uint16_t)(mapper | ((image[8] & 0x0fu) << 8));
         submapper = (uint8_t)(image[8] >> 4);
-        if (image[7] & 3u || image[13] != 0u || image[14] != 0u || image[15] != 0u ||
-            image[12] != 0u)
+        if ((image[7] & 3u) != 0u || image[13] != 0u || image[14] != 0u || image[15] != 0u ||
+            (image[12] & 0xfcu) != 0u)
             return 0;
         if (!nes2_rom_size(image[4], image[9] & 0x0fu, 16384u, &layout->prg_size) ||
             !nes2_rom_size(image[5], image[9] >> 4, 8192u, &layout->chr_size) ||
@@ -228,6 +231,26 @@ static int validate_image(const uint8_t *image, size_t size, struct cartridge_la
        mapper has no board leaves the instance as it was (D-10). */
     if (!nesturbator__mapper_ops_for(mapper, &probe))
         return 0;
+    /* Interpret regional metadata only after the complete header/layout has
+       passed validation. NES version-two timing values 0 and 1 are authoritative;
+       value 2 is ambiguous and value 3 (Dendy) is unsupported. */
+    if (nes2) {
+        const uint8_t timing = image[12] & 3u;
+        if (timing == 3u)
+            return 0;
+        if (timing == 0u)
+            layout->effective_region = NESTURBATOR_REGION_NTSC;
+        else if (timing == 1u)
+            layout->effective_region = NESTURBATOR_REGION_PAL;
+        else
+            layout->effective_region = preference == NESTURBATOR_REGION_PREFERENCE_PAL
+                                           ? NESTURBATOR_REGION_PAL
+                                           : NESTURBATOR_REGION_NTSC;
+    } else {
+        layout->effective_region = preference == NESTURBATOR_REGION_PREFERENCE_PAL
+                                       ? NESTURBATOR_REGION_PAL
+                                       : NESTURBATOR_REGION_NTSC;
+    }
     return 1;
 }
 
@@ -283,17 +306,20 @@ int nesturbator__mapper_load(struct nesturbator *nes)
     return 1;
 }
 
-nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *data, size_t size)
+nesturbator_status nesturbator_load_cartridge_region(nesturbator *inst, const void *data,
+                                                     size_t size,
+                                                     enum nesturbator_region_preference preference)
 {
     const uint8_t *image = (const uint8_t *)data;
     struct cartridge_layout layout;
     size_t offset, allocation_size, chr_ram_offset, ram_total;
     uint8_t *copy;
-    if (inst == NULL || data == NULL) {
+    if (inst == NULL || data == NULL || preference < NESTURBATOR_REGION_PREFERENCE_AUTO ||
+        preference > NESTURBATOR_REGION_PREFERENCE_PAL) {
         return NESTURBATOR_ERR_ARGUMENT;
     }
     memset(&layout, 0, sizeof layout);
-    if (!validate_image(image, size, &layout))
+    if (!validate_image(image, size, preference, &layout))
         return NESTURBATOR_ERR_CARTRIDGE;
     offset = 16u + layout.trainer_size;
     allocation_size = size;
@@ -319,6 +345,7 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
     memset(&inst->cart, 0, sizeof inst->cart);
     inst->cart.bytes = copy;
     inst->cart.size = allocation_size;
+    inst->cart.effective_region = layout.effective_region;
     inst->cart.prg = copy + offset;
     inst->cart.prg_size = layout.prg_size;
     inst->cart.chr = inst->cart.prg + layout.prg_size;
@@ -382,4 +409,15 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
     inst->cpu.pc = (uint16_t)(nesturbator__map_cpu_read(inst, 0xfffcu) |
                               ((uint16_t)nesturbator__map_cpu_read(inst, 0xfffdu) << 8));
     return NESTURBATOR_OK;
+}
+
+nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *data, size_t size)
+{
+    return nesturbator_load_cartridge_region(inst, data, size, NESTURBATOR_REGION_PREFERENCE_AUTO);
+}
+
+enum nesturbator_region nesturbator_get_region(const nesturbator *inst)
+{
+    return inst == NULL || inst->cart.bytes == NULL ? NESTURBATOR_REGION_NTSC
+                                                    : nesturbator__region(inst);
 }

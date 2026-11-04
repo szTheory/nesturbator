@@ -1,12 +1,17 @@
 /* host.convert: nesturbator_host_convert indexes the palette by the low 9
    bits of each native pixel and honours both pitches (D-15). */
 #include <stdint.h>
+#include <string.h>
 
 #include "../check.h"
+#include "../ines.h"
 #include "convert.h"
+#include "nesturbator.h"
 
 #define PITCH 300u
 #define OUT_PITCH 260u
+#define WIDTH 256u
+#define HEIGHT 240u
 #define SENTINEL 0xDEADBEEFu
 
 static uint32_t palette[512];
@@ -60,6 +65,59 @@ int main(void)
         }
     }
     CHECK(untouched);
+
+    /* Repeat the pitched conversion with the table returned for a real PAL image. */
+    {
+        uint8_t image[16u + INES_PRG_BANK + INES_CHR_BANK];
+        struct ines_spec spec;
+        nesturbator_config cfg;
+        nesturbator *inst = NULL;
+        uint32_t pal[512];
+        memset(&spec, 0, sizeof spec);
+        spec.prg_16k = 1u;
+        spec.chr_8k = 1u;
+        spec.nes2 = 1u;
+        spec.reset_vector = 0x8000u;
+        const size_t image_size = ines_build(image, sizeof image, &spec);
+        CHECK_EQ_U64(image_size, sizeof image);
+        if (image_size == sizeof image) {
+            image[12] = 1u;
+            memset(&cfg, 0, sizeof cfg);
+            cfg.size = (uint32_t)sizeof cfg;
+            cfg.abi = NESTURBATOR_ABI_VERSION;
+            CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
+            CHECK(inst != NULL);
+            if (inst != NULL) {
+                CHECK_EQ_U64(nesturbator_load_cartridge(inst, image, image_size), NESTURBATOR_OK);
+                CHECK_EQ_U64(nesturbator_get_region(inst), NESTURBATOR_REGION_PAL);
+                nesturbator_get_palette(inst, pal, 512u);
+                CHECK_EQ_HEX(pal[0x056], 0x8E1914u);
+                CHECK_EQ_HEX(pal[0x116], 0x75172Eu);
+
+                for (uint32_t y = 0u; y < HEIGHT; ++y) {
+                    for (uint32_t x = 0u; x < PITCH; ++x) {
+                        video[y * PITCH + x] = (uint16_t)(0xfe00u | ((x * 13u + y * 7u) & 0x01ffu));
+                    }
+                }
+                video[0] = 0xfe56u;
+                video[1] = 0xfe16u;
+                video[2] = 0xff16u;
+                for (uint32_t i = 0u; i < OUT_PITCH * HEIGHT; ++i)
+                    out[i] = SENTINEL;
+                nesturbator_host_convert(pal, video, PITCH, out, OUT_PITCH);
+                for (uint32_t y = 0u; y < HEIGHT; ++y) {
+                    for (uint32_t x = 0u; x < WIDTH; ++x)
+                        CHECK_EQ_HEX(out[y * OUT_PITCH + x], pal[video[y * PITCH + x] & 0x01ffu]);
+                    for (uint32_t x = WIDTH; x < OUT_PITCH; ++x)
+                        CHECK_EQ_HEX(out[y * OUT_PITCH + x], SENTINEL);
+                }
+                CHECK_EQ_HEX(out[0], pal[0x056]);
+                CHECK_EQ_HEX(out[1], pal[0x016]);
+                CHECK_EQ_HEX(out[2], pal[0x116]);
+                nesturbator_destroy(inst);
+            }
+        }
+    }
 
     CHECK_DONE();
 }

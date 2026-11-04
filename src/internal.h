@@ -11,6 +11,7 @@
    is 89341 and a half dots, 714732 ticks, which is exactly the reported frame rate
    39375000/655171 (01-RESEARCH Open Question 1). */
 #define NESTURBATOR_TICKS_PER_FRAME 714732u
+#define NESTURBATOR_PAL_TICKS_PER_FRAME 1063920u
 
 /* Audio: 352 samples at 48000 Hz per 13125 CPU cycles, that is per 315000
    ticks (D-09, 01-RESEARCH Pattern 2). */
@@ -85,7 +86,8 @@ struct nesturbator__cpu {
    last value driven on the data bus (D-12). */
 struct nesturbator__bus {
     uint8_t ram[2048];
-    uint8_t open_bus;
+    uint8_t open_bus;          /* External held data; $4015 does not drive this bus. */
+    uint8_t cpu_data;          /* Internal CPU data, including $4015 and its floating D5. */
     uint8_t apu_get_put_phase; /* 1: GET, 0: PUT at the current CPU bus cycle. */
     uint8_t oam_dma_pending, oam_dma_page;
     uint8_t input_pending[2], input_buttons[2];
@@ -113,10 +115,15 @@ struct nesturbator__noise {
 
 struct nesturbator__dmc {
     uint16_t timer, counter, address, remaining;
-    uint8_t reg[4], output, shift, bits, sample_buffer, buffer_empty;
+    /* bits clocks through audible and silent eight-bit cycles; silence
+       latches the empty-buffer decision for the complete output cycle. */
+    uint8_t reg[4], output, shift, bits, silence, sample_buffer, buffer_empty;
     /* The next halt attempt's phase; an eligible write advances it to retry
        on the following CPU cycle. The first load/reload targets GET/PUT. */
     uint8_t irq, dma_pending, dma_halt_phase, dma_load_waiting, enable_delay;
+    /* One-shot halt due in this many future CPU clocks; writes consume it
+       instead of retrying. Separate from a sample transfer request. */
+    uint8_t abort_delay;
 };
 
 struct nesturbator__apu {
@@ -197,6 +204,7 @@ struct nesturbator__ppu {
 struct nesturbator__cartridge {
     uint8_t *bytes;
     size_t size;
+    uint8_t effective_region; /* zeroed state is NTSC; latched until unload/reload */
     uint8_t *prg;
     size_t prg_size;
     uint8_t *chr;
@@ -251,8 +259,63 @@ struct nesturbator {
     uint64_t cpu_cycle;
     struct nesturbator__profile profile; /* chip-dependent constants */
     uint32_t audio_rem;                  /* sample fraction carried over, in units
-                                            of 1/315000 sample per tick */
+                                            of 1/315000 (NTSC) or 1/709379 (PAL) */
 };
+
+/* The cartridge owns the selected profile. Zero initialization and unload
+   therefore keep the no-content default on NTSC without global state. */
+static inline enum nesturbator_region nesturbator__region(const struct nesturbator *nes)
+{
+    return (enum nesturbator_region)nes->cart.effective_region;
+}
+
+static inline int nesturbator__is_pal(const struct nesturbator *nes)
+{
+    return nesturbator__region(nes) == NESTURBATOR_REGION_PAL;
+}
+
+/* Regional integer clock intervals. The instance's loaded cartridge owns
+   the effective region; zero-initialized and unloaded instances stay NTSC. */
+static inline uint32_t nesturbator__cpu_cycle_ticks(const struct nesturbator *nes)
+{
+    return nesturbator__is_pal(nes) != 0 ? 32u : 24u;
+}
+
+static inline uint32_t nesturbator__m2_rise_ticks(const struct nesturbator *nes)
+{
+    return nesturbator__is_pal(nes) != 0 ? 13u : 9u;
+}
+
+static inline uint32_t nesturbator__ppu_dot_ticks(const struct nesturbator *nes)
+{
+    return nesturbator__is_pal(nes) != 0 ? 10u : 8u;
+}
+
+static inline uint32_t nesturbator__frame_ticks(const struct nesturbator *nes)
+{
+    return nesturbator__is_pal(nes) != 0 ? NESTURBATOR_PAL_TICKS_PER_FRAME
+                                         : NESTURBATOR_TICKS_PER_FRAME;
+}
+
+static inline uint32_t nesturbator__sample_ticks_numerator(const struct nesturbator *nes)
+{
+    return nesturbator__is_pal(nes) != 0 ? 640u : NESTURBATOR_AUDIO_SAMPLES_PER_PERIOD;
+}
+
+static inline uint32_t nesturbator__sample_ticks_denominator(const struct nesturbator *nes)
+{
+    return nesturbator__is_pal(nes) != 0 ? 709379u : NESTURBATOR_AUDIO_TICKS_PER_PERIOD;
+}
+
+static inline uint32_t nesturbator__fps_numerator(const struct nesturbator *nes)
+{
+    return nesturbator__is_pal(nes) != 0 ? 322445u : 39375000u;
+}
+
+static inline uint32_t nesturbator__fps_denominator(const struct nesturbator *nes)
+{
+    return nesturbator__is_pal(nes) != 0 ? 6448u : 655171u;
+}
 
 /* A 1 KiB PRG page by bank number. A true modulo against the loader-validated
    size, because NES2 sizes need not be powers of two, so a register value
@@ -339,10 +402,29 @@ static inline uint8_t nesturbator__map_cpu_read(struct nesturbator *nes, uint16_
 /* One CPU read cycle at addr: advances time by one CPU cycle and returns the
    value on the data bus (src/bus.c in the library). */
 uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr);
+/* The CPU's opcode-dispatch/SYNC read. Kept separate from operand, data and
+   dummy reads so regional DMA arbitration can inspect this cycle kind. */
+uint8_t nesturbator__bus_read_sync(struct nesturbator *nes, uint16_t addr);
+
+/* A reader stop two/three clocks before the output buffer drains schedules
+   one aborted PUT halt. Explicit disable and non-looping last-byte completion
+   share this window (NESdev DMA rev23450, Bugs [HWC.01]). The selected early-G
+   model has no later-G/H unexpected reload in the adjacent one-clock window. */
+static inline void nesturbator__dmc_stop_window(struct nesturbator *nes)
+{
+    struct nesturbator__dmc *d = &nes->apu.dmc;
+    uint16_t counter = d->counter != 0u ? d->counter : 1u;
+    uint16_t clocks = (uint16_t)(2u * counter - (nes->apu.pulse_clock_phase != 0u));
+    if (d->bits == 0u && d->buffer_empty == 0u && (clocks == 2u || clocks == 3u))
+        d->abort_delay = (uint8_t)clocks;
+}
 
 /* One CPU write cycle of value to addr (src/bus.c in the library). */
 void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
-void nesturbator__apu_clock(struct nesturbator *nes);
+/* Inferred early-G Loop3 ordering (HWC.19): a just-fetched DMC byte is
+   unavailable to the immediately following output edge. The synchronous
+   bus owns this argument; it cannot cross a public native-state boundary. */
+void nesturbator__apu_clock(struct nesturbator *nes, uint8_t dmc_sample_ready);
 
 /* The one writer of cpu.irq_line: the frame IRQ (unless inhibited), the DMC IRQ
    and the board's IRQ ORed. Every source calls it when it changes (NESdev "IRQ"). */

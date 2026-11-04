@@ -6,227 +6,71 @@
 - ✅ **v2 Most of the library plays** — Phases 5–10 (shipped 2026-10-11) — [archive](milestones/v2-ROADMAP.md)
 - ✅ **v3 Save states and rewind** — Phases 11–15 (shipped 2026-10-13) — [archive](milestones/v3-ROADMAP.md)
 - ✅ **v4 Measured NTSC accuracy and robustness** — Phases 16–18 (shipped 2026-10-24) — [archive](milestones/v4-ROADMAP.md)
-- 🚧 **v5 NMI, VBlank and sprite-0 timing** — Phases 19–21 (scope approved 2026-10-25)
+- ✅ **v5 NMI, VBlank and sprite-0 timing** — Phases 19–21 (planning milestone shipped 2026-10-30; package publication later completed) — [archive](milestones/v5-ROADMAP.md)
+- ✅ **v6 Player-ready NES and reproducible feedback** — Phases 22–23 (planning milestone shipped 2026-10-31; no package release) — [archive](milestones/v6-ROADMAP.md)
+- ✅ **v7 Remaining DMA accuracy failures** — Phase 24 (planning milestone shipped 2026-11-01; no package release) — [archive](milestones/v7-ROADMAP.md)
+- ✅ **v8 PAL region support** — Phases 25–27.1 (planning milestone shipped 2026-11-03; no package release or tag) — [archive](milestones/v8-ROADMAP.md)
+- 🚧 **v9 LibFuturo NES gameplay handoff** — Phase 28 (requirements and roadmap approved 2026-11-03)
+
+Planning milestone completion remains separate from package publication. Release PR #56 later published v0.1.12; v0.1.12 remains the latest package until v9's release is observed. Milestone tags are disabled. See [PROJECT.md](PROJECT.md) and [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md) for current delivery and future direction.
+
+## v9 — LibFuturo NES gameplay handoff
+
+An integrator should receive one current, identified Nesturbator release, a truthful initial NTSC provider profile, and a reproducible licensed NROM gameplay scenario through the installed public C package. These outcomes share an exact source/package identity, so one phase owns the full handoff. Splitting package publication from its profile and gameplay proof would create an unnecessary second candidate and requalification boundary. Actual LibFuturo installed-consumer, native-host and game-session acceptance remain LibFuturo-owned.
+
+The owner approved the four [requirements](REQUIREMENTS.md) and the single-phase roadmap on 2026-11-03. Phase 28 implementation, final review and local acceptance are complete for candidate `33628da`; exact-candidate CI, resulting-main CI and the published receipt remain pending. Granularity is coarse.
 
 ## Phases
 
-<details>
-<summary>✅ v1 NROM games with sound (Phases 1–4.2) — SHIPPED 2026-10-09</summary>
-
-- [x] Phase 1: A test frame in RetroArch (12/12 plans) — completed 2026-10-03
-- [x] Phase 2: The CPU matches the public vectors (11/11 plans) — completed 2026-10-06
-- [x] Phase 3: A real game in RetroArch (15/15 plans) — completed 2026-10-09
-- [x] Phase 4: Sound (4/4 plans) — completed 2026-10-09
-- [x] Phase 4.1: Close gap: GAME-01 — initialize accepted iNES trainers (1/1 plan, INSERTED) — completed 2026-10-09
-- [x] Phase 4.2: Close gap: SND-01 — deliver single-sample libretro audio (1/1 plan, INSERTED) — completed 2026-10-09
-
-</details>
-
-<details>
-<summary>✅ v2 Most of the library plays (Phases 5–10) — SHIPPED 2026-10-11</summary>
-
-- [x] Phase 5: Tune-up and v1 debt (8/8 plans) — completed 2026-10-10
-- [x] Phase 6: Mapper seam and PPU fetch pipeline (2/2 plans) — completed 2026-10-10
-- [x] Phase 7: UxROM, CNROM and AxROM (4/4 plans) — completed 2026-10-10
-- [x] Phase 8: MMC1 and battery saves (8/8 plans) — completed 2026-10-10
-- [x] Phase 9: MMC3 (12/12 plans) — completed 2026-10-10
-- [x] Phase 10: Close-out and boot-to-play (7/7 plans) — completed 2026-10-11
-
-</details>
-
-<details>
-<summary>✅ v3 Save states and rewind (Phases 11–15) — SHIPPED 2026-10-13</summary>
-
-- [x] Phase 11: Tune-up and state readiness (4/4 plans) — completed 2026-10-11
-- [x] Phase 12: Save states in the library (10/10 plans) — completed 2026-10-12
-- [x] Phase 13: Rewind and run-ahead in RetroArch (8/8 plans) — completed 2026-10-12
-- [x] Phase 14: Runner process contract (8/8 plans) — completed 2026-10-12
-- [x] Phase 15: Speed and close-out (8/8 plans) — completed 2026-10-13
-
-</details>
-
-<details>
-<summary>✅ v4 Measured NTSC accuracy and robustness (Phases 16–18) — SHIPPED 2026-10-24</summary>
-
-- [x] Phase 16: Host evidence and roadmap (13/13 live plans) — completed 2026-10-23
-- [x] Phase 17: Complete pinned conformance baseline (4/4 plans) — completed 2026-10-24
-- [x] Phase 18: Execution and lifecycle robustness (4/4 plans) — completed 2026-10-24
-
-</details>
-
-### v5 — NMI, VBlank and sprite-0 timing
-
-A game's frame loop and status-bar splits time out exactly as they do on an NTSC console. Eleven AccuracyCoin rows at pin `6bee919` move to pass; the 101 rows that pass today keep passing. Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
-
-- [x] **Phase 19: JAM reporting and sprite-0 hit** - AccuracyCoin names a guest JAM, and sprite-0 hit lands on the console's line (completed 2026-10-25)
-- [x] **Phase 20: NMI line and VBlank flag** - `$2002` reads and `$2000` writes around VBlank give the console's flag and NMIs, and save states carry the new latches (completed 2026-10-28)
-- [x] **Phase 21: Interrupt latency and hijack** - IRQs start on the console's instruction and an NMI takes over BRK or IRQ as on the console (completed 2026-10-29)
+- [ ] **Phase 28: Qualified NES gameplay package** — Deliver a released current package with relocated-consumer proof, a version-bound NTSC profile, and one reproducible interactive game scenario.
 
 ## Phase Details
 
-Each phase merges by pull request into a green `main` and is released automatically. Behaviour changes land with tests in `cmake --workflow --preset ci`, README and `nesturbator.h` comments. One NMI-line and interrupt-poll model serves every row; no row or title gets a special case, the 1800-frame AccuracyCoin cap stays, and no blargg ROM is committed.
+### Phase 28: Qualified NES gameplay package
 
-### Phase 19: JAM reporting and sprite-0 hit
-
-**Goal**: A developer reading an AccuracyCoin run sees a guest JAM named as a JAM, and a game's sprite-0 status-bar split lands on the console's line.
-**Depends on**: Phase 18 (JAM stop contract, AccuracyCoin baseline at `6bee919`)
-**Requirements**: JAM-01, JAM-02, SPR-01, SPR-02
+**Goal**: A LibFuturo integrator can install an identified current Nesturbator release, replay one permitted NTSC game into interactive play through its public C API, and use a provider profile bound to that exact package.
+**Depends on**: v8 archived source and existing package, public API and permitted-ROM facilities; no LibFuturo host completion is required.
+**Requirements**: PKG-01, INST-01, PROF-01, GAME-01
 **Success Criteria** (what must be TRUE):
-  1. A developer running `cmake --workflow --preset ci` sees an AccuracyCoin run that stops on a guest JAM reported as `guest-jam`, and a control that drops the JAM attribution fails.
-  2. `libretro.runahead` shows that run-ahead across a JAM gives the same picture and silence as running without run-ahead.
-  3. The `Sprite 0 Hit behavior` and `Arbitrary Sprite zero` rows report pass in `accuracy.scoreboard`, within the 1800-frame cap, and owned `ppu.sprites` tests show the hit on its dot and the first sprite evaluated acting as sprite 0 at any OAM index.
-  4. Every row that passes on `main` today still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane; any frame hash the sprite-0 fix moves is re-pinned in the same change with its reason.
-
-**Plans**: 6/6 plans complete
-**Wave 1**
-- [x] 19-01-PLAN.md — AccuracyCoin names a guest JAM in the execution stage (`guest-jam`, `jam_frame`, `accuracycoin.jam`)
-
-**Wave 2** *(blocked on Wave 1 completion)*
-- [x] 19-02-PLAN.md — guest JAM named in earlier stages and strict mode; tracer pin, README, collector and attribution-dropped controls
-
-**Wave 3** *(blocked on Wave 2 completion)*
-- [x] 19-03-PLAN.md — run-ahead across a JAM keeps the frozen picture and silence (adapter cache tag with timeline identity, `libretro.runahead` JAM image)
-
-**Wave 4** *(blocked on Wave 3 completion)*
-- [x] 19-04-PLAN.md — owned sprite tests first, then the OAMADDR reset with its campaign diff
-
-**Wave 5** *(blocked on Wave 4 completion)*
-- [x] 19-05-PLAN.md — evaluation from OAMADDR with the dot-66 identity, driver re-target, behaviour revision 7
-
-**Wave 6** *(blocked on Wave 5 completion)*
-- [x] 19-06-PLAN.md — re-record scoreboard and activation baseline, D-11 guard, correct the research record
-
-**Canonical refs**: [CONFORMANCE.md](preparation/CONFORMANCE.md), [NES-HARDWARE-PPU-CARTRIDGE.md](preparation/NES-HARDWARE-PPU-CARTRIDGE.md), [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md), [ENGINEERING.md](preparation/ENGINEERING.md); [research/FEATURES.md](research/FEATURES.md) (G5, JAM), [research/PITFALLS.md](research/PITFALLS.md) (#8, #9, #15, #16), [research/SUMMARY.md](research/SUMMARY.md) (steps 0–2, 7)
-
-Note: the basic hit already worked; the `0x06` sprite rows were guest re-run artifacts of a stale OAMADDR (never cleared during rendering, evaluation started at slot 0), fixed in behaviour revision 7 (D-01/D-02). Sprite-0 lands in its own pull request, before the NMI model changes, so a moved row is attributable.
-
-### Phase 20: NMI line and VBlank flag
-
-**Goal**: A game that reads `$2002` or toggles NMI around the start or end of VBlank gets the console's flag value and exactly the console's NMIs, and its save states hold through that race.
-**Depends on**: Phase 19 (sprite-0 settled so NMI regressions are attributable)
-**Requirements**: NMI-01, NMI-02, KEEP-02, KEEP-03
-**Success Criteria** (what must be TRUE):
-  1. The `$2002 flag timing`, `NMI Timing`, `NMI Suppression`, `NMI Control`, `NMI at VBlank end` and `NMI disabled at VBlank` rows report pass in `accuracy.scoreboard`, and owned `tests/ppu` reproducers for the `$2002`/`$2000` dots around VBlank start and end, written before the fix with expected values from NESdev and AccuracyCoin error codes, pass in `ci`, including the extra NMI from a `$00` then `$80` write that Bases Loaded II relies on.
-  2. A developer running `cmake --workflow --preset ci` on any of the six platforms gets identical frame and audio hashes; each hash that moved was re-pinned in the change that moved it, with its reason beside it.
-  3. A state saved on the VBlank-set dot, the VBlank-clear dot or between an NMI edge and its poll loads back to the same run in `core.state_fork.*`, `runner.state.*` and `libretro.runahead`; `state.format_pin` shows format version 2, and a format 1 state is refused with the existing version error.
-  4. Every row that passes on `main` today, including Phase 19's sprite-0 rows, still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane.
-
-**Plans**: 12/12 complete; hosted content accepted; independent re-verification passed 32/32
+  1. An integrator can obtain the published library, runner and libretro artifacts, verify their checksums, and identify one consistent accepted source, package version, ABI, behavior revision and state format. A locally generated archive or release candidate alone does not satisfy publication.
+  2. A clean C consumer can configure, build and run using only a relocated install prefix, load permitted content, advance frames with input, and receive video and audio; a refused replacement load leaves the active game usable. Its result does not depend on headers or libraries from the source or build tree.
+  3. One manifest-permitted NTSC NROM title follows a bounded, reproducible input recipe from boot to a declared gameplay transition with visible response and non-silent audio. A game-specific progress predicate establishes interactive progress; a title picture, input activity, audio or a frame hash alone cannot satisfy it. Nesteroids remains a candidate until its access route and predicate are verified.
+  4. An integrator can use the version-bound profile to determine the tested package/source, selected NTSC content and region limits, load/refusal policy, controller sampling, pixel interpretation, audio format/cadence/buffer bounds and lifecycle. Battery-backed game memory and machine snapshots are described separately, and capabilities without current consumer proof remain explicitly unqualified.
+**Plans**: 3/4 plans complete; Phase 28 acceptance remains pending hosted CI and the published receipt.
 
 Plans:
-- [x] 20-12-PLAN.md — final fe70d61 CI/Nightly and live source-bound availability with retained raw metadata passed; content acceptance stays in 20-10
+- [ ] 28-04-PLAN.md
+- [x] 28-01-PLAN.md
+- [x] 28-02-PLAN.md
+- [x] 28-03-PLAN.md
 
 **Wave 1**
-- [x] 20-01-PLAN.md — owned absolute-dot, real-bus and guest NMI reproducers with exact pinned table oracles
+- [x] [28-01-PLAN.md](phases/28-qualified-nes-gameplay-package/28-01-PLAN.md) — Relocated installed consumer and bounded gameplay oracle (2 tasks)
 
-**Wave 2** *(blocked on Wave 1 completion)*
-- [x] 20-02-PLAN.md — measured split status/line capture with coherent state format 2 and behavior revision 8
+**Wave 2** *(after Wave 1)*
+- [x] [28-02-PLAN.md](phases/28-qualified-nes-gameplay-package/28-02-PLAN.md) — NTSC provider profile and offline receipt checks (2 tasks)
 
-**Wave 3** *(blocked on Wave 2 completion)*
-- [x] 20-03-PLAN.md — instruction-specific NMI polling, complete-table alignment and causal evidence
+**Wave 3** *(after Wave 2)*
+- [x] [28-03-PLAN.md](phases/28-qualified-nes-gameplay-package/28-03-PLAN.md) — Release lineage, candidate acceptance and shipping handoff (3 tasks)
 
-**Wave 4** *(blocked on Wave 3 completion)*
-- [x] 20-04-PLAN.md — exact enabled-NMI set/clear/edge state continuation and rejection controls
+### Phase 28 evidence and release boundary
 
-**Wave 5** *(blocked on Wave 4 completion)*
-- [x] 20-05-PLAN.md — NMI-sensitive core, runner and libretro rewind/run-ahead replay
+Discuss Phase 28 must settle the exact game access route and independent basis for its progress predicate, the current LibFuturo handoff contract, and the package-line reconciliation before planning implementation. Reuse the existing installed-package and gameplay facilities where they detect the required boundary; add only the missing owned checks with useful recurring detection. Prefer a small local helper to another dependency.
 
-**Wave 6** *(blocked on Wave 5 completion)*
-- [x] 20-06-PLAN.md — six-target gate, final baseline/hash provenance and local/hosted evidence ledger
+The first route is NTSC-specific. Preserve the core's shipped region behavior and document metadata precedence; an NTSC preference must not be presented as an override of explicit PAL metadata. A new public API requires a demonstrated consumer gap. The handoff does not establish PAL-through-LibFuturo, LibFuturo host playback, Playstead, physical-device pacing, hardware accuracy, snapshots or broad mapper/title compatibility.
 
-**Wave 7** *(gap closure; consumes completed Wave 6)*
-- [x] 20-07-PLAN.md — changing-sprite split-decoder witness and WR-01/WR-02 contract corrections
+Freeze and qualify the final source/package/profile/scenario identity before publication. Publication is Phase 28's final acceptance gate and is checked again at milestone closeout under [VERIFICATION-POLICY.md](VERIFICATION-POLICY.md): bounded accepted local workflow, related PR triage, exact-candidate required CI, green resulting main CI, clean project-owned release worktrees with unrelated work preserved, and verified released artifacts. Normal release mechanics may use their own workflow commands; PKG-01 remains pending until the published-package receipt exists. Keep the older interrupted CI/AccuracyCoin campaign stopped and unknown. Historical v8 results do not qualify this release candidate.
 
-**Wave 8** *(gap closure; blocked on Wave 7)*
-- [x] 20-08-PLAN.md — equal-tick full-key controls and combined frame-zero/empty-PCM/nonzero-history replay
-
-**Wave 9** *(gap closure; blocked on Wave 8)*
-- [x] 20-09-PLAN.md — locally tested hosted collector, artifact retention and delivery preparation with ordinary complete summary
-
-**Wave 10** *(gap closure; consumes completed Wave 9)*
-- [x] 20-11-PLAN.md — repair archive normalization and timestamped plain-text job-log evidence; prove collect/validate and metadata-only availability with offline adapter controls
-
-**Wave 11** *(gap closure; consumes completed Wave 10)*
-- [x] 20-12-PLAN.md — final fe70d61 CI/Nightly and live source-bound availability with retained raw metadata passed; content acceptance stays in 20-10
-
-**Wave 12** *(gap closure; consumes completed Wave 11)*
-- [x] 20-10-PLAN.md — real source-bound hosted content accepted; six-platform/protected/performance/conformance/host gates pass
-
-20-09 preparation, historical 0039 availability and failed afba1d0/b343083 candidates remain preserved in 20-DELIVERY.md. Initial candidate `fe70d619d6a3cf7b80ed1867ff9faf4c7c9053b1` has historical successful CI `40700458574/1`, Nightly `40700458462/1` and 417-input acceptance (`a08da046cedeecbdd28227cc53d54e3d3e7dff2a93ee88aab9ead67da47bf61c`). Plans 20-12 and 20-10 remain complete.
-
-After the native host-session helper and Windows binary-fixture repairs, current candidate `7848cc8980e8e96a1fc6f5ec223a9783fb7ef19d` / tested merge `716e8d49c80602e3524b9348881ddf171fe33a2f` passed fresh CI `40748417351/1` (18/18) and Nightly `40740261760/1` (seven work jobs). Production collection/current-checkout validation and an independent 418-entry mode/blob comparison passed for effective source `87ee34cf7b5ba45d87e748ab69b69f929a7fe7be96c02ed044bf9b1394f93202`. Fresh local CI passed 688/688 and generated all three packages. All four requirements and independent verification passed 32/32 with a refreshed source fingerprint; see 20-REVERIFICATION-EVIDENCE.md. PR #59 remains open and ready for review; this execution's evidence awaits publication. No merge or acceptance-policy relaxation occurred; Phase 21 has not started.
-
-**Canonical refs**: [NES-HARDWARE-PPU-CARTRIDGE.md](preparation/NES-HARDWARE-PPU-CARTRIDGE.md), [NES-HARDWARE-CPU-APU.md](preparation/NES-HARDWARE-CPU-APU.md), [ARCHITECTURE.md](preparation/ARCHITECTURE.md), [DECISIONS.md](preparation/DECISIONS.md), [CONFORMANCE.md](preparation/CONFORMANCE.md); [research/ARCHITECTURE.md](research/ARCHITECTURE.md) (section 1, state), [research/FEATURES.md](research/FEATURES.md) (G1, G2), [research/PITFALLS.md](research/PITFALLS.md) (#1, #2, #3, #6, #7, #10, #12), [research/SUMMARY.md](research/SUMMARY.md) (steps 3–4)
-
-Note: the NMI line and its edge latch come before the penultimate-cycle poll, which reads that latch; both may share one pull request if the reproducers check each step. Test whether AccuracyCoin needs a CPU/PPU alignment constant before adding one.
-
-### Phase 21: Interrupt latency and hijack
-
-**Goal**: A game's IRQ starts on the same instruction as on the console, and an NMI arriving during BRK or an IRQ takes over its vector as on the console.
-**Depends on**: Phase 20 (NMI edge latch and poll)
-**Requirements**: INT-01, INT-02, KEEP-01
-**Success Criteria** (what must be TRUE):
-  1. The `Interrupt flag latency`, `NMI Overlap BRK` and `NMI Overlap IRQ` rows report pass in `accuracy.scoreboard`, and owned `tests/cpu` reproducers for the CLI, SEI, PLP, RTI and branch polls and for NMI at each cycle of BRK and IRQ, written before the fix with expected values from NESdev and AccuracyCoin error codes, pass in `ci`.
-  2. All eleven v5 rows report pass at `6bee919` and every row that passed before v5 still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane.
-  3. `cpu.vectors`, the nightly blargg MMC3 lane, Holy Mapperel and `runner.boot_to_play` stay green with the shared NMI, IRQ and BRK entry in place.
-  4. A state saved in the middle of a BRK, IRQ or NMI sequence loads back to the same run in `core.state_fork.*` and `libretro.runahead`, and moved hashes stay identical on all six platforms.
-
-**Plans**: 9/9 plans complete
-
-Plans:
-**Wave 1**
-- [x] 21-01-PLAN.md — Real IRQ poll tracer and source-derived latency reproducers (wave 1)
-
-**Wave 2** *(blocked on Wave 1 completion)*
-- [x] 21-02-PLAN.md — Poll-time acceptance, format 3/revision 9 and causal campaign pins (wave 2)
-
-**Wave 3** *(blocked on Wave 2 completion)*
-- [x] 21-03-PLAN.md — Entry cutoff/recognition evidence and complete paired overlap tables (wave 3)
-
-**Wave 4** *(blocked on Wave 3 completion)*
-- [x] 21-04-PLAN.md — Shared resumable BRK/IRQ/NMI entry with coherent vector takeover (wave 4)
-
-**Wave 5** *(blocked on Wave 4 completion)*
-- [x] 21-05-PLAN.md — Reachable entry-state validation, rejection and reset (wave 5)
-- [x] 21-06-PLAN.md — Every-stage native replay with exact traces and frame/audio continuation (wave 5)
-
-**Wave 6** *(blocked on Wave 5 completion)*
-- [x] 21-07-PLAN.md — Actual libretro unserialize and run-ahead from entry cutpoints (wave 6)
-
-**Wave 7** *(blocked on Wave 6 completion)*
-- [x] 21-08-PLAN.md — All-eleven/all-114 acceptance contract and local evidence preparation (wave 7)
-
-**Wave 8** *(blocked on Wave 7 completion)*
-- [x] 21-09-PLAN.md — Fresh source-bound hosted acceptance after external delivery (wave 8)
-
-Phase 21 is verified complete: all 9/9 plans, 32/32 truths and INT-01/INT-02/KEEP-01.
-Plan 21-09 production collection/current-checkout validation accepts CI
-`40929011059/1` and Nightly `40929010997/1` for candidate `54c7db2` / tested merge
-`faf1b91`, with 428 matching effective inputs and 16 API-matching artifact ZIPs.
-All eleven v5 targets and 114 protected starting PASS keys pass on all six
-lanes; native hashes match and the original +1% performance gate passes.
-Fresh parent CI passed 695/695 in 382.16 seconds and generated all three
-packages. See `21-EVIDENCE.md`, `21-EXECUTION-EVIDENCE.md` and
-`21-VERIFICATION.md`. WR-01 and Phase 20 CR-01/WR-03/WR-04 remain deferred with
-current-run mitigations; physical exact-tie and provenance limits remain explicit.
-Existing PR #61 remains draft and unmerged; evidence closeout is local and the
-next separate step is `$gsd-ship 21`, followed by milestone audit/closeout after
-review/merge. Earlier Plan 21-08 pins remain historical in its summary.
-
-**Canonical refs**: [NES-HARDWARE-CPU-APU.md](preparation/NES-HARDWARE-CPU-APU.md), [ARCHITECTURE.md](preparation/ARCHITECTURE.md), [CONFORMANCE.md](preparation/CONFORMANCE.md), [ENGINEERING.md](preparation/ENGINEERING.md); [research/ARCHITECTURE.md](research/ARCHITECTURE.md) (shared `interrupt_entry`), [research/FEATURES.md](research/FEATURES.md) (G3, G4), [research/PITFALLS.md](research/PITFALLS.md) (#4, #5, #6, #11), [research/SUMMARY.md](research/SUMMARY.md) (steps 5, 6, 8)
+See the [coordination context](../docs/coordination/milestone-context-2026-11-03.md), [playability seed](seeds/SEED-261009-zs2-single-game-playability-check.md), [asset policy](../ASSET_POLICY.md) and [automation direction](playtesting/AUTOMATION.md) for evidence limits. A concrete core fault discovered during qualification needs independently supported, bounded scope; it does not automatically promote standalone scene-accuracy or mapper work.
 
 ## Progress
 
-**Execution order**: 19 → 20 → 21.
+Execution order: Phase 28. All three plans have completed local execution and handoff validation. The phase remains In Progress until exact-candidate CI, resulting-main CI and published-package acceptance are verified; PKG-01 remains pending.
 
-| Phase | Milestone | Plans Complete | Status | Completed |
-|-------|-----------|----------------|--------|-----------|
-| 19. JAM reporting and sprite-0 hit | v5 | 6/6 | Complete    | 2026-10-25 |
-| 20. NMI line and VBlank flag | v5 | 12/12 | Complete    | 2026-10-28 |
-| 21. Interrupt latency and hijack | v5 | 9/9 | Complete    | 2026-10-29 |
-
-Future direction and promotion triggers are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 28. Qualified NES gameplay package | 3/4 | In Progress | — |
 
 ## Backlog disposition
 
-2026-10-13: Backlog 999.2, "Bump AccuracyCoin past 673ef550", is promoted into [Phase 17](milestones/v4-ROADMAP.md#phase-17-complete-pinned-conformance-baseline), CONF-01 through CONF-04 and [RM-001](PRODUCT-ROADMAP.md#rm-001-complete-ntsc-conformance-evidence). Its pin/scoreboard/hash comparison is included there; no duplicate active backlog remains. Other future outcomes remain proposed in PRODUCT-ROADMAP.md.
+2026-10-13: Backlog 999.2, “Bump AccuracyCoin past 673ef55,” was promoted into [Phase 17](milestones/v4-ROADMAP.md#phase-17-complete-pinned-conformance-baseline) and CONF-01 through CONF-04. No duplicate active backlog remains.

@@ -66,6 +66,30 @@
   ],
   "buildPresets": [
     { "name": "dev", "configurePreset": "dev" },
+    {
+      "name": "dev-check",
+      "configurePreset": "dev",
+      "targets": [
+        "core.api",
+        "core.apu",
+        "core.controller",
+        "core.mapper",
+        "core.interrupt_entry",
+        "core.nmi_poll",
+        "core.irq_poll",
+        "core.state_fork",
+        "cpu.unit",
+        "bus.unit",
+        "ppu.nmi_races",
+        "ppu.registers",
+        "ppu.render",
+        "ppu.sprites",
+        "ppu.fetch",
+        "ppu.split_scroll",
+        "header.c",
+        "header.cxx"
+      ]
+    },
     { "name": "ci", "configurePreset": "ci" },
     { "name": "ci-msvc", "configurePreset": "ci-msvc" },
     { "name": "asan", "configurePreset": "asan" },
@@ -79,6 +103,17 @@
       "name": "dev",
       "configurePreset": "dev",
       "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error", "jobs": 4 }
+    },
+    {
+      "name": "dev-check",
+      "configurePreset": "dev",
+      "output": { "outputOnFailure": true },
+      "filter": {
+        "include": {
+          "name": "^(core\\.(api|apu|controller|mapper|interrupt_entry|nmi_poll|irq_poll|state_fork\\.entry)|cpu\\.unit|bus\\.unit|ppu\\.(nmi_races|registers|render|sprites|fetch|split_scroll)|header\\.(c|cxx)|state\\.format_pin|vectors\\.api_policy\\.self_test)$"
+        }
+      },
       "execution": { "noTestsAction": "error", "jobs": 4 }
     },
     {
@@ -151,6 +186,14 @@
         { "type": "configure", "name": "dev" },
         { "type": "build", "name": "dev" },
         { "type": "test", "name": "dev" }
+      ]
+    },
+    {
+      "name": "dev-check",
+      "steps": [
+        { "type": "configure", "name": "dev" },
+        { "type": "build", "name": "dev-check" },
+        { "type": "test", "name": "dev-check" }
       ]
     },
     {

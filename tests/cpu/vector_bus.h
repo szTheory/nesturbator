@@ -1,7 +1,7 @@
 /* The test bus for the vector program (D-08, D-11): flat 64 KiB RAM and a
-   log of every bus cycle. It defines nesturbator__bus_read and
-   nesturbator__bus_write in place of src/bus.c, so a program that links it
-   must not link the library. */
+   log of every bus cycle. It defines the CPU read, SYNC-read and write
+   functions in place of src/bus.c, so a program that links it must not link
+   the library. */
 #ifndef NESTURBATOR_VECTOR_BUS_H
 #define NESTURBATOR_VECTOR_BUS_H
 

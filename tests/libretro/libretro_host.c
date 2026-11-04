@@ -30,6 +30,7 @@
 #include "nesturbator.h"
 #include "movie_fixture.h"
 #include "../test_process.h"
+#include "../../runner/audio_hash.h"
 #include "../../runner/movie.h"
 
 #define W 256u
@@ -172,10 +173,80 @@ static int env_calls;
 static int savestate_context_queries, av_enable_queries;
 static int host_savestate_context = RETRO_SAVESTATE_CONTEXT_NORMAL;
 static int host_av_enable = 3; /* bit 0 video, bit 1 audio (L1767) */
+static unsigned host_options_version = 2u;
+static bool host_options_version_available = true;
+static bool host_v2_options_available = true;
+static bool host_legacy_options_available = true;
+static bool host_get_variable_available = true;
+static unsigned v2_options_calls, legacy_options_calls, region_variable_calls;
+static unsigned runtime_av_update_calls;
+static bool region_option_definition_valid;
+static const char *host_region_value = "Auto";
+
+static bool valid_region_option_v2(const struct retro_core_options_v2 *options)
+{
+    const struct retro_core_option_v2_definition *definition;
+    if (options == NULL || options->definitions == NULL)
+        return false;
+    definition = &options->definitions[0];
+    return definition->key != NULL && strcmp(definition->key, "nesturbator_region") == 0 &&
+           definition->default_value != NULL && strcmp(definition->default_value, "Auto") == 0 &&
+           definition->values[0].value != NULL &&
+           strcmp(definition->values[0].value, "Auto") == 0 &&
+           definition->values[1].value != NULL &&
+           strcmp(definition->values[1].value, "NTSC") == 0 &&
+           definition->values[2].value != NULL && strcmp(definition->values[2].value, "PAL") == 0 &&
+           definition->values[3].value == NULL && options->definitions[1].key == NULL &&
+           definition->info != NULL && strstr(definition->info, "reload") != NULL &&
+           strstr(definition->info, "metadata") != NULL;
+}
+
+static bool valid_region_option_legacy(const struct retro_variable *options)
+{
+    return options != NULL && options[0].key != NULL &&
+           strcmp(options[0].key, "nesturbator_region") == 0 && options[0].value != NULL &&
+           strstr(options[0].value, "Auto|NTSC|PAL") != NULL && options[1].key == NULL;
+}
 
 static bool RETRO_CALLCONV env(unsigned cmd, void *data)
 {
     env_calls++;
+    if (cmd == RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO) {
+        runtime_av_update_calls++;
+        return false;
+    }
+    if (cmd == RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION) {
+        if (!host_options_version_available)
+            return false;
+        if (data != NULL)
+            *(unsigned *)data = host_options_version;
+        return true;
+    }
+    if (cmd == RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2) {
+        v2_options_calls++;
+        region_option_definition_valid =
+            valid_region_option_v2((const struct retro_core_options_v2 *)data);
+        return host_v2_options_available;
+    }
+    if (cmd == RETRO_ENVIRONMENT_SET_VARIABLES) {
+        legacy_options_calls++;
+        region_option_definition_valid =
+            valid_region_option_legacy((const struct retro_variable *)data);
+        return host_legacy_options_available;
+    }
+    if (cmd == RETRO_ENVIRONMENT_GET_VARIABLE) {
+        struct retro_variable *variable = (struct retro_variable *)data;
+        if (!host_get_variable_available)
+            return false;
+        if (variable != NULL && variable->key != NULL &&
+            strcmp(variable->key, "nesturbator_region") == 0) {
+            region_variable_calls++;
+            variable->value = host_region_value;
+        } else if (variable != NULL) {
+            variable->value = NULL;
+        }
+        return true;
+    }
     if (cmd == RETRO_ENVIRONMENT_GET_SAVESTATE_CONTEXT) {
         savestate_context_queries++;
         if (data != NULL) {
@@ -834,21 +905,27 @@ static void check_unload_edges(void)
     CHECK(p_get_memory_data(RETRO_MEMORY_SAVE_RAM) == NULL);
     CHECK_EQ_U64(p_get_memory_size(RETRO_MEMORY_SAVE_RAM), 0u);
 
-    size = build_save_image(image, sizeof image, 0u, 7u, 0u);
+    size = build_save_image(image, sizeof image, 1u, 0u, 7u);
     game.data = image;
     game.size = size;
     CHECK(p_load_game(&game));
-    CHECK(p_get_memory_data(RETRO_MEMORY_SAVE_RAM) == NULL);
-    video_calls = 0;
-    p_run();
-    CHECK_EQ_U64(video_calls, 1);
-
-    /* A rejected image after a good load drops the old span. */
-    game.data = bad;
-    game.size = sizeof bad;
-    CHECK(!p_load_game(&game));
-    CHECK(p_get_memory_data(RETRO_MEMORY_SAVE_RAM) == NULL);
-    CHECK_EQ_U64(p_get_memory_size(RETRO_MEMORY_SAVE_RAM), 0u);
+    {
+        void *const active_save = p_get_memory_data(RETRO_MEMORY_SAVE_RAM);
+        const size_t active_save_size = p_get_memory_size(RETRO_MEMORY_SAVE_RAM);
+        const unsigned active_region = p_get_region();
+        CHECK(active_save != NULL);
+        CHECK_EQ_U64(active_save_size, 8192u);
+        CHECK_EQ_U64(active_region, RETRO_REGION_NTSC);
+        /* A refused replacement keeps the loaded cartridge, its save span and region. */
+        game.data = bad;
+        game.size = sizeof bad;
+        CHECK(!p_load_game(&game));
+        CHECK(p_get_memory_data(RETRO_MEMORY_SAVE_RAM) == active_save);
+        CHECK_EQ_U64(p_get_memory_size(RETRO_MEMORY_SAVE_RAM), active_save_size);
+        CHECK_EQ_U64(p_get_region(), active_region);
+        p_run();
+        CHECK_EQ_U64(p_get_region(), active_region);
+    }
 
     size = build_save_image(image, sizeof image, 1u, 0u, 7u);
     game.data = image;
@@ -2212,18 +2289,22 @@ static void check_unserialize_battery(const struct ser_rom *r)
     free(buf);
 }
 
-/* D-01, D-02, D-03 with nothing to save: no content, the test card, a refused load, unload. */
+/* D-01, D-02, D-03: empty-content cases refuse serialization; a failed replacement preserves
+   the old session and its state exactly. */
 static void check_serialize_no_content(const struct ser_rom *r)
 {
     static unsigned char bad[1] = {0x4eu};
     unsigned char *buf = (unsigned char *)malloc(r->state_size + SER_PAD);
+    unsigned char *prior_state = (unsigned char *)malloc(r->state_size);
     uint64_t cv[4], ca[4], tv, ta;
     uint32_t t;
     unsigned pass;
     size_t i;
 
-    CHECK(buf != NULL);
-    if (buf == NULL) {
+    CHECK(buf != NULL && prior_state != NULL);
+    if (buf == NULL || prior_state == NULL) {
+        free(buf);
+        free(prior_state);
         return;
     }
     for (pass = 0u; pass < 4u; pass++) {
@@ -2237,8 +2318,14 @@ static void check_serialize_no_content(const struct ser_rom *r)
             break;
         case 2:
             CHECK(ser_load(r->data, r->size));
+            CHECK_EQ_U64(p_serialize_size(), r->state_size);
+            CHECK(p_serialize(prior_state, r->state_size));
             CHECK(!ser_load(bad, sizeof bad));
-            break;
+            CHECK_EQ_U64(p_serialize_size(), r->state_size);
+            CHECK(p_serialize(buf, r->state_size));
+            CHECK(memcmp(buf, prior_state, r->state_size) == 0);
+            CHECK(!p_unserialize(NULL, r->state_size));
+            continue;
         default:
             CHECK(ser_load(r->data, r->size));
             p_unload_game();
@@ -2281,6 +2368,7 @@ static void check_serialize_no_content(const struct ser_rom *r)
     ser_frames_compared += 2u;
     p_unload_game();
     free(buf);
+    free(prior_state);
 }
 
 /* D-04: a jammed CPU does not change the size. */
@@ -3715,6 +3803,1299 @@ static int fixture_argv_capture(int argc, char **argv, const char *path)
     return 0;
 }
 
+static size_t build_region_image(uint8_t *out, size_t cap, bool nes2, uint8_t timing)
+{
+    static const uint8_t loop[] = {0x4cu, 0x00u, 0x80u};
+    struct ines_spec spec;
+    size_t size;
+
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 1u;
+    spec.chr_8k = 1u;
+    spec.nes2 = nes2 ? 1u : 0u;
+    spec.mapper = 0u;
+    spec.prg_code = loop;
+    spec.prg_code_len = sizeof loop;
+    spec.nmi_vector = 0x8000u;
+    spec.reset_vector = 0x8000u;
+    spec.irq_vector = 0x8000u;
+    size = ines_build(out, cap, &spec);
+    if (size != 0u && nes2)
+        out[12] = timing;
+    return size;
+}
+
+static int presentation_emit_store(uint8_t *code, size_t capacity, size_t *length, uint16_t address,
+                                   uint8_t value)
+{
+    if (*length > capacity - 5u)
+        return 0;
+    code[(*length)++] = 0xa9u;
+    code[(*length)++] = value;
+    code[(*length)++] = 0x8du;
+    code[(*length)++] = (uint8_t)address;
+    code[(*length)++] = (uint8_t)(address >> 8u);
+    return 1;
+}
+
+static size_t presentation_make_program(uint16_t mapper, uint16_t start, uint8_t *code,
+                                        size_t capacity, int chr_ram)
+{
+    size_t length = 0u;
+    static const uint8_t colors[] = {0x0fu, 0x16u, 0x27u, 0x30u};
+
+    /* Wait for the first vblank so startup PPU writes are no longer ignored. */
+    if (capacity < 5u)
+        return 0u;
+    code[length++] = 0x2cu; /* BIT $2002 */
+    code[length++] = 0x02u;
+    code[length++] = 0x20u;
+    code[length++] = 0x10u; /* BPL back to BIT */
+    code[length++] = 0xfbu;
+
+    if (mapper == 1u) {
+        /* MMC1 Control = $0D, with switchable first and fixed last PRG bank. */
+        for (unsigned bit = 0u; bit < 5u; ++bit) {
+            if (!presentation_emit_store(code, capacity, &length, 0x8000u,
+                                         (uint8_t)((0x0du >> bit) & 1u)))
+                return 0u;
+        }
+    } else if (mapper == 2u) {
+        /* UxROM's first bank contains $FF at $8000 to satisfy bus-conflict boards. */
+        if (!presentation_emit_store(code, capacity, &length, 0x8000u, 1u))
+            return 0u;
+    }
+
+    if (chr_ram != 0) {
+        /* Draw tile 1 with its low bitplane set and high bitplane clear. */
+        if (!presentation_emit_store(code, capacity, &length, 0x2006u, 0x00u) ||
+            !presentation_emit_store(code, capacity, &length, 0x2006u, 0x10u))
+            return 0u;
+        for (unsigned i = 0u; i < 8u; ++i) {
+            if (!presentation_emit_store(code, capacity, &length, 0x2007u, 0xffu))
+                return 0u;
+        }
+        for (unsigned i = 0u; i < 8u; ++i) {
+            if (!presentation_emit_store(code, capacity, &length, 0x2007u, 0u))
+                return 0u;
+        }
+    }
+
+    if (!presentation_emit_store(code, capacity, &length, 0x2006u, 0x3fu) ||
+        !presentation_emit_store(code, capacity, &length, 0x2006u, 0x00u))
+        return 0u;
+    for (size_t i = 0u; i < sizeof colors; ++i) {
+        if (!presentation_emit_store(code, capacity, &length, 0x2007u, colors[i]))
+            return 0u;
+    }
+    if (!presentation_emit_store(code, capacity, &length, 0x2006u, 0x20u) ||
+        !presentation_emit_store(code, capacity, &length, 0x2006u, 0x00u) ||
+        !presentation_emit_store(code, capacity, &length, 0x2007u, 0x01u))
+        return 0u;
+
+    /* Pulse 1 produces audible output; mask bit 5 selects PAL green emphasis. */
+    if (!presentation_emit_store(code, capacity, &length, 0x4015u, 0x01u) ||
+        !presentation_emit_store(code, capacity, &length, 0x4000u, 0xbfu) ||
+        !presentation_emit_store(code, capacity, &length, 0x4002u, 0x64u) ||
+        !presentation_emit_store(code, capacity, &length, 0x4003u, 0x00u) ||
+        !presentation_emit_store(code, capacity, &length, 0x2001u, 0x2au) || length > capacity - 3u)
+        return 0u;
+
+    const uint16_t loop = (uint16_t)(start + length);
+    code[length++] = 0x4cu;
+    code[length++] = (uint8_t)loop;
+    code[length++] = (uint8_t)(loop >> 8u);
+    return length;
+}
+
+static size_t build_presentation_image(uint8_t *image, size_t capacity, uint16_t mapper,
+                                       enum nesturbator_region region, uint16_t *entry)
+{
+    struct ines_spec spec;
+    struct ines_segment segments[2];
+    static const uint8_t uxrom_conflict_byte = 0xffu;
+    uint8_t code[256];
+    uint8_t chr[2u * INES_CHR_BANK];
+    size_t segment_count = 0u;
+    uint32_t code_offset;
+    uint16_t code_addr;
+    uint8_t chr_banks;
+    int chr_ram;
+    size_t code_len;
+
+    memset(&spec, 0, sizeof spec);
+    memset(chr, 0, sizeof chr);
+    spec.nes2 = 1u;
+    spec.mapper = mapper;
+    switch (mapper) {
+    case 0u:
+        spec.prg_16k = 1u;
+        chr_banks = 1u;
+        code_offset = 0u;
+        code_addr = 0x8000u;
+        break;
+    case 1u:
+        spec.prg_16k = 2u;
+        spec.prg_ram_shift = 7u;
+        chr_banks = 0u;
+        code_offset = INES_PRG_BANK;
+        code_addr = 0xc000u;
+        break;
+    case 2u:
+        spec.prg_16k = 2u;
+        chr_banks = 1u;
+        code_offset = INES_PRG_BANK;
+        code_addr = 0xc000u;
+        segments[segment_count].prg_offset = 0u;
+        segments[segment_count].bytes = &uxrom_conflict_byte;
+        segments[segment_count++].len = 1u;
+        break;
+    case 3u:
+        spec.prg_16k = 1u;
+        chr_banks = 2u;
+        spec.submapper = 1u;
+        code_offset = 0u;
+        code_addr = 0x8000u;
+        break;
+    case 4u:
+        spec.prg_16k = 8u;
+        chr_banks = 0u;
+        code_offset = 15u * 8192u;
+        code_addr = 0xe000u;
+        break;
+    case 7u:
+        spec.prg_16k = 2u;
+        chr_banks = 0u;
+        code_offset = 0u;
+        code_addr = 0x8000u;
+        break;
+    default:
+        return 0u;
+    }
+
+    chr_ram = chr_banks == 0u;
+    if (chr_ram == 0) {
+        /* Tile 1 is a visible solid color-1 tile; tile 0 remains transparent. */
+        memset(chr + 16u, 0xff, 8u);
+        spec.chr_data = chr;
+        spec.chr_data_len = (size_t)chr_banks * INES_CHR_BANK;
+    }
+    spec.chr_8k = chr_banks;
+    code_len = presentation_make_program(mapper, code_addr, code, sizeof code, chr_ram);
+    if (code_len == 0u)
+        return 0u;
+    segments[segment_count].prg_offset = code_offset;
+    segments[segment_count].bytes = code;
+    segments[segment_count++].len = code_len;
+    spec.segments = segments;
+    spec.segment_count = segment_count;
+    spec.nmi_vector = code_addr;
+    spec.reset_vector = code_addr;
+    spec.irq_vector = code_addr;
+    const size_t image_size = ines_build(image, capacity, &spec);
+    if (image_size != 0u) {
+        image[12] = region == NESTURBATOR_REGION_PAL ? 1u : 0u;
+        if (entry != NULL)
+            *entry = code_addr;
+    }
+    return image_size;
+}
+
+static bool write_region_fixture(const char *path, const uint8_t *image, size_t size)
+{
+    FILE *file = fopen(path, "wb");
+    bool ok;
+    if (file == NULL)
+        return false;
+    ok = fwrite(image, 1u, size, file) == size;
+    if (fclose(file) != 0)
+        ok = false;
+    return ok;
+}
+
+static bool copy_path_with_suffix(char *output, size_t capacity, const char *path,
+                                  const char *suffix)
+{
+    const size_t path_length = strlen(path);
+    const size_t suffix_length = strlen(suffix);
+    if (path_length >= capacity || suffix_length >= capacity - path_length)
+        return false;
+    memcpy(output, path, path_length);
+    memcpy(output + path_length, suffix, suffix_length + 1u);
+    return true;
+}
+
+static bool read_runner_ticks(const char *path, uint64_t *ticks)
+{
+    FILE *file = fopen(path, "rb");
+    char line[512];
+    unsigned long long value;
+    char hash[65];
+    bool found = false;
+    if (file == NULL)
+        return false;
+    while (fgets(line, sizeof line, file) != NULL) {
+        if (sscanf(line, "frame 1 ticks %llu sha256 %64s", &value, hash) == 2) {
+            *ticks = (uint64_t)value;
+            found = strlen(hash) == 64u;
+            break;
+        }
+    }
+    fclose(file);
+    return found;
+}
+
+static bool file_has_runner_info_record(const char *path)
+{
+    FILE *file = fopen(path, "rb");
+    char line[512];
+    bool found = false;
+    if (file == NULL)
+        return true;
+    while (fgets(line, sizeof line, file) != NULL) {
+        if (strncmp(line, "info ", 5u) == 0) {
+            found = true;
+            break;
+        }
+    }
+    fclose(file);
+    return found;
+}
+
+typedef struct runner_profile_info {
+    enum nesturbator_region region;
+    uint32_t fps_num;
+    uint32_t fps_den;
+    uint32_t sample_rate_num;
+    uint32_t sample_rate_den;
+} runner_profile_info;
+
+static bool runner_record_ending_is_exact(const char *line, int consumed)
+{
+    size_t length;
+    size_t prefix;
+    if (line == NULL || consumed <= 0)
+        return false;
+    length = strlen(line);
+    prefix = (size_t)consumed;
+    if (prefix >= length)
+        return false;
+    if (length == prefix + 1u && line[prefix] == '\n')
+        return true;
+    return length == prefix + 2u && line[prefix] == '\r' && line[prefix + 1u] == '\n';
+}
+
+static bool read_runner_info(const char *path, runner_profile_info *info)
+{
+    FILE *file = fopen(path, "rb");
+    char line[512];
+    size_t records = 0u;
+    bool valid = false;
+
+    if (file == NULL || info == NULL) {
+        if (file != NULL)
+            fclose(file);
+        return false;
+    }
+    while (fgets(line, sizeof line, file) != NULL) {
+        char region[16];
+        unsigned fps_num, fps_den, sample_rate_num, sample_rate_den;
+        int consumed = 0;
+        if (strncmp(line, "info ", 5u) != 0)
+            continue;
+        records++;
+        if (sscanf(line, "info region=%15s fps=%u/%u sample_rate=%u/%u%n", region, &fps_num,
+                   &fps_den, &sample_rate_num, &sample_rate_den, &consumed) != 5 ||
+            !runner_record_ending_is_exact(line, consumed))
+            continue;
+        if (strcmp(region, "ntsc") == 0) {
+            info->region = NESTURBATOR_REGION_NTSC;
+            if (fps_num != 39375000u || fps_den != 655171u || sample_rate_num != 48000u ||
+                sample_rate_den != 1u)
+                continue;
+        } else if (strcmp(region, "pal") == 0) {
+            info->region = NESTURBATOR_REGION_PAL;
+            if (fps_num != 322445u || fps_den != 6448u || sample_rate_num != 48000u ||
+                sample_rate_den != 1u)
+                continue;
+        } else {
+            continue;
+        }
+        info->fps_num = fps_num;
+        info->fps_den = fps_den;
+        info->sample_rate_num = sample_rate_num;
+        info->sample_rate_den = sample_rate_den;
+        valid = true;
+    }
+    if (ferror(file))
+        valid = false;
+    fclose(file);
+    return records == 1u && valid;
+}
+
+struct runner_presentation_hashes {
+    uint64_t ticks;
+    char frame[65];
+    char transitions[65];
+    char pcm[65];
+};
+
+static void hash_native_presentation_frame(const uint16_t *pixels, char hex[65])
+{
+    nesturbator_run_sha256 hash;
+    uint8_t row[W * 2u];
+    uint8_t digest[32];
+    nesturbator_run_sha256_init(&hash);
+    for (uint32_t y = 0u; y < H; ++y) {
+        for (uint32_t x = 0u; x < W; ++x) {
+            const uint16_t pixel = pixels[y * W + x];
+            row[2u * x] = (uint8_t)pixel;
+            row[2u * x + 1u] = (uint8_t)(pixel >> 8u);
+        }
+        nesturbator_run_sha256_update(&hash, row, sizeof row);
+    }
+    nesturbator_run_sha256_final(&hash, digest);
+    nesturbator_run_sha256_hex(digest, hex);
+}
+
+static bool read_runner_presentation_hashes(const char *path, unsigned expected_frame,
+                                            struct runner_presentation_hashes *hashes)
+{
+    FILE *file = fopen(path, "rb");
+    char line[512];
+    unsigned frame_records = 0u;
+    unsigned transition_records = 0u;
+    unsigned pcm_records = 0u;
+    bool valid = file != NULL && hashes != NULL;
+
+    if (!valid) {
+        if (file != NULL)
+            fclose(file);
+        return false;
+    }
+    memset(hashes, 0, sizeof *hashes);
+    while (fgets(line, sizeof line, file) != NULL) {
+        unsigned frame_number;
+        unsigned long long ticks;
+        char value[65];
+        int consumed = 0;
+        if (sscanf(line, "frame %u ticks %llu sha256 %64s%n", &frame_number, &ticks, value,
+                   &consumed) == 3) {
+            if (frame_number != expected_frame || strlen(value) != 64u ||
+                !runner_record_ending_is_exact(line, consumed)) {
+                valid = false;
+                continue;
+            }
+            hashes->ticks = (uint64_t)ticks;
+            memcpy(hashes->frame, value, sizeof value);
+            frame_records++;
+        } else if (sscanf(line, "audio transitions sha256 %64s%n", value, &consumed) == 1) {
+            if (strlen(value) != 64u || !runner_record_ending_is_exact(line, consumed)) {
+                valid = false;
+                continue;
+            }
+            memcpy(hashes->transitions, value, sizeof value);
+            transition_records++;
+        } else if (sscanf(line, "audio pcm sha256 %64s%n", value, &consumed) == 1) {
+            if (strlen(value) != 64u || !runner_record_ending_is_exact(line, consumed)) {
+                valid = false;
+                continue;
+            }
+            memcpy(hashes->pcm, value, sizeof value);
+            pcm_records++;
+        }
+    }
+    if (ferror(file))
+        valid = false;
+    fclose(file);
+    return valid && frame_records == 1u && transition_records == 1u && pcm_records == 1u;
+}
+
+static bool write_runner_parser_fixture(const char *path, const char *text)
+{
+    FILE *file = fopen(path, "wb");
+    const size_t length = strlen(text);
+    bool ok;
+    if (file == NULL)
+        return false;
+    ok = fwrite(text, 1u, length, file) == length;
+    if (fclose(file) != 0)
+        ok = false;
+    return ok;
+}
+
+static void test_runner_parser_line_endings(const char *base_path)
+{
+    static const char ntsc_lf[] = "info region=ntsc fps=39375000/655171 sample_rate=48000/1\n";
+    static const char pal_crlf[] = "info region=pal fps=322445/6448 sample_rate=48000/1\r\n";
+    static const char duplicate[] = "info region=ntsc fps=39375000/655171 sample_rate=48000/1\r\n"
+                                    "info region=ntsc fps=39375000/655171 sample_rate=48000/1\r\n";
+    static const char truncated[] = "info region=ntsc fps=39375000/655171 sample_rate=48000/1";
+    static const char extra_token[] =
+        "info region=ntsc fps=39375000/655171 sample_rate=48000/1 trailing\r\n";
+    static const char invalid_region[] =
+        "info region=dendy fps=39375000/655171 sample_rate=48000/1\r\n";
+    static const char invalid_rate[] = "info region=pal fps=322446/6448 sample_rate=48000/1\r\n";
+    char path[4096];
+    runner_profile_info info;
+    struct runner_presentation_hashes hashes;
+    char frame_hash[65], transition_hash[65], pcm_hash[65], records[512];
+
+    const bool fixture_path_valid =
+        copy_path_with_suffix(path, sizeof path, base_path, ".runner-parser-control");
+    CHECK(fixture_path_valid);
+    if (!fixture_path_valid)
+        return;
+
+    memset(&info, 0, sizeof info);
+    CHECK(write_runner_parser_fixture(path, ntsc_lf));
+    CHECK(read_runner_info(path, &info));
+    CHECK_EQ_U64(info.region, NESTURBATOR_REGION_NTSC);
+    CHECK_EQ_U64(info.fps_num, 39375000u);
+    CHECK_EQ_U64(info.fps_den, 655171u);
+    CHECK_EQ_U64(info.sample_rate_num, 48000u);
+    CHECK_EQ_U64(info.sample_rate_den, 1u);
+
+    memset(&info, 0, sizeof info);
+    CHECK(write_runner_parser_fixture(path, pal_crlf));
+    CHECK(read_runner_info(path, &info));
+    CHECK_EQ_U64(info.region, NESTURBATOR_REGION_PAL);
+    CHECK_EQ_U64(info.fps_num, 322445u);
+    CHECK_EQ_U64(info.fps_den, 6448u);
+    CHECK_EQ_U64(info.sample_rate_num, 48000u);
+    CHECK_EQ_U64(info.sample_rate_den, 1u);
+
+    CHECK(write_runner_parser_fixture(path, duplicate));
+    CHECK(!read_runner_info(path, &info));
+    CHECK(write_runner_parser_fixture(path, truncated));
+    CHECK(!read_runner_info(path, &info));
+    CHECK(write_runner_parser_fixture(path, extra_token));
+    CHECK(!read_runner_info(path, &info));
+    CHECK(write_runner_parser_fixture(path, invalid_region));
+    CHECK(!read_runner_info(path, &info));
+    CHECK(write_runner_parser_fixture(path, invalid_rate));
+    CHECK(!read_runner_info(path, &info));
+
+    memset(frame_hash, 'a', 64u);
+    memset(transition_hash, 'b', 64u);
+    memset(pcm_hash, 'c', 64u);
+    frame_hash[64] = '\0';
+    transition_hash[64] = '\0';
+    pcm_hash[64] = '\0';
+    CHECK(snprintf(records, sizeof records,
+                   "frame 3 ticks 123 sha256 %s\r\naudio transitions sha256 %s\r\n"
+                   "audio pcm sha256 %s\r\n",
+                   frame_hash, transition_hash, pcm_hash) > 0);
+    CHECK(write_runner_parser_fixture(path, records));
+    CHECK(read_runner_presentation_hashes(path, 3u, &hashes));
+    CHECK_EQ_U64(hashes.ticks, 123u);
+    CHECK(strcmp(hashes.frame, frame_hash) == 0);
+    CHECK(strcmp(hashes.transitions, transition_hash) == 0);
+    CHECK(strcmp(hashes.pcm, pcm_hash) == 0);
+
+    CHECK(snprintf(records, sizeof records,
+                   "frame 3 ticks 123 sha256 %s trailing\r\naudio transitions sha256 %s\r\n"
+                   "audio pcm sha256 %s\r\n",
+                   frame_hash, transition_hash, pcm_hash) > 0);
+    CHECK(write_runner_parser_fixture(path, records));
+    CHECK(!read_runner_presentation_hashes(path, 3u, &hashes));
+    remove(path);
+}
+
+static bool runner_output_matches_without_info(const char *with_info_path,
+                                               const char *without_info_path)
+{
+    FILE *with_info = fopen(with_info_path, "rb");
+    FILE *without_info = fopen(without_info_path, "rb");
+    char line[512];
+    size_t records = 0u;
+    bool matches = with_info != NULL && without_info != NULL;
+
+    if (!matches) {
+        if (with_info != NULL)
+            fclose(with_info);
+        if (without_info != NULL)
+            fclose(without_info);
+        return false;
+    }
+    while (fgets(line, sizeof line, with_info) != NULL) {
+        if (strncmp(line, "info ", 5u) == 0) {
+            records++;
+            continue;
+        }
+        {
+            char other[512];
+            if (fgets(other, sizeof other, without_info) == NULL || strcmp(line, other) != 0) {
+                matches = false;
+                break;
+            }
+        }
+    }
+    if (ferror(with_info) || ferror(without_info) || fgetc(without_info) != EOF || records != 1u)
+        matches = false;
+    fclose(with_info);
+    fclose(without_info);
+    return matches;
+}
+
+static enum nesturbator_region expected_region(bool nes2, uint8_t timing,
+                                               enum nesturbator_region_preference preference)
+{
+    if (nes2 && timing == 0u)
+        return NESTURBATOR_REGION_NTSC;
+    if (nes2 && timing == 1u)
+        return NESTURBATOR_REGION_PAL;
+    return preference == NESTURBATOR_REGION_PREFERENCE_PAL ? NESTURBATOR_REGION_PAL
+                                                           : NESTURBATOR_REGION_NTSC;
+}
+
+static void check_region_av_info(enum nesturbator_region region)
+{
+    struct retro_system_av_info av;
+    const double expected_fps =
+        region == NESTURBATOR_REGION_PAL ? 322445.0 / 6448.0 : 39375000.0 / 655171.0;
+    p_get_system_av_info(&av);
+    CHECK_EQ_U64(av.geometry.base_width, W);
+    CHECK_EQ_U64(av.geometry.base_height, H);
+    CHECK_EQ_U64(av.geometry.max_width, W);
+    CHECK_EQ_U64(av.geometry.max_height, H);
+    CHECK(av.timing.fps - expected_fps < 1e-9 && av.timing.fps - expected_fps > -1e-9);
+    CHECK(av.timing.sample_rate == 48000.0);
+}
+
+static void check_regional_presentation_case(const char *runner, const char *base_path,
+                                             uint16_t mapper, enum nesturbator_region region)
+{
+    static uint8_t image[16u + 8u * INES_PRG_BANK + 2u * INES_CHR_BANK];
+    static uint16_t native[W * H];
+    char fixture_path[4096];
+    char runner_output_path[4096];
+    char dump_path[4096];
+    char dump_argument[4096];
+    struct retro_game_info game;
+    nesturbator_config cfg;
+    nesturbator *direct = NULL;
+    nesturbator_frame io;
+    struct runner_presentation_hashes runner_hashes = {0};
+    runner_profile_info runner_info = {0};
+    nesturbator_run_audio_hash audio_hash;
+    uint32_t palette[512];
+    int16_t audio[AUDIO_CAPTURE_CAPACITY];
+    size_t image_size;
+    uint16_t entry = 0u;
+    char direct_frame_hash[65];
+    char direct_transition_hash[65];
+    char direct_pcm_hash[65];
+    bool palette_ready = false;
+    const char *region_name = region == NESTURBATOR_REGION_PAL ? "pal" : "ntsc";
+    const char *host_preference = region == NESTURBATOR_REGION_PAL ? "NTSC" : "PAL";
+    const char *runner_preference = region == NESTURBATOR_REGION_PAL ? "ntsc" : "pal";
+    const enum nesturbator_region_preference preference = region == NESTURBATOR_REGION_PAL
+                                                              ? NESTURBATOR_REGION_PREFERENCE_NTSC
+                                                              : NESTURBATOR_REGION_PREFERENCE_PAL;
+
+    CHECK(snprintf(fixture_path, sizeof fixture_path, "%s.presentation-m%u-%s.nes", base_path,
+                   (unsigned)mapper, region_name) > 0);
+    CHECK(snprintf(runner_output_path, sizeof runner_output_path, "%s.presentation-m%u-%s.txt",
+                   base_path, (unsigned)mapper, region_name) > 0);
+    CHECK(snprintf(dump_path, sizeof dump_path, "%s.presentation-m%u-%s.ppm", base_path,
+                   (unsigned)mapper, region_name) > 0);
+    CHECK(snprintf(dump_argument, sizeof dump_argument, "3:%s", dump_path) > 0);
+    image_size = build_presentation_image(image, sizeof image, mapper, region, &entry);
+    CHECK(image_size != 0u);
+    if (image_size == 0u)
+        return;
+    CHECK(entry != 0u);
+    CHECK(write_region_fixture(fixture_path, image, image_size));
+
+    host_region_value = host_preference;
+    p_unload_game();
+    memset(&game, 0, sizeof game);
+    game.data = image;
+    game.size = image_size;
+    if (!p_load_game(&game)) {
+        CHECK(0);
+        goto cleanup;
+    }
+    CHECK_EQ_U64(p_get_region(), region);
+    check_region_av_info(region);
+
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK_EQ_U64(nesturbator_create(&cfg, &direct), NESTURBATOR_OK);
+    if (direct == NULL)
+        goto cleanup;
+    {
+        const nesturbator_status status =
+            nesturbator_load_cartridge_region(direct, image, image_size, preference);
+        CHECK_EQ_U64(status, NESTURBATOR_OK);
+        if (status != NESTURBATOR_OK)
+            goto cleanup;
+    }
+    CHECK_EQ_U64(nesturbator_get_region(direct), region);
+    nesturbator_get_palette(direct, palette, 512u);
+    palette_ready = true;
+    {
+        nesturbator_info info;
+        memset(&info, 0, sizeof info);
+        info.size = (uint32_t)sizeof info;
+        nesturbator_get_info(direct, &info);
+        CHECK_EQ_U64(info.fps_num, region == NESTURBATOR_REGION_PAL ? 322445u : 39375000u);
+        CHECK_EQ_U64(info.fps_den, region == NESTURBATOR_REGION_PAL ? 6448u : 655171u);
+        CHECK_EQ_U64(info.sample_rate_num, 48000u);
+        CHECK_EQ_U64(info.sample_rate_den, 1u);
+    }
+
+    nesturbator_run_audio_hash_init(&audio_hash);
+    nesturbator__apu_set_transition_sink(direct, nesturbator_run_audio_hash_transition,
+                                         &audio_hash);
+    memset(host_buttons, 0, sizeof host_buttons);
+    for (unsigned frame_index = 0u; frame_index < 3u; ++frame_index) {
+        memset(&io, 0, sizeof io);
+        io.size = (uint32_t)sizeof io;
+        io.video = native;
+        io.video_pitch = W;
+        io.audio = audio;
+        io.audio_capacity = AUDIO_CAPTURE_CAPACITY;
+        CHECK_EQ_U64(nesturbator_run_frame(direct, &io), NESTURBATOR_OK);
+        CHECK(io.audio_count <= AUDIO_CAPTURE_CAPACITY);
+        if (region == NESTURBATOR_REGION_PAL)
+            CHECK(io.audio_count == 959u || io.audio_count == 960u);
+        else
+            CHECK(io.audio_count == 798u || io.audio_count == 799u);
+
+        video_calls = 0;
+        batch_calls = 0;
+        batch_frames = 0u;
+        batch_nonzero = 0;
+        p_run();
+        CHECK_EQ_U64(video_calls, 1u);
+        CHECK_EQ_U64(video_width, W);
+        CHECK_EQ_U64(video_height, H);
+        CHECK(video_pitch >= W * sizeof(uint32_t));
+        CHECK_EQ_U64(batch_calls, 1u);
+        CHECK_EQ_U64(batch_frames, io.audio_count);
+        CHECK(batch_nonzero > 0);
+        if (batch_frames == io.audio_count && io.audio_count <= AUDIO_CAPTURE_CAPACITY) {
+            for (size_t i = 0u; i < io.audio_count; ++i) {
+                CHECK(batch_samples[2u * i] == audio[i]);
+                CHECK(batch_samples[2u * i + 1u] == audio[i]);
+            }
+        }
+        if (io.audio_count <= AUDIO_CAPTURE_CAPACITY)
+            nesturbator_run_audio_hash_pcm(&audio_hash, audio, io.audio_count);
+    }
+    CHECK(batch_nonzero > 0);
+    CHECK_EQ_U64(p_get_region(), region);
+
+    if (palette_ready) {
+        bool used[512] = {false};
+        size_t used_count = 0u;
+        size_t emphasized_pixels = 0u;
+        size_t colored_pixels = 0u;
+        for (uint32_t i = 0u; i < W * H; ++i) {
+            const uint16_t pixel = native[i];
+            const uint32_t index = pixel & 0x01ffu;
+            if (!used[index]) {
+                used[index] = true;
+                used_count++;
+            }
+            if ((index & 0x0040u) != 0u)
+                emphasized_pixels++;
+            if (palette[index] != 0u)
+                colored_pixels++;
+            CHECK_EQ_HEX(frame[i], palette[index]);
+        }
+        CHECK(used_count > 1u);
+        CHECK(emphasized_pixels > 0u);
+        CHECK(colored_pixels > 0u);
+        CHECK(frame[0] != frame[(H - 1u) * W + W - 1u]);
+        CHECK_EQ_HEX(palette[0x000], region == NESTURBATOR_REGION_PAL ? 0x626262u : 0x5A5A5Au);
+        CHECK_EQ_HEX(palette[0x056], region == NESTURBATOR_REGION_PAL ? 0x8E1914u : 0xBC2700u);
+        CHECK_EQ_HEX(palette[0x00f], 0x000000u);
+    }
+
+    hash_native_presentation_frame(native, direct_frame_hash);
+    nesturbator_run_audio_hash_final(&audio_hash, direct_transition_hash, direct_pcm_hash);
+    {
+        const char *const runner_args[] = {
+            runner,         "--rom",           fixture_path,   "--frames", "3",
+            "--region",     runner_preference, "--hash-frame", "3",        "--hash-audio",
+            "--dump-frame", dump_argument,     "--info",       NULL};
+        CHECK_EQ_U64(test_process_run(runner_args, runner_output_path), 0u);
+        CHECK(read_runner_presentation_hashes(runner_output_path, 3u, &runner_hashes));
+        CHECK(read_runner_info(runner_output_path, &runner_info));
+        CHECK_EQ_U64(runner_info.region, region);
+        CHECK_EQ_U64(runner_info.fps_num, region == NESTURBATOR_REGION_PAL ? 322445u : 39375000u);
+        CHECK_EQ_U64(runner_info.fps_den, region == NESTURBATOR_REGION_PAL ? 6448u : 655171u);
+        CHECK_EQ_U64(runner_info.sample_rate_num, 48000u);
+        CHECK_EQ_U64(runner_info.sample_rate_den, 1u);
+        CHECK_EQ_U64(runner_hashes.ticks, io.ticks);
+        CHECK(strcmp(runner_hashes.frame, direct_frame_hash) == 0);
+        CHECK(strcmp(runner_hashes.transitions, direct_transition_hash) == 0);
+        CHECK(strcmp(runner_hashes.pcm, direct_pcm_hash) == 0);
+        compare_with_ppm(dump_path);
+    }
+
+cleanup:
+    if (direct != NULL)
+        nesturbator_destroy(direct);
+    p_unload_game();
+    host_region_value = "Auto";
+    remove(fixture_path);
+    remove(runner_output_path);
+    remove(dump_path);
+}
+
+static void check_regional_presentation_matrix(const char *runner, const char *base_path)
+{
+    static const uint16_t mappers[] = {0u, 1u, 2u, 3u, 4u, 7u};
+    static const enum nesturbator_region regions[] = {NESTURBATOR_REGION_PAL,
+                                                      NESTURBATOR_REGION_NTSC};
+
+    for (size_t mapper = 0u; mapper < sizeof mappers / sizeof mappers[0]; ++mapper) {
+        for (size_t region = 0u; region < sizeof regions / sizeof regions[0]; ++region)
+            check_regional_presentation_case(runner, base_path, mappers[mapper], regions[region]);
+    }
+}
+
+static void check_presentation_callback_frame(nesturbator *direct)
+{
+    static uint16_t native[W * H];
+    static int16_t audio[AUDIO_CAPTURE_CAPACITY];
+    nesturbator_frame io;
+    uint32_t palette[512];
+
+    memset(&io, 0, sizeof io);
+    io.size = (uint32_t)sizeof io;
+    io.video = native;
+    io.video_pitch = W;
+    io.audio = audio;
+    io.audio_capacity = AUDIO_CAPTURE_CAPACITY;
+    CHECK_EQ_U64(nesturbator_run_frame(direct, &io), NESTURBATOR_OK);
+    nesturbator_get_palette(direct, palette, 512u);
+    video_calls = 0u;
+    p_run();
+    CHECK_EQ_U64(video_calls, 1u);
+    CHECK_EQ_U64(p_get_region(), nesturbator_get_region(direct));
+    for (uint32_t i = 0u; i < W * H; ++i)
+        CHECK_EQ_HEX(frame[i], palette[native[i] & 0x01ffu]);
+}
+
+static void check_presentation_reload_retention(void)
+{
+    static uint8_t image[16u + 8u * INES_PRG_BANK + 2u * INES_CHR_BANK];
+    nesturbator_config cfg;
+    nesturbator *direct = NULL;
+    struct retro_game_info game;
+    size_t image_size;
+    uint16_t entry = 0u;
+
+    image_size = build_presentation_image(image, sizeof image, 0u, NESTURBATOR_REGION_PAL, &entry);
+    CHECK(image_size != 0u);
+    CHECK(entry != 0u);
+    if (image_size == 0u)
+        return;
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK_EQ_U64(nesturbator_create(&cfg, &direct), NESTURBATOR_OK);
+    if (direct == NULL)
+        return;
+
+    memset(&game, 0, sizeof game);
+    game.data = image;
+    game.size = image_size;
+    host_region_value = "NTSC"; /* Explicit PAL metadata wins this preference. */
+    CHECK(p_load_game(&game));
+    CHECK_EQ_U64(nesturbator_load_cartridge_region(direct, image, image_size,
+                                                   NESTURBATOR_REGION_PREFERENCE_NTSC),
+                 NESTURBATOR_OK);
+    CHECK_EQ_U64(p_get_region(), NESTURBATOR_REGION_PAL);
+    check_presentation_callback_frame(direct);
+
+    image_size = build_presentation_image(image, sizeof image, 0u, NESTURBATOR_REGION_NTSC, &entry);
+    CHECK(image_size != 0u);
+    if (image_size == 0u)
+        goto done;
+    game.data = image;
+    game.size = image_size;
+    host_region_value = "PAL"; /* Explicit NTSC metadata wins this preference. */
+    CHECK(p_load_game(&game));
+    CHECK_EQ_U64(nesturbator_load_cartridge_region(direct, image, image_size,
+                                                   NESTURBATOR_REGION_PREFERENCE_PAL),
+                 NESTURBATOR_OK);
+    CHECK_EQ_U64(p_get_region(), NESTURBATOR_REGION_NTSC);
+    check_presentation_callback_frame(direct);
+
+    image[12] = 3u; /* Dendy is rejected, leaving NTSC content and palette active. */
+    CHECK(!p_load_game(&game));
+    CHECK_EQ_U64(nesturbator_load_cartridge_region(direct, image, image_size,
+                                                   NESTURBATOR_REGION_PREFERENCE_AUTO),
+                 NESTURBATOR_ERR_CARTRIDGE);
+    CHECK_EQ_U64(p_get_region(), NESTURBATOR_REGION_NTSC);
+    CHECK_EQ_U64(nesturbator_get_region(direct), NESTURBATOR_REGION_NTSC);
+    check_presentation_callback_frame(direct);
+
+done:
+    nesturbator_destroy(direct);
+    p_unload_game();
+    host_region_value = "Auto";
+}
+
+static void check_region_selection_matrix(const char *runner, const char *base_path)
+{
+    static const struct {
+        const char *name;
+        bool nes2;
+        uint8_t timing;
+    } cases[] = {{"ntsc", true, 0u},
+                 {"pal", true, 1u},
+                 {"multi", true, 2u},
+                 {"legacy", false, 0u},
+                 {"dendy", true, 3u}};
+    static const enum nesturbator_region_preference preferences[] = {
+        NESTURBATOR_REGION_PREFERENCE_AUTO, NESTURBATOR_REGION_PREFERENCE_NTSC,
+        NESTURBATOR_REGION_PREFERENCE_PAL};
+    static const char *const host_values[] = {"Auto", "NTSC", "PAL"};
+    static const char *const runner_values[] = {"auto", "ntsc", "pal"};
+    static uint8_t image[16u + INES_PRG_BANK + INES_CHR_BANK];
+    static uint16_t native[W * H];
+    static int16_t audio[AUDIO_CAPTURE_CAPACITY];
+    nesturbator_config cfg;
+    nesturbator *direct = NULL;
+    nesturbator_info native_info;
+    nesturbator_frame io;
+    struct retro_game_info game;
+    bool single_sample_checked = false;
+
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK_EQ_U64(nesturbator_create(&cfg, &direct), NESTURBATOR_OK);
+    if (direct == NULL)
+        return;
+    p_unload_game();
+    p_set_audio_sample(sample);
+    p_set_audio_sample_batch(batch);
+    for (size_t c = 0u; c < sizeof cases / sizeof cases[0]; ++c) {
+        const size_t size = build_region_image(image, sizeof image, cases[c].nes2, cases[c].timing);
+        char fixture_path[4096];
+        char output_path[4096];
+        char info_output_path[4096];
+        CHECK(size != 0u);
+        if (size == 0u)
+            continue;
+        const int fixture_path_length = snprintf(fixture_path, sizeof fixture_path,
+                                                 "%s.region-%s.nes", base_path, cases[c].name);
+        CHECK(fixture_path_length > 0 && (size_t)fixture_path_length < sizeof fixture_path);
+        if (fixture_path_length <= 0 || (size_t)fixture_path_length >= sizeof fixture_path)
+            continue;
+        CHECK(write_region_fixture(fixture_path, image, size));
+        const bool output_path_valid =
+            copy_path_with_suffix(output_path, sizeof output_path, fixture_path, ".output");
+        const bool info_output_path_valid =
+            copy_path_with_suffix(info_output_path, sizeof info_output_path, fixture_path, ".info");
+        CHECK(output_path_valid);
+        CHECK(info_output_path_valid);
+        if (!output_path_valid || !info_output_path_valid) {
+            remove(fixture_path);
+            continue;
+        }
+        memset(&game, 0, sizeof game);
+        game.data = image;
+        game.size = size;
+
+        for (size_t p = 0u; p < sizeof preferences / sizeof preferences[0]; ++p) {
+            const bool dendy = cases[c].nes2 && cases[c].timing == 3u;
+            const enum nesturbator_region before_direct = nesturbator_get_region(direct);
+            const enum nesturbator_region before_adapter = p_get_region();
+            const nesturbator_status direct_status =
+                nesturbator_load_cartridge_region(direct, image, size, preferences[p]);
+            const unsigned get_variable_before = region_variable_calls;
+            const char *const runner_args[] = {runner, "--rom",    fixture_path,     "--frames",
+                                               "1",    "--region", runner_values[p], "--hash-frame",
+                                               "1",    NULL};
+            const char *const runner_info_args[] = {
+                runner,           "--rom",        fixture_path, "--frames", "1", "--region",
+                runner_values[p], "--hash-frame", "1",          "--info",   NULL};
+            host_region_value = host_values[p];
+
+            if (dendy) {
+                CHECK_EQ_U64(direct_status, NESTURBATOR_ERR_CARTRIDGE);
+                CHECK_EQ_U64(nesturbator_get_region(direct), before_direct);
+                CHECK(!p_load_game(&game));
+                CHECK_EQ_U64(region_variable_calls, get_variable_before + 1u);
+                CHECK_EQ_U64(p_get_region(), before_adapter);
+                check_region_av_info(before_adapter);
+                CHECK(test_process_run(runner_args, output_path) != 0);
+                CHECK(test_process_run(runner_info_args, info_output_path) != 0);
+                CHECK(!file_has_runner_info_record(info_output_path));
+                remove(info_output_path);
+                remove(output_path);
+                continue;
+            }
+
+            CHECK_EQ_U64(direct_status, NESTURBATOR_OK);
+            CHECK_EQ_U64(nesturbator_get_region(direct),
+                         expected_region(cases[c].nes2, cases[c].timing, preferences[p]));
+            CHECK(p_load_game(&game));
+            CHECK_EQ_U64(region_variable_calls, get_variable_before + 1u);
+            CHECK_EQ_U64(p_get_region(), nesturbator_get_region(direct));
+            CHECK_EQ_U64(p_get_region(),
+                         expected_region(cases[c].nes2, cases[c].timing, preferences[p]));
+            memset(&native_info, 0, sizeof native_info);
+            native_info.size = (uint32_t)sizeof native_info;
+            nesturbator_get_info(direct, &native_info);
+            CHECK_EQ_U64(native_info.width, W);
+            CHECK_EQ_U64(native_info.height, H);
+            if (nesturbator_get_region(direct) == NESTURBATOR_REGION_PAL) {
+                CHECK_EQ_U64(native_info.fps_num, 322445u);
+                CHECK_EQ_U64(native_info.fps_den, 6448u);
+                CHECK_EQ_U64(native_info.sample_rate_num, 48000u);
+                CHECK_EQ_U64(native_info.sample_rate_den, 1u);
+            } else {
+                CHECK_EQ_U64(native_info.fps_num, 39375000u);
+                CHECK_EQ_U64(native_info.fps_den, 655171u);
+                CHECK_EQ_U64(native_info.sample_rate_num, 48000u);
+                CHECK_EQ_U64(native_info.sample_rate_den, 1u);
+            }
+            check_region_av_info(nesturbator_get_region(direct));
+            memset(&io, 0, sizeof io);
+            io.size = (uint32_t)sizeof io;
+            io.video = native;
+            io.video_pitch = W;
+            io.audio = audio;
+            io.audio_capacity = AUDIO_CAPTURE_CAPACITY;
+            CHECK_EQ_U64(nesturbator_run_frame(direct, &io), NESTURBATOR_OK);
+            CHECK(io.audio_count <= AUDIO_CAPTURE_CAPACITY);
+            if (nesturbator_get_region(direct) == NESTURBATOR_REGION_PAL)
+                CHECK(io.audio_count == 959u || io.audio_count == 960u);
+            else
+                CHECK(io.audio_count == 798u || io.audio_count == 799u);
+
+            video_calls = 0;
+            batch_calls = 0;
+            batch_frames = 0u;
+            p_run();
+            CHECK_EQ_U64(video_calls, 1u);
+            CHECK_EQ_U64(video_width, W);
+            CHECK_EQ_U64(video_height, H);
+            CHECK(video_pitch >= W * sizeof(uint32_t));
+            CHECK_EQ_U64(batch_calls, 1u);
+            CHECK_EQ_U64(batch_frames, io.audio_count);
+            for (size_t i = 0u; i < io.audio_count; ++i) {
+                CHECK(batch_samples[i * 2u] == audio[i]);
+                CHECK(batch_samples[i * 2u + 1u] == audio[i]);
+            }
+            CHECK_EQ_U64(p_get_region(), nesturbator_get_region(direct));
+            CHECK(test_process_run(runner_args, output_path) == 0);
+            {
+                uint64_t runner_ticks = 0u;
+                CHECK(read_runner_ticks(output_path, &runner_ticks));
+                CHECK_EQ_U64(runner_ticks, io.ticks);
+            }
+            {
+                runner_profile_info profile = {0};
+                const enum nesturbator_region expected =
+                    expected_region(cases[c].nes2, cases[c].timing, preferences[p]);
+                const int info_status = test_process_run(runner_info_args, info_output_path);
+                CHECK(info_status == 0);
+                if (info_status == 0) {
+                    const bool parsed = read_runner_info(info_output_path, &profile);
+                    CHECK(parsed);
+                    if (parsed) {
+                        CHECK_EQ_U64(profile.region, expected);
+                        if (expected == NESTURBATOR_REGION_PAL) {
+                            CHECK_EQ_U64(profile.fps_num, 322445u);
+                            CHECK_EQ_U64(profile.fps_den, 6448u);
+                        } else {
+                            CHECK_EQ_U64(profile.fps_num, 39375000u);
+                            CHECK_EQ_U64(profile.fps_den, 655171u);
+                        }
+                        CHECK_EQ_U64(profile.sample_rate_num, 48000u);
+                        CHECK_EQ_U64(profile.sample_rate_den, 1u);
+                    }
+                    CHECK(runner_output_matches_without_info(info_output_path, output_path));
+                }
+                remove(info_output_path);
+            }
+            remove(output_path);
+
+            if (!single_sample_checked &&
+                nesturbator_get_region(direct) == NESTURBATOR_REGION_PAL) {
+                p_set_audio_sample(sample);
+                p_set_audio_sample_batch(NULL);
+                sample_calls = 0;
+                p_run();
+                CHECK(sample_calls == 959 || sample_calls == 960);
+                CHECK(sample_calls <= (int)AUDIO_CAPTURE_CAPACITY);
+                p_set_audio_sample_batch(batch);
+                single_sample_checked = true;
+            }
+        }
+        remove(fixture_path);
+    }
+    nesturbator_destroy(direct);
+    host_region_value = "Auto";
+}
+
+static void check_region_option_lifecycle(const char *base_path)
+{
+    static uint8_t image[16u + INES_PRG_BANK + INES_CHR_BANK];
+    struct retro_game_info game;
+    char fixture_path[4096];
+    const size_t size = build_region_image(image, sizeof image, true, 2u);
+
+    CHECK(size != 0u);
+    if (size == 0u)
+        return;
+    snprintf(fixture_path, sizeof fixture_path, "%s.region-lifecycle.nes", base_path);
+    CHECK(write_region_fixture(fixture_path, image, size));
+    memset(&game, 0, sizeof game);
+    game.data = image;
+    game.size = size;
+
+    p_unload_game();
+    runtime_av_update_calls = 0u;
+    CHECK_EQ_U64(p_get_region(), RETRO_REGION_NTSC);
+    check_region_av_info(RETRO_REGION_NTSC);
+    host_get_variable_available = true;
+    host_region_value = "Auto";
+    {
+        const unsigned before = region_variable_calls;
+        CHECK(p_load_game(&game));
+        CHECK_EQ_U64(region_variable_calls, before + 1u);
+    }
+    CHECK_EQ_U64(p_get_region(), RETRO_REGION_NTSC);
+    check_region_av_info(RETRO_REGION_NTSC);
+    {
+        const unsigned before = region_variable_calls;
+        host_region_value = "PAL";
+        p_reset();
+        CHECK_EQ_U64(p_get_region(), RETRO_REGION_NTSC);
+        check_region_av_info(RETRO_REGION_NTSC);
+        p_run();
+        CHECK_EQ_U64(p_get_region(), RETRO_REGION_NTSC);
+        CHECK_EQ_U64(region_variable_calls, before);
+    }
+    p_unload_game();
+    {
+        const unsigned before = region_variable_calls;
+        CHECK(p_load_game(&game));
+        CHECK_EQ_U64(region_variable_calls, before + 1u);
+    }
+    CHECK_EQ_U64(p_get_region(), RETRO_REGION_PAL);
+    check_region_av_info(RETRO_REGION_PAL);
+    {
+        const unsigned before = region_variable_calls;
+        host_region_value = "NTSC";
+        p_reset();
+        CHECK_EQ_U64(p_get_region(), RETRO_REGION_PAL);
+        check_region_av_info(RETRO_REGION_PAL);
+        p_run();
+        CHECK_EQ_U64(p_get_region(), RETRO_REGION_PAL);
+        check_region_av_info(RETRO_REGION_PAL);
+        CHECK_EQ_U64(region_variable_calls, before);
+    }
+    {
+        const uint8_t original_timing = image[12];
+        image[12] = 3u;
+        CHECK(!p_load_game(&game));
+        CHECK_EQ_U64(p_get_region(), RETRO_REGION_PAL);
+        check_region_av_info(RETRO_REGION_PAL);
+        image[12] = original_timing;
+    }
+    p_unload_game();
+    CHECK_EQ_U64(p_get_region(), RETRO_REGION_NTSC);
+    check_region_av_info(RETRO_REGION_NTSC);
+    host_region_value = "NTSC";
+    CHECK(p_load_game(&game));
+    CHECK_EQ_U64(p_get_region(), RETRO_REGION_NTSC);
+    check_region_av_info(RETRO_REGION_NTSC);
+
+    /* Unknown and missing values, and an unavailable GET_VARIABLE, mean Auto. */
+    host_region_value = "Dendy";
+    p_unload_game();
+    CHECK(p_load_game(&game));
+    CHECK_EQ_U64(p_get_region(), RETRO_REGION_NTSC);
+    host_region_value = NULL;
+    p_unload_game();
+    CHECK(p_load_game(&game));
+    CHECK_EQ_U64(p_get_region(), RETRO_REGION_NTSC);
+    host_get_variable_available = false;
+    p_unload_game();
+    CHECK(p_load_game(&game));
+    CHECK_EQ_U64(p_get_region(), RETRO_REGION_NTSC);
+    host_get_variable_available = true;
+
+    host_region_value = "PAL";
+    p_unload_game();
+    CHECK(p_load_game(&game));
+    CHECK_EQ_U64(p_get_region(), RETRO_REGION_PAL);
+    check_region_av_info(RETRO_REGION_PAL);
+    {
+        const unsigned before = region_variable_calls;
+        CHECK(p_load_game(NULL));
+        CHECK_EQ_U64(region_variable_calls, before);
+    }
+    CHECK_EQ_U64(p_get_region(), RETRO_REGION_NTSC);
+    check_region_av_info(RETRO_REGION_NTSC);
+    p_unload_game();
+    CHECK_EQ_U64(p_get_region(), RETRO_REGION_NTSC);
+    check_region_av_info(RETRO_REGION_NTSC);
+    CHECK_EQ_U64(runtime_av_update_calls, 0u);
+    host_region_value = "Auto";
+    remove(fixture_path);
+}
+
+static void check_pal_state_size(const char *base_path)
+{
+    static uint8_t image[16u + INES_PRG_BANK + INES_CHR_BANK];
+    struct retro_game_info game;
+    nesturbator_config config;
+    nesturbator *ntsc = NULL;
+    uint8_t *pal_state = NULL, *roundtrip = NULL, *cross_state = NULL;
+    char fixture_path[4096];
+    size_t state_size;
+    const size_t image_size = build_region_image(image, sizeof image, true, 2u);
+
+    CHECK(image_size != 0u);
+    if (image_size == 0u)
+        return;
+    snprintf(fixture_path, sizeof fixture_path, "%s.region-pal-state.nes", base_path);
+    CHECK(write_region_fixture(fixture_path, image, image_size));
+    memset(&game, 0, sizeof game);
+    game.data = image;
+    game.size = image_size;
+    p_unload_game();
+    host_get_variable_available = true;
+    host_region_value = "PAL";
+    CHECK(p_load_game(&game));
+    CHECK_EQ_U64(p_get_region(), RETRO_REGION_PAL);
+    state_size = p_serialize_size();
+    CHECK(state_size > 64u);
+    if (state_size <= 64u)
+        goto done;
+    pal_state = (uint8_t *)malloc(state_size);
+    roundtrip = (uint8_t *)malloc(state_size);
+    cross_state = (uint8_t *)malloc(state_size);
+    CHECK(pal_state != NULL && roundtrip != NULL && cross_state != NULL);
+    if (pal_state == NULL || roundtrip == NULL || cross_state == NULL)
+        goto done;
+
+    CHECK(p_serialize(pal_state, state_size));
+    CHECK_EQ_U64(pal_state[23], 1u);
+    for (unsigned frame_index = 0u; frame_index < 3u; ++frame_index) {
+        p_run();
+        CHECK_EQ_U64(p_serialize_size(), state_size);
+    }
+    p_reset();
+    CHECK_EQ_U64(p_get_region(), RETRO_REGION_PAL);
+    CHECK_EQ_U64(p_serialize_size(), state_size);
+    CHECK(p_unserialize(pal_state, state_size));
+    CHECK_EQ_U64(p_serialize_size(), state_size);
+    CHECK(p_serialize(roundtrip, state_size));
+    CHECK(memcmp(roundtrip, pal_state, state_size) == 0);
+
+    memset(&config, 0, sizeof config);
+    config.size = (uint32_t)sizeof config;
+    config.abi = NESTURBATOR_ABI_VERSION;
+    CHECK_EQ_U64(nesturbator_create(&config, &ntsc), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_load_cartridge_region(ntsc, image, image_size,
+                                                   NESTURBATOR_REGION_PREFERENCE_NTSC),
+                 NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_state_size(ntsc), state_size);
+    CHECK_EQ_U64(nesturbator_save_state(ntsc, cross_state, state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(cross_state[23], 0u);
+    CHECK(!p_unserialize(cross_state, state_size));
+    CHECK_EQ_U64(p_serialize_size(), state_size);
+    CHECK(p_serialize(roundtrip, state_size));
+    CHECK(memcmp(roundtrip, pal_state, state_size) == 0);
+
+    /* The option is sampled only on content load. A changed host value does not change the active
+       PAL profile or the module's fixed serialization length. */
+    host_region_value = "NTSC";
+    p_run();
+    CHECK_EQ_U64(p_get_region(), RETRO_REGION_PAL);
+    CHECK_EQ_U64(p_serialize_size(), state_size);
+    p_reset();
+    CHECK_EQ_U64(p_get_region(), RETRO_REGION_PAL);
+    CHECK_EQ_U64(p_serialize_size(), state_size);
+    printf("PAL libretro state size: %lu bytes fixed across frames, reset, restore, region refusal "
+           "and option change\n",
+           (unsigned long)state_size);
+
+done:
+    free(pal_state);
+    free(roundtrip);
+    free(cross_state);
+    nesturbator_destroy(ntsc);
+    p_unload_game();
+    host_region_value = "Auto";
+    remove(fixture_path);
+}
+
+static void check_region_option_registration_modes(const char *base_path)
+{
+    static uint8_t image[16u + INES_PRG_BANK + INES_CHR_BANK];
+    struct retro_game_info game;
+    char fixture_path[4096];
+    const size_t size = build_region_image(image, sizeof image, true, 2u);
+
+    CHECK(size != 0u);
+    if (size == 0u)
+        return;
+    snprintf(fixture_path, sizeof fixture_path, "%s.region-options-mode.nes", base_path);
+    CHECK(write_region_fixture(fixture_path, image, size));
+    memset(&game, 0, sizeof game);
+    game.data = image;
+    game.size = size;
+
+    p_unload_game();
+    p_deinit();
+    host_options_version_available = true;
+    host_options_version = 1u;
+    host_legacy_options_available = true;
+    host_get_variable_available = true;
+    legacy_options_calls = 0u;
+    v2_options_calls = 0u;
+    region_option_definition_valid = false;
+    host_region_value = "PAL";
+    p_set_environment(env);
+    p_init();
+    CHECK_EQ_U64(v2_options_calls, 0u);
+    CHECK_EQ_U64(legacy_options_calls, 1u);
+    CHECK(region_option_definition_valid);
+    CHECK(p_load_game(&game));
+    CHECK_EQ_U64(p_get_region(), RETRO_REGION_PAL);
+
+    p_unload_game();
+    p_deinit();
+    host_options_version_available = false;
+    host_legacy_options_available = false;
+    host_get_variable_available = false;
+    legacy_options_calls = 0u;
+    v2_options_calls = 0u;
+    p_set_environment(env);
+    p_init();
+    CHECK_EQ_U64(legacy_options_calls, 1u);
+    CHECK(region_option_definition_valid);
+    CHECK(p_load_game(&game));
+    CHECK_EQ_U64(p_get_region(), RETRO_REGION_NTSC);
+    check_region_av_info(RETRO_REGION_NTSC);
+    p_unload_game();
+    p_deinit();
+
+    host_options_version_available = true;
+    host_options_version = 2u;
+    host_legacy_options_available = true;
+    host_get_variable_available = true;
+    host_region_value = "Auto";
+    remove(fixture_path);
+}
+
 int main(int argc, char **argv)
 {
     struct retro_system_info sys;
@@ -3751,6 +5132,7 @@ int main(int argc, char **argv)
                         "<generated.nes>\n");
         return 2;
     }
+    test_runner_parser_line_endings(argv[5]);
     if (!module_open(argv[1])) {
         fprintf(stderr, "cannot load %s\n", argv[1]);
         return 1;
@@ -3768,6 +5150,9 @@ int main(int argc, char **argv)
     p_set_environment(env);
     CHECK_EQ_U64(no_game_calls, 1);
     CHECK_EQ_U64(no_game_value, 1);
+    CHECK_EQ_U64(v2_options_calls, 1u);
+    CHECK_EQ_U64(legacy_options_calls, 0u);
+    CHECK(region_option_definition_valid);
 
     p_init();
 
@@ -3852,6 +5237,11 @@ int main(int argc, char **argv)
     check_unload_edges();
     check_jam_presentation(jam_base, sizeof jam_base);
     check_sound_frame_parity(dummy_bytes, sizeof dummy_bytes);
+    check_region_selection_matrix(argv[4], argv[5]);
+    check_regional_presentation_matrix(argv[4], argv[5]);
+    check_presentation_reload_retention();
+    check_region_option_lifecycle(argv[5]);
+    check_pal_state_size(argv[5]);
     video_calls = 0;
     sample_calls = 0;
     batch_calls = 0;
@@ -3897,6 +5287,7 @@ int main(int argc, char **argv)
     /* FRAME-04: the same frame the runner writes. */
     compare_with_ppm(argv[2]);
 
+    check_region_option_registration_modes(argv[5]);
     p_unload_game();
     p_deinit();
     module_close();

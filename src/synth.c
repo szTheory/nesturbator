@@ -2694,7 +2694,8 @@ static int16_t pcm_sample(int64_t value_q30)
     return (int16_t)value;
 }
 
-static int32_t interpolate_coefficient(unsigned phase, unsigned tap, uint32_t phase_fraction)
+static int32_t interpolate_coefficient(unsigned phase, unsigned tap, uint32_t phase_fraction,
+                                       uint32_t phase_denominator)
 {
     int32_t a = nesturbator__synth_kernel[phase][tap];
     int32_t b;
@@ -2706,10 +2707,8 @@ static int32_t interpolate_coefficient(unsigned phase, unsigned tap, uint32_t ph
         b = tap == 0u ? 0 : nesturbator__synth_kernel[0][tap - 1u];
     }
     int64_t numerator = (int64_t)(b - a) * phase_fraction;
-    int64_t delta = numerator >= 0 ? (numerator + (NESTURBATOR_AUDIO_TICKS_PER_PERIOD / 2u)) /
-                                         NESTURBATOR_AUDIO_TICKS_PER_PERIOD
-                                   : -((-numerator + (NESTURBATOR_AUDIO_TICKS_PER_PERIOD / 2u)) /
-                                       NESTURBATOR_AUDIO_TICKS_PER_PERIOD);
+    int64_t delta = numerator >= 0 ? (numerator + (phase_denominator / 2u)) / phase_denominator
+                                   : -((-numerator + (phase_denominator / 2u)) / phase_denominator);
     return (int32_t)((int64_t)a + delta);
 }
 
@@ -2726,17 +2725,17 @@ void nesturbator__synth_transition(struct nesturbator *nes, int32_t level)
     if (delta == 0)
         return;
 
-    uint32_t phase_numerator = nes->apu.sample_phase * NESTURBATOR_SYNTH_PHASES;
-    unsigned phase = (unsigned)(phase_numerator / NESTURBATOR_AUDIO_TICKS_PER_PERIOD);
-    uint32_t phase_fraction = phase_numerator % NESTURBATOR_AUDIO_TICKS_PER_PERIOD;
+    const uint32_t phase_denominator = nesturbator__sample_ticks_denominator(nes);
+    uint64_t phase_numerator = (uint64_t)nes->apu.sample_phase * NESTURBATOR_SYNTH_PHASES;
+    unsigned phase = (unsigned)(phase_numerator / phase_denominator);
+    uint32_t phase_fraction = (uint32_t)(phase_numerator % phase_denominator);
     int32_t coefficients[NESTURBATOR_SYNTH_TAPS];
     int32_t sum = 0;
     for (unsigned tap = 0u; tap < NESTURBATOR_SYNTH_TAPS; tap++) {
-        coefficients[tap] = interpolate_coefficient(phase, tap, phase_fraction);
+        coefficients[tap] = interpolate_coefficient(phase, tap, phase_fraction, phase_denominator);
         sum += coefficients[tap];
     }
-    unsigned correction_tap =
-        nes->apu.sample_phase < NESTURBATOR_AUDIO_TICKS_PER_PERIOD / 2u ? 7u : 8u;
+    unsigned correction_tap = nes->apu.sample_phase < phase_denominator / 2u ? 7u : 8u;
     coefficients[correction_tap] += 32768 - sum;
     for (unsigned tap = 0u; tap < NESTURBATOR_SYNTH_TAPS; tap++) {
         unsigned slot = (unsigned)(synth->impulse_head + tap) & (NESTURBATOR_SYNTH_TAPS - 1u);

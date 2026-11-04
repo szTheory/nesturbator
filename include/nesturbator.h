@@ -54,7 +54,44 @@ extern "C" {
 #define NESTURBATOR_ABI_VERSION 1
 
 /* Raised whenever emulated behaviour changes the frame or audio output for
-   the same inputs. Revision 9 retains an accepted IRQ at the instruction's
+   the same inputs. Revision 17 models ordinary PAL DMC halts at opcode-fetch
+   SYNC cycles, following the reported 2A07 trace and its authors' SYNC
+   interpretation (https://forums.nesdev.org/viewtopic.php?p=300930). The
+   trace addresses are observations; SYNC is an interpretation. The owned
+   fixture tests this model against an any-read control, not against hardware.
+   Later no-op-cycle bus behavior and direct hardware proof remain unresolved.
+   See NESdev DMA and DPCM-conflict references for the documented context.
+   This adds no saved field: native format 6 and ABI 1 remain unchanged.
+   Revision 16 adds source-derived PAL noise/DMC rate tables,
+   PAL frame-sequencer cursors and phase-continuous PAL PCM. The documented PAL
+   $4017 delay equivalence is an assumption, not direct hardware proof.
+   At revision 15, PAL state continuation was not yet supported. Phase 26
+   enables same-region continuation under format 6; region identity is stored
+   at the existing header byte. Cross-region states are refused. The
+   source-derived PAL model is not direct hardware proof.
+   Revision 14 reconnects undriven reads to the external bus
+   after $4015 selection ends, completes imminent/armed explicit refills, and
+   keeps a just-fetched byte unavailable to the immediate next output edge.
+   That last ordering is inferred from the pinned early-G looping sweep,
+   not a universal silicon timing claim (HWC.19). Its synchronous bus-local
+   readiness adds no saved field; native format 6 and ABI 1 are unchanged.
+   Revision 13 retains the one-cycle abort after an explicit
+   or implicit stop two/three clocks before reload. A write suppresses it,
+   while ordinary sample requests still retry. The selected early RP2A03G
+   model omits the later-G/H unexpected reload; the pinned ROM still accepts
+   both revision-dependent outcomes (HWC.01/19).
+   Revision 12 separates internal CPU and external data latches.
+   DMC GET selects internal $4015-$4017 using parked core A15:5 and sample
+   A4:0. Status reads preserve external data; controllers merge its upper bits
+   (HWC.01/19). The existing per-cycle controller-clock profile is retained;
+   pinned test coverage does not establish DMC shift-register input.
+   Revision 11 overlaps DMC halt/dummy/alignment with OAM
+   accesses. DMC sample GET wins a collision; OAM resumes on GET without losing
+   a byte. Interior collisions add two cycles; final windows can add one or
+   three (HWC.01). Revision 10 keeps the DMC output bit clock running through
+   eight-clock silent cycles. A later sample waits for that cycle boundary;
+   $4015 re-enables preserve the phase (HWC.23, Output Unit).
+   Revision 9 retains an accepted IRQ at the instruction's
    hardware poll point, using the old I flag for CLI, SEI and PLP. Branches
    preserve their first poll across later cycles and add the page-cross poll;
    a captured acceptance survives later source clearing until entry arbitration.
@@ -78,27 +115,32 @@ extern "C" {
    an NMI only when bit 7 changes from 0 to 1 while the vblank flag is set, so a
    game that rewrites $2000 inside its NMI handler no longer re-enters NMI.
    Revision 5 was the PPU fetch pipeline. */
-#define NESTURBATOR_BEHAVIOUR_REVISION 9
+#define NESTURBATOR_BEHAVIOUR_REVISION 17
 
 /* The layout of the bytes nesturbator_save_state writes, and the only layout
    nesturbator_load_state reads. Any other version is refused with
    NESTURBATOR_ERR_STATE_FORMAT; there is no converter. Before the first release that contains
    save states it stays 1 and the layout may change. After that release, any change to the state
    bytes (a field added, removed, reordered or resized, or its meaning changed) raises it in the
-   same commit. Version 3 records the CPU's sampled NMI-line, captured-request and instruction-poll
-   histories, retained close-edge IRQ level, accepted IRQ history, and the CPU entry origin,
-   next unperformed bus action, selected vector pair and partial vector-low byte; version 1 and 2
-   states are refused with NESTURBATOR_ERR_STATE_FORMAT. Completed interrupt-entry actions form
-   internal load cutpoints; ordinary instruction and frame execution drains a restored entry before
-   returning to the next instruction boundary. Public frame calls remain synchronous and do not
-   expose a mid-entry stop. Derived sprite eligibility is rebuilt on load;
-   the first CPU clock also reconciles restored synthesis history with channel
-   levels, even without an oscillator event. These caches add no saved bytes.
-   A fix that changes
-   only emulated output raises NESTURBATOR_BEHAVIOUR_REVISION instead, which a state records but a
-   load does not enforce. Raising it is not a breaking change to the C interface and leaves
+   same commit. Version 6 adds the one-shot abort countdown, preserving a
+   halt due in one to three future CPU clocks; formats 1 through 5 are refused
+   without conversion. Version 5 added the internal CPU data latch, preserving external
+   held data independently; formats 1 through 4 are refused without conversion.
+   Version 4 recorded the DMC output silence flag and its continuous
+   bit-cycle position, including silent cycles; version 3 states are refused
+   rather than guessing the missing phase. Version 3 records the CPU's sampled NMI-line,
+   captured-request and instruction-poll histories, retained close-edge IRQ level, accepted IRQ
+   history, and the CPU entry origin, next unperformed bus action, selected vector pair and partial
+   vector-low byte; version 1 and 2 states are refused with NESTURBATOR_ERR_STATE_FORMAT. Completed
+   interrupt-entry actions form internal load cutpoints; ordinary instruction and frame execution
+   drains a restored entry before returning to the next instruction boundary. Public frame calls
+   remain synchronous and do not expose a mid-entry stop. Derived sprite eligibility is rebuilt on
+   load; the first CPU clock also reconciles restored synthesis history with channel levels, even
+   without an oscillator event. These caches add no saved bytes. A fix that changes only emulated
+   output raises NESTURBATOR_BEHAVIOUR_REVISION instead, which a state records but a load does not
+   enforce. Raising it is not a breaking change to the C interface and leaves
    NESTURBATOR_ABI_VERSION as it is. */
-#define NESTURBATOR_STATE_FORMAT_VERSION 3
+#define NESTURBATOR_STATE_FORMAT_VERSION 6
 
 /* Result of a call. Values are fixed and only appended. */
 enum nesturbator_status {
@@ -133,6 +175,17 @@ enum nesturbator_status {
     /* The CRC-32 matches, but a field is out of range, the header size is not 64 or a reserved
        byte is not zero: the state did not come from this library. */
     NESTURBATOR_ERR_STATE_INVALID = 12
+};
+
+/* The effective machine region selected for a loaded cartridge. */
+enum nesturbator_region { NESTURBATOR_REGION_NTSC = 0, NESTURBATOR_REGION_PAL = 1 };
+
+/* A host preference is supplied per load. Auto and contradictory preferences
+   do not override explicit single-region NES version-two metadata. */
+enum nesturbator_region_preference {
+    NESTURBATOR_REGION_PREFERENCE_AUTO = 0,
+    NESTURBATOR_REGION_PREFERENCE_NTSC = 1,
+    NESTURBATOR_REGION_PREFERENCE_PAL = 2
 };
 typedef enum nesturbator_status nesturbator_status;
 
@@ -206,12 +259,13 @@ typedef struct nesturbator_input {
     { (uint32_t)sizeof(nesturbator_config), NESTURBATOR_ABI_VERSION, { NULL, NULL, NULL } }
 /* clang-format on */
 
-/* Output of nesturbator_get_info. Rates are exact fractions num/den. */
+/* Output of nesturbator_get_info. Rates are exact fractions num/den. Query
+   nesturbator_get_region separately to identify the effective loaded profile. */
 typedef struct nesturbator_info {
     uint32_t size;    /* in: sizeof(nesturbator_info) */
     uint32_t width;   /* pixels per row of the video output: 256 */
     uint32_t height;  /* rows of the video output: 240 */
-    uint32_t fps_num; /* frames per second, NTSC: 39375000 / 655171 */
+    uint32_t fps_num; /* NTSC: 39375000 / 655171; PAL: 322445 / 6448 */
     uint32_t fps_den;
     uint32_t sample_rate_num; /* audio samples per second: 48000 / 1 */
     uint32_t sample_rate_den;
@@ -239,14 +293,17 @@ typedef struct nesturbator_info {
  * `$4014` queues an OAM DMA. The next CPU read is
  * halted while it reads one 256-byte page through the normal bus and writes
  * OAM starting at `$2003`'s address; it stalls the CPU for 513 or 514 cycles
- * by cycle parity while PPU time continues.
+ * by cycle parity while PPU time continues. DMC no-access phases can overlap
+ * OAM; a DMC GET takes priority and OAM retries the unconsumed source on GET.
+ * The usual overlap adds two cycles, with one/three-cycle final windows (HWC.01).
  *
  * Audio: mono signed 16-bit samples at the info sample rate. The libretro
  * adapter duplicates each sample into left and right channels, preferring its
  * batch callback and using the single-sample callback only when batch is
- * unavailable (libretro.h L7453, L7465). A frame yields
- * 798 or 799 samples; the fraction carries over to the next frame. The
- * pulse, triangle, noise and DMC state advances on CPU bus cycles and
+ * unavailable (libretro.h L7453, L7465). A frame yields 798 or 799 samples
+ * on NTSC and 959 or 960 on PAL; the exact fraction carries over to the next
+ * frame. With no cartridge loaded, the test card and audio keep NTSC timing.
+ * The pulse, triangle, noise and DMC state advances on CPU bus cycles and
  * contributes its DAC level to PCM. A DMC halt blocked by a CPU write retries
  * on the following CPU cycle; its sample read stays on GET, followed by the
  * resumed CPU read (HWC.01). With no cartridge loaded, every sample is
@@ -277,9 +334,10 @@ typedef struct nesturbator_frame {
                                 nesturbator_load_state,
                                 including the 7 CPU cycles of
                                 each nesturbator_reset; instructions may carry residual
-                                ticks across the nominal 714732-tick boundary.
-                                PPU vblank begins at scanline 241 dot 1 and ends
-                                at scanline 261 dot 1; a status read just before
+                                ticks across the nominal 714732-tick NTSC or 1063920-tick
+                                PAL boundary.
+                                On NTSC, PPU vblank begins at scanline 241 dot 1
+                                and ends at scanline 261 dot 1; a status read just before
                                 the start dot suppresses that frame's NMI edge.
                                 A $2000 write raises an NMI only when bit 7
                                 changes from 0 to 1 while vblank is set;
@@ -366,12 +424,60 @@ void nesturbator_destroy(nesturbator *inst);
    0, 2, 3 and 7 refuse the battery bit and every RAM size. Other mappers, unsupported
    console/region/RAM profiles, malformed headers, truncation, extra payload, and images above 64
    MiB return NESTURBATOR_ERR_CARTRIDGE before cartridge allocation and leave a previously loaded
-   cartridge untouched. Allocation failure returns NESTURBATOR_ERR_NO_MEMORY. A loaded image starts
-   the CPU at the reset vector read through the board's power-on banks. An image whose mapper has no
-   board is refused before any allocation. Every rejection returns
+   cartridge untouched. NES version-two NTSC/PAL timing metadata is honored, multi-region and legacy
+   iNES default to NTSC, and Dendy is refused. Allocation failure returns NESTURBATOR_ERR_NO_MEMORY.
+   A loaded image starts the CPU at the reset vector read through the board's power-on banks. An
+   image whose mapper has no board is refused before any allocation. Every rejection returns
    NESTURBATOR_ERR_CARTRIDGE with the instance unchanged. Unload releases
    cartridge state. */
 nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *data, size_t size);
+/* Like nesturbator_load_cartridge, with a host-owned preference for this load.
+   The runner and libretro adapter pass their current preference once per load;
+   neither preference persistence nor metadata resolution lives in the adapters.
+   Libretro samples its option only for non-NULL content loads; option changes
+   and reset leave the loaded region and AV timing unchanged until reload.
+   Explicit NES version-two NTSC/PAL declarations take precedence; a preference selects
+   only multi-region or legacy iNES content. Dendy and invalid preferences are
+   refused without changing the active machine. The selected region stays fixed
+   until unload or a successful later load. The public frame remains 256x240.
+   PAL uses a source-derived 312-line, 341-dot raster at 10 half-master ticks
+   per dot, with vblank clearing on line 311 and no odd-frame shortening. Raw
+   output keeps physical rows 0-239 in order, including active pixels on row
+   239; analog border coverage is not a crop of the native buffer. The 2C07
+   OAM refresh model covers lines 265-310 and ignores $2004 writes during that
+   window. These PAL behaviors are documentation-derived, not direct hardware
+   proof, and do not establish 2A07 DMA or modeled PAL color output. NTSC bus
+   cycles are 24 half-master ticks with M2 rising at +9; PAL bus cycles are 32
+   ticks with M2 rising at +13. Format-6 states continue only under the same
+   effective region; NTSC is header byte 23 value 0 and PAL is value 1.
+   Cross-region loads are refused before state application. PAL audio
+   remainders are below 709379, scanlines are through 311, and the PPU/header
+   tick gap is below 1063920; NTSC retains its 315000, 261 and 714732 limits.
+   PAL noise/DMC rates and frame-counter events use the cited
+   2A07 tables and source-labeled cycle schedule; the shared $4017 reset delay
+   is documented as an assumption for PAL. These source-derived APU rules do
+   not establish hardware-confirmed PAL DMA behavior. The PAL DMC model follows
+   a reported 2A07 trace: the authors interpret its halt addresses as first-
+   instruction-cycle halts using SYNC rather than R/W. This core marks opcode
+   dispatch and the reported interrupt C1 read as SYNC for ordinary DMC
+   arbitration. The owned fixture distinguishes that model from any-read
+   arbitration; it is not a hardware test. Later no-op-cycle bus behavior and
+   direct hardware proof remain unresolved. See
+   https://forums.nesdev.org/viewtopic.php?p=300930,
+   https://www.nesdev.org/wiki/DMA and
+   https://www.nesdev.org/wiki/DPCM_conflict. PAL audio uses the
+   640/709379 integer sample phase across calls while each frame reports its
+   exact nominal sample count; instruction/DMA overrun stays in the bounded
+   synthesis ring. This is not direct PAL console audio evidence. Native timing
+   and pitch checks use independent source arithmetic; adapter equality checks
+   establish profile parity only. Final PAL presentation and AV acceptance
+   remain in Phase 27. */
+nesturbator_status nesturbator_load_cartridge_region(nesturbator *inst, const void *data,
+                                                     size_t size,
+                                                     enum nesturbator_region_preference preference);
+/* Reports the active loaded region, or NTSC for NULL/no-content instances.
+   Combine this with nesturbator_get_info for the profile's exact rate fractions. */
+enum nesturbator_region nesturbator_get_region(const nesturbator *inst);
 /* Releases the cartridge and returns the instance to its just-created state with no
    cartridge: the test card, counters at zero, the PPU at the pre-render line. Safe with no
    cartridge loaded and with NULL. It does not change nesturbator_save_generation. After it the
@@ -411,7 +517,13 @@ void nesturbator_unload_cartridge(nesturbator *inst);
    rejected. Campaign readers strip LF or CRLF line terminators before exact
    TSV field checks across CI platforms. Historical hygiene checks use the manifest from each
    commit, so relocating a pin preserves its recorded provenance. These checks do not change this
-   API's ABI or state contract. This inspection API adds no library ABI or state-format requirement.
+   API's ABI or state contract. The install.gameplay consumer also uses this
+   side-effect-free inspection path for source-mapped DABG RAM canaries while
+   checking a moved installed package, its no-input and Start-only controls,
+   and active-game continuation after a refused malformed load. That
+   fixture-scoped evidence does not establish general cartridge compatibility
+   or hardware accuracy. This inspection API adds no library ABI or
+   state-format requirement.
    On error, *value is unchanged. */
 nesturbator_status nesturbator_peek_cpu_ram(const nesturbator *inst, uint16_t address,
                                             uint8_t *value);
@@ -468,11 +580,21 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
  * no-cartridge audio is zero. */
 nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *io);
 
-/* Copies up to `count` calibrated NTSC-to-sRGB XRGB8888 entries (0x00RRGGBB),
- * indexed by native pixel value (palette entry | emphasis << 6). Display data
- * only; the native pixels remain the canonical frame-hash input. Copies
- * min(count, 512) entries; out NULL or count 0 does nothing. inst is reserved
- * for per-PPU-revision tables and may be NULL. */
+/* Copies up to `count` display XRGB8888 entries (0x00RRGGBB), indexed by
+ * native pixel value (palette entry | raw emphasis << 6). A loaded PAL
+ * instance selects the named NESdev 2C07 wiki palette model, published as
+ * pally output; see https://www.nesdev.org/wiki/File%3A2C07_wiki.pal.
+ * Its model uses phase-7 colorburst, line-alternating V and delay-line comb
+ * decoding. For PAL, raw PPUMASK emphasis bits 5, 6 and 7 map to green, red
+ * and blue. It is a modeled display table, not a hardware RGB capture or
+ * universal calibration. NTSC instances, NULL, and unloaded instances use
+ * the unchanged NTSC table. Native pixels remain the canonical frame-hash
+ * input. Copies min(count, 512) entries; out NULL or count 0 does nothing.
+ * Published recipe: python3 pally.py --skip-plot -cld -ppu "2C07" -phd 4
+ *   --delay-line-filter -e -o docs/NESDev/2C07_wiki.pal. This is provenance;
+ * the owned offline tool only formats pinned published RGB values and does
+ * not run pally. Regenerate the include with
+ * tools/palgen/palgen --pal <output.inc>. */
 void nesturbator_get_palette(const nesturbator *inst, uint32_t *out_xrgb8888, uint32_t count);
 
 /* Soft reset: the console's Reset button. Call it between frames.
@@ -486,13 +608,14 @@ void nesturbator_get_palette(const nesturbator *inst, uint32_t *out_xrgb8888, ui
  * the reset vector in 7 bus cycles, which count in ticks; frame_number does
  * not change.
  * The PPU restarts at the top of the picture (scanline 0, dot 0) and ignores
- * writes to $2000, $2001, $2005 and $2006 until the end of the next vblank:
- * 29,667 CPU cycles from the reset (NESdev documents about 29,658). Its
- * control, mask, scroll latch and read buffer are cleared; v, status, OAM
- * address and video memory are kept. The APU is silenced as by a $4015 = 0
- * write, its IRQs are cleared and the last $4017 mode is re-applied; its
- * output filters are kept. Load is unchanged: no write-ignore window and no
- * startup sequence at power-on, so frame and audio hashes from load stay. */
+ * writes to $2000, $2001, $2005 and $2006 until pre-render dot 1. On NTSC
+ * this is 29,667 CPU cycles from reset (NESdev documents about 29,658). The
+ * PAL model uses pre-render line 311, but its reset-release duration has not
+ * been verified against PAL hardware. Its control, mask, scroll latch and read buffer are cleared;
+ * v, status, OAM address and video memory are kept. The APU is silenced as by a $4015 = 0 write,
+ * its IRQs are cleared and the last $4017 mode is re-applied; its output filters are kept. Load is
+ * unchanged: no write-ignore window and no startup sequence at power-on, so frame and audio hashes
+ * from load stay. */
 nesturbator_status nesturbator_reset(nesturbator *inst);
 
 /* Battery-backed memory. The core does no file I/O: it hands the host a span
@@ -579,16 +702,29 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  *  3. A bad magic, or a format version other than NESTURBATOR_STATE_FORMAT_VERSION, gives
  *     NESTURBATOR_ERR_STATE_FORMAT.
  *  4. No cartridge loaded, or a mapper, submapper, region or ROM CRC-32 that differs from the
- *     loaded cartridge's, gives NESTURBATOR_ERR_STATE_CARTRIDGE. Identity comes before length
- *     because the length depends on the cartridge.
+ *     loaded cartridge's, gives NESTURBATOR_ERR_STATE_CARTRIDGE. Region is 0 for NTSC and 1 for
+ *     PAL; only same-region states load. Identity comes before length because the length depends
+ *     on the cartridge. Existing NTSC format-6 states remain loadable by the matching NTSC
+ *     cartridge; PAL states require a PAL-loaded instance.
  *  5. size other than nesturbator_state_size, or other than the header's total size, gives
  *     NESTURBATOR_ERR_STATE_SIZE.
  *  6. A CRC-32 mismatch gives NESTURBATOR_ERR_STATE_CHECKSUM.
  *  7. A header size other than 64, a reserved header byte other than zero, or any field out of
- *     range gives NESTURBATOR_ERR_STATE_INVALID. Out of range includes a PPU position that is
- *     ahead of the header's ticks or a whole frame or more behind them, and a header ticks above
- *     2^62 (a count near 2^64 would wrap the frame loop), so a hostile state cannot
- *     make the next frame run for longer than about one frame of emulated work.
+ *     range gives NESTURBATOR_ERR_STATE_INVALID. Audio remainder and sample phase are below
+ *     315000 for NTSC or 709379 for PAL; scanline is at most 261 for NTSC or 311 for PAL. The APU
+ *     frame cursor is at most 41565 only for PAL five-step mode (the modeled sequence wraps at
+ *     41566); NTSC five-step and either region's four-step mode retain the 37281 ceiling. These PAL
+ *     endpoint values are source-derived model expectations, not direct hardware proof. The PPU
+ *     position must be strictly less than one region frame behind the header's ticks (714732
+ *     NTSC or 1063920 PAL; an exact-frame gap is invalid), and header ticks must not exceed 2^62
+ *     (a count near 2^64 would wrap the frame loop), so a hostile state cannot make the next frame
+ *     run for longer than about one frame of emulated work.
+ *     The header frame number must be no greater than floor(ticks / frame_ticks) in either region.
+ *     PAL may trail that quotient by one because JAM can return before the frame count increments
+ *     and reset preserves the counters; a larger lag is invalid. NTSC has no lower-lag bound
+ *     because its next frame target is relative to the saved ticks. These violations return
+ *     NESTURBATOR_ERR_STATE_INVALID before any field is applied, preserving the all-or-nothing
+ *     refusal guarantee.
  * A flipped byte therefore reports the first check it breaks: the magic or version gives
  * FORMAT, an identity field gives CARTRIDGE, the total size gives SIZE, and any other byte,
  * including the recorded behaviour revision, gives CHECKSUM. The behaviour revision is recorded
@@ -745,7 +881,7 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  *   16  4  behaviour revision, NESTURBATOR_BEHAVIOUR_REVISION of the saving library
  *   20  2  mapper id
  *   22  1  submapper
- *   23  1  region, 0 for NTSC
+ *   23  1  region, 0 for NTSC, 1 for PAL
  *   24  4  ROM CRC-32 (IEEE, reflected polynomial 0xEDB88320) of the 16 iNES header bytes, the
  *          PRG ROM and the CHR ROM; not CHR RAM, not the trainer
  *   28  4  state CRC-32 of every byte of the state except these four

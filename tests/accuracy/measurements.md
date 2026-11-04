@@ -1,5 +1,89 @@
 # AccuracyCoin bounded campaign measurements
 
+## Phase 28 format-gate requalification — 2026-11-03
+
+The required pre-push gate found 25 unformatted source blobs among 41 changed
+C/C++ files. Formatting those files with clang-format 18.1.8 changed no
+emulation behavior, but it changed the AccuracyCoin build-input identity. The
+registered `accuracycoin.campaign` test then passed on clean candidate source
+`c026ce234c89`: 22 pages completed, 126 PASS, 20 FAIL, 5 inventory-only DRAW,
+and no skipped, not-run, or timed-out rows. The report SHA-256 stayed
+`f3b5bbf7ddcf4d18deabda6d875b441330dc71c97b8aca5fdcc38bf471f98f6c`.
+
+The measured 56-input fingerprint is
+`295133e6dc358ca2e74bc318335b5e320714854f184e1ed0c59e7d021f8710be`, and
+`host_elapsed_guest_ns` is `4641244000`. The first full CTest run passed the
+campaign but failed the input-fingerprint and activation metadata checks
+because the baseline still named the pre-format fingerprint
+`9461d786ad93fd0047fc297c1a501627902304ae187ef1f7c35245586a65e44d`. The
+baseline metadata now records this measured source and fingerprint. The
+first campaign's 163 output files are retained under
+`build/phase28-local-requal-format-2/accuracycoin/full/`. The overall workflow
+remains pending a fresh bounded run with that metadata.
+
+## Phase 24 behavior14 local acceptance, 2026-11-01
+
+The final local `cmake --workflow --preset ci` run completed successfully from
+source commit `0c8cc53b1672`, with `source_dirty=1`; the emulation correction
+is committed at `324a769e413003cce3aa30d6a5a78a441ce558d8` (behavior14,
+format6, ABI1). The run used the canonical `6bee919529289c555803b612b8c9e4f7eaaeeabb`
+ROM pin, the existing full CI selection and limits, and the 56-input build
+fingerprint `f04cdd6ec67f0d02b0a6043ede6a2c6b5b6a6c85eee6f6277f73ac75100cd606`.
+
+All 22 pages completed and all 146 scored rows were observed and terminal:
+126 PASS, 20 FAIL, 0 skipped, 0 not-run, 0 timeout, and 5 inventory-only DRAW
+rows. The five selected Phase 24 rows all passed: DMA Landing on Write (`01`,
+frame128), DMC DMA + OAM DMA (`01`, frame46), DMC DMA Bus Conflicts (`01`,
+frame46), Explicit DMA Abort (`01`, frame46), and Implicit DMA Abort (`09`,
+frame46; source-defined accepted pass variant). DMA + `$4015` Read,
+Misaligned OAM DMA, and INC `$4014` also passed. All119 prior current-pin
+protected PASS keys remain passing. Local protected-observation tests used the
+checkout `scoreboard-main` fallback, so this does not establish independent
+cold-main authority.
+
+The campaign report SHA-256 is
+`f3b5bbf7ddcf4d18deabda6d875b441330dc71c97b8aca5fdcc38bf471f98f6c`; its
+`host_elapsed_guest_ns` is `6353181000`. The measured current scoreboard SHA-256
+is `9ec5d50d291d2713f5281851f642270498a4e8b0dab273b8b72cd19b66ff111b`.
+The full workflow passed all707 CTest entries in517.82 seconds and generated
+the library, runner, and libretro macOS arm64 packages. Its archived log and
+complete campaign artifacts are under
+`build/phase24-acceptance/20261101T010016Z/` (ignored build output).
+
+This is local campaign/workflow evidence only. Current-head hosted lanes,
+independent cold protected-main authority, six-platform frame/PCM/transition
+hash equality, and unchanged Cachegrind `+1%` evidence remain outstanding; no
+hosted workflow or publication action ran. The result establishes compatibility
+with this pinned test set, not universal silicon behavior.
+
+## Phase 22 documentation registration refresh, 2026-10-31
+
+The full local CI configuration already enabled `NESTURBATOR_ACCURACYCOIN_FULL`.
+Its campaign passed, while activation rejected the unchanged historical
+build-input fingerprint after the planned documentation-test registrations
+changed `tests/CMakeLists.txt`. A later activation selection automatically
+included the campaign fixture again; its dependency should have been inspected
+before that selection. No further campaign was started for this refresh.
+
+The final capture uses compiled source `4c9b07f2c8b1`, `source_dirty=1`, with
+56-input fingerprint
+`b0d419a6e2f182174a026c009ff3da011230c4114ced4ae6dd76c8afd91064d7`.
+Replacing only `tests/CMakeLists.txt` with its pre-phase bytes reconstructs the
+prior accepted fingerprint; runtime sources and collection/oracle code did not
+change. The measured 22-page result remains **119 PASS / 27 FAIL**, all 146
+scored rows terminal, five DRAW entries, zero skipped/not-run/timeouts, complete
+infrastructure and `host_elapsed_guest_ns=7351615000`. Its report SHA-256 is
+unchanged:
+`56ebd01adb97b3916fde36f8739602284d951a1fd00d84285bb4ef441fb463a3`.
+
+Raw evidence remains ignored at `build/ci/accuracycoin/full/`; baseline metadata
+records the measured source, cost and fingerprint rather than relabeling the
+historical capture. All earlier measurements below retain their own identities.
+The guest and outer bounds in `budgets.txt`, protected PASS set, scoreboard,
+ROM pins, runtime stops and hosted-collector debt are unchanged. This is native
+CI fixture evidence; no host/device, private content, daily progress or hosted
+collection was used or authorized by this bookkeeping.
+
 ## CI efficiency quick-task refresh, 2026-10-29
 
 Quick task `261029-sdj` extracts each test object once in the no-skip inventory
@@ -947,6 +1031,32 @@ cmake --preset ci -DNESTURBATOR_ACCURACYCOIN_FULL=ON
 cmake --build --preset ci
 ctest --preset ci -R '^accuracycoin\.campaign$' --no-tests=error --output-on-failure
 ```
+
+## Phase 27 final candidate — 2026-11-02
+
+The final frozen presentation candidate is `ae2959caaa70`
+(`e85d7f8f01a8904c86428a89a121992b67ea3da`, behavior revision 17). Its
+provenance-only refresh preserved the exact 56-input fingerprint
+`40dca65130e677063633bda42059b9d057e08815c313574e77bf45e5b4654e85`. The
+configured campaign completed all 22 pages and 146 scored rows: 126 pass, 20
+fail, 5 draw rows in inventory, with zero skipped, not-run, or timed-out rows.
+The report SHA-256 is
+`f3b5bbf7ddcf4d18deabda6d875b441330dc71c97b8aca5fdcc38bf471f98f6c`; the
+canonical scoreboard SHA-256 remains
+`9ec5d50d291d2713f5281851f642270498a4e8b0dab273b8b72cd19b66ff111b`.
+
+The source checkout was dirty because existing local planning/coordination
+work was preserved. See `tests/accuracy/baseline-metadata.txt` for the exact
+source revision, dirty flag, input digest, and campaign artifact path. The
+retained capture is
+`build/phase27-acceptance/20261102T201327Z/accuracycoin/full/`. The final
+`cmake --workflow --preset ci` retry passed all 722 tests and created all three
+packages; detailed diagnosis and limits are in
+`.planning/phases/27-pal-host-presentation-and-ntsc-preservation/27-ACCEPTANCE.md`.
+
+This is NTSC inventory evidence, not PAL or hardware proof. The earlier
+Plan 27-01 capture remains intermediate and the older interrupted campaign
+remains stopped/unknown.
 
 It passed all 22 pages and all 146 scored rows: 114 pass, 32 fail, 0 skip,
 0 not-run, 0 timeout, and 5 DRAW. The six required target rows and complete
@@ -2110,3 +2220,164 @@ created. Collector CR-01, WR-03 and WR-04 remain deferred despite this run's
 independent mode/blob inventory and absolute clean-source/current-source
 validation. The PR remains draft and open. This plan records hosted outcomes;
 parent verification and lifecycle updates remain separate.
+
+
+## Historical behavior-14 baseline metadata snapshot (verbatim)
+
+This exact metadata snapshot preserves the Phase 24 behavior-14 receipt before Plan 27-04 refreshes active source provenance. It remains historical evidence.
+
+```text
+report_schema=1
+inventory_schema=1
+rom_pin=6bee919529289c555803b612b8c9e4f7eaaeeabb
+rom_sha256=8ac8904a3cf26fbdfa6be501e414d45886ff4478d30dee8e58fa436cf5fd5adc
+inventory_sha256=7d022800d01ad81159109bf7457af94ab6f80e4a682fce716ec476f7c454a4a5
+source_revision=0c8cc53b1672
+source_dirty=1
+library_version=0.1.11
+behaviour_revision=14
+mode=campaign
+input_start_policy=cold-boot;page-header-A;one-frame-A-press;one-frame-release
+boot_frame_budget=32
+navigation_frame_budget_per_page=5
+execution_frame_budget=1800
+total_frame_budget=41503
+pages_launched=22
+pages_start_attributed=22
+attempted_scored_rows=146
+pages_completed=22
+scored_total=146
+pass=126
+fail=20
+skip=0
+not_run=0
+timeout=0
+draw=5
+observed_scored_rows=146
+terminal_scored_rows=146
+host_elapsed_guest_ns=6353181000
+trustworthy_observation=1
+infrastructure_verdict=complete
+build_inputs_sha256=a7674497e5cb7116af38d9b9d0a9b088fe7aa239e81acc33695cc07b578ca77a
+build_inputs_count=56
+campaign_report_sha256=f3b5bbf7ddcf4d18deabda6d875b441330dc71c97b8aca5fdcc38bf471f98f6c
+schema=1
+license=MIT
+inventory_rows=151
+inventory_scored_rows=146
+inventory_draw_rows=5
+scoreboard_schema=2
+scoreboard_rows=146
+scoreboard_sha256=9ec5d50d291d2713f5281851f642270498a4e8b0dab273b8b72cd19b66ff111b
+old_rom_pin=673ef550db296136d52229961e7d39366116882a
+old_rom_sha256=4fe8c2bc9abc6f4d418da47b73f62cba89fcacd950fae763097a1681d650e839
+old_inventory_schema=1
+old_inventory_sha256=3271803cdc63c4b4a83cf65453b817dc66ec65ed97863ad19261b56f36821c84
+old_inventory_rows=149
+old_inventory_scored_rows=144
+old_inventory_draw_rows=5
+old_protected_scoreboard_rows=17
+migration_rows=17
+migration_path=tests/accuracy/migration.tsv
+old_scoreboard_path=tests/accuracy/old-673ef-scoreboard.txt
+campaign_artifact=build/phase24-acceptance/20261101T010016Z/observed/accuracycoin/full/
+input_policy=cold-boot;page-header-A;one-frame-A-press;one-frame-release
+source_dirty_reason=The behavior14 campaign ran from commit 0c8cc53b1672 with a dirty checkout. Uncommitted measured metadata and local planning and AGENTS notes were present. Emulator corrections remain at committed behavior14 source 324a769e413003cce3aa30d6a5a78a441ce558d8. The 56-input fingerprint records the exact tested build-input bytes.
+```
+
+### No-float comment fingerprint refresh
+
+The registered `accuracycoin.campaign` test was rerun after rewriting decimal
+version text in core comments so the no-float source scan can pass. Source
+`57e83f2fc38b` completed 22/22 pages and all 146 scored rows: 126 PASS, 20 FAIL,
+5 DRAW, with no skip, not-run, or timeout. The 56-input fingerprint is
+`4f89c3fb693a43c4447d5fb8a17b437469b07a98cb91c01b16e0046cc4d38787`; the
+campaign report hash remains
+`f3b5bbf7ddcf4d18deabda6d875b441330dc71c97b8aca5fdcc38bf471f98f6c`.
+Measured `host_elapsed_guest_ns` was `4882667000`. `source_dirty=1` records only
+the generated Phase 28 acceptance and release evidence overlays, which are
+excluded from the input fingerprint. This was the registered CTest campaign;
+the separate interrupted collector remains stopped with unknown status.
+
+### Phase 28 candidate input-fingerprint refresh (2026-11-04)
+
+The registered `accuracycoin.campaign` fixture ran with corrected candidate
+commit `68ca4010d454`. It completed all 22 pages and all 146 scored rows with
+126 PASS, 20 FAIL, 5 inventory-only DRAW, and no skip, not-run, or timeout. The
+campaign report SHA-256 remains
+`f3b5bbf7ddcf4d18deabda6d875b441330dc71c97b8aca5fdcc38bf471f98f6c`; the
+scoreboard and outcome rows are unchanged. Guest execution time was
+`4525264000` ns.
+
+The 56-input fingerprint changed from
+`4f89c3fb693a43c4447d5fb8a17b437469b07a98cb91c01b16e0046cc4d38787` to
+`5869e7871f0b33ee61637c91c6bc1cc085c052105debcef2d617def4fa2aeceb` after the
+behavior-preserving `src/bus.c` region-offset optimization. The first full
+workflow correctly rejected the stale fingerprint metadata; only that
+fingerprint field is refreshed. Phase evidence files under `.planning` were
+dirty but are excluded from the build-input fingerprint. This was the
+registered CTest campaign, not a separate collector; the older interrupted
+campaign remains stopped with unknown status.
+
+### Phase 28 citation fingerprint refresh (2026-11-04)
+
+The full CI workflow on candidate `d6e8fc39c055` ran the registered
+`accuracycoin.campaign` test successfully (4.93 seconds). Its report digest
+remains `f3b5bbf7ddcf4d18deabda6d875b441330dc71c97b8aca5fdcc38bf471f98f6c`
+with 126 PASS, 20 FAIL and 5 inventory-only DRAW rows. The first full attempt
+correctly rejected the stale input fingerprint and corresponding activation
+check; the other 724 tests passed. The current 56-input fingerprint is
+`499ba5840dd0526152db9645de9b66f398594f2dde216baf0f224d91a65a56ab`, replacing
+`5869e7871f0b33ee61637c91c6bc1cc085c052105debcef2d617def4fa2aeceb` after a
+required `[HWC.03, HWC.04]` citation was added to the bus timing comment. Only
+the `build_inputs_sha256` metadata field is refreshed; this is not an
+emulation-behavior change or a standalone campaign rerun. The old interrupted
+campaign remains stopped with unknown status.
+
+### Phase 28 regional timing fingerprint refresh (2026-11-04)
+
+The registered `accuracycoin.campaign` fixture ran during full local acceptance
+on candidate `ec81365bc38a`. It completed all 22 pages and 146 scored rows with
+126 PASS, 20 FAIL, 5 inventory-only DRAW, and no skip, not-run, or timeout. The
+report digest remains
+`f3b5bbf7ddcf4d18deabda6d875b441330dc71c97b8aca5fdcc38bf471f98f6c`; guest
+execution time was `5896361000` ns.
+
+The 56-input fingerprint changed from
+`499ba5840dd0526152db9645de9b66f398594f2dde216baf0f224d91a65a56ab` to
+`7bf68ee9c693bce7145949cb5f1d873a0c0c7bb90ded735f3612ccb74187d546` after
+behavior-preserving regional timing optimizations in `src/apu.c` and
+`src/ppu.c`. The first full acceptance correctly rejected the stale fingerprint
+in the input-identity and activation checks; the campaign report and outcome
+rows matched the pinned baseline. Only the `build_inputs_sha256` metadata field
+is refreshed. This was the registered CTest campaign, not a separate collector;
+the older interrupted campaign remains stopped with unknown status.
+
+### Phase 28 PPU hot-path revision (2026-11-04)
+
+Hosted perf run `41874380078` on candidate `87256e711c73` measured a repeatable
+6.18% regression in the nesteroids case, with matching A/B instruction counts.
+The broad timing hoist in `src/apu.c` and `src/ppu.c` was removed. An attempted
+short-circuit condition reorder in the PPU was then measured separately and
+reverted after it increased the PPU hot-loop instruction count.
+
+The 56-input fingerprint now changes from
+`7bf68ee9c693bce7145949cb5f1d873a0c0c7bb90ded735f3612ccb74187d546` to
+`2033b25b04f24954d4975d8178f4f6dea82e0ae82762b9340e244889fdc68717` after
+removing the APU/PPU timing hoist, reverting the PPU condition reorder, and
+hoisting the PAL selector for the existing APU thresholds and fixed sample
+phase increments. Only the fingerprint metadata is updated here; the full
+workflow is still required for this source revision, and no new campaign was
+started separately.
+
+### Phase 28 hosted perf follow-up (2026-11-04)
+
+Candidate run `41882726001` on source `300768ffb582` passed every required
+check except `perf`. Its three regional/game samples exceeded the 1% cap by
+4.56% (nesteroids), 4.73% (runner), and 4.95% (M4). Base A/B Cachegrind counts
+matched exactly. The preceding `e6166fd` run used the same base SHA and measured
+2.46%, 2.46%, and 2.69%. Function totals show the PPU reorder added 180,203,166
+instructions to `nesturbator__ppu_run_until` between those exact candidates;
+the PPU source was restored to its `e6166fd` condition order. The APU source
+now reuses its regional selection for sample-phase constants; this revision
+still needs local acceptance and a fresh hosted measurement.

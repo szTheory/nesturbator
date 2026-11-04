@@ -5,6 +5,7 @@
   contain 17 records (table row 18 has no JSON entry). `gsd_run windows append`
   refused the update. The pre-existing ledger consistency issue remains
   deferred to its owning planning-health work.
+  status: acknowledged
 
 ## Phase 21 Plan 08 platform-limited nofp probe
 
@@ -24,3 +25,4 @@ The initial local `nofp` run also reported the decimal `2.3` in the state
 validation comment. That source citation was changed to integer-only section
 wording in `1d27a0f`; the final source scan passes. The scanner and its hard
 gate were not weakened.
+  status: acknowledged

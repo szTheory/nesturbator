@@ -981,6 +981,9 @@ tests/perf/allow.txt carries a valid line for that ROM; an unstable base (two ba
 differ) always fails; a base that cannot be built or run shows `n/a` and does not fail the pull
 request. Wall time is never measured or gated. The `perf.roms_render` test shows that
 all three ROMs draw a non-blank frame 60, so the job never measures an idle PPU.
+The regional bus derives the ticks after M2 rise from the already selected rise offset; the
+NTSC and PAL bus-cycle checks pin the same +24 and +32 close times. Local profiles and output
+hashes help diagnose changes but do not establish the hosted one-percent performance gate.
 
 ### Phase 20 hosted evidence collection
 
@@ -2409,6 +2412,10 @@ The CPU test data under `tests/vectors/` is MIT data from
 `65x02-sample.n65v` and three small JSON fixtures. Each is listed in
 `tests/roms/manifest.txt` with its source, pin, licence and SHA-256, and its
 licence notice is in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+## Troubleshooting
+
+[Report a scene or reproduce a permitted fixture](docs/reproduction.md)
 
 ### Regenerating the vector sample
 

@@ -250,6 +250,215 @@ static struct nesturbator *sprite_overflow_transition_fixture(void)
     return nes;
 }
 
+static struct nesturbator *pal_nmi_fixture(void)
+{
+    struct nesturbator *nes = nmi_fixture_build(NULL, 0u, NULL, 0u, 0x8000u);
+    if (nes != NULL)
+        nes->cart.effective_region = NESTURBATOR_REGION_PAL;
+    return nes;
+}
+
+static void assert_pal_status_m2_alignments(uint16_t event_line, uint8_t set_event)
+{
+    const uint64_t event_tick = ((uint64_t)event_line * 341u + 1u) * 10u;
+    const uint64_t first_cycle = (event_tick - 13u) / 32u;
+    uint16_t phases_seen = 0u;
+    for (uint64_t offset = 0u; offset < 5u; offset++) {
+        const uint64_t cpu_cycle = first_cycle + offset;
+        const uint64_t cpu_start = cpu_cycle * 32u;
+        const uint64_t ppu_tick = (cpu_start / 10u) * 10u;
+        const uint64_t ppu_dot_index = ppu_tick / 10u;
+        const uint16_t scanline = (uint16_t)(ppu_dot_index / 341u);
+        const uint16_t dot = (uint16_t)(ppu_dot_index % 341u);
+        const uint8_t status_before_event = set_event != 0u ? 0u : 0x80u;
+        const uint8_t status_after_event = set_event != 0u ? 0x80u : 0u;
+        const uint8_t initial_status =
+            ppu_tick >= event_tick ? status_after_event : status_before_event;
+        const uint64_t m2_tick = cpu_start + 13u;
+        struct nesturbator *nes = pal_nmi_fixture();
+        CHECK(nes != NULL);
+        if (nes == NULL)
+            return;
+
+        nmi_fixture_at(nes, scanline, dot, initial_status, 0x80u, 0u);
+        nes->ticks = cpu_start;
+        nes->cpu_cycle = cpu_cycle;
+        nes->ppu.ppu_ticks = ppu_tick;
+        uint8_t phase = (uint8_t)(m2_tick % 10u);
+        CHECK(phase == 1u || phase == 3u || phase == 5u || phase == 7u || phase == 9u);
+        phases_seen |= (uint16_t)(1u << phase);
+
+        uint8_t value = nesturbator__bus_read(nes, 0x2002u);
+        uint8_t expected = m2_tick >= event_tick ? status_after_event : status_before_event;
+        CHECK_EQ_HEX(value & 0x80u, expected);
+        nesturbator_destroy((nesturbator *)nes);
+    }
+    CHECK_EQ_HEX(phases_seen,
+                 (uint16_t)((1u << 1u) | (1u << 3u) | (1u << 5u) | (1u << 7u) | (1u << 9u)));
+}
+
+static void test_pal_all_reachable_m2_phases_at_vblank_edges(void)
+{
+    /* CPU cycles are 32 ticks and PPU dots are 10, so five bus cycles reach all five
+       possible M2-to-dot phases. The pinned raster defines both event coordinates. */
+    assert_pal_status_m2_alignments(241u, 1u);
+    assert_pal_status_m2_alignments(311u, 0u);
+}
+
+static void test_pal_vblank_edges_and_full_raster(void)
+{
+    struct nesturbator *nes = pal_nmi_fixture();
+    CHECK(nes != NULL);
+    if (nes == NULL)
+        return;
+
+    nmi_fixture_at(nes, 241u, 0u, 0x60u, 0x80u, 0x15u);
+    nesturbator__ppu_run_until(nes, 0u);
+    CHECK_EQ_HEX(nes->ppu.status & 0xe0u, 0x60u);
+    nesturbator__ppu_run_until(nes, 10u);
+    CHECK_EQ_U64(nes->ppu.scanline, 241u);
+    CHECK_EQ_U64(nes->ppu.dot, 1u);
+    CHECK_EQ_HEX(nes->ppu.status & 0xe0u, 0xe0u);
+
+    nmi_fixture_at(nes, 311u, 0u, 0xe0u, 0x80u, 0x15u);
+    nesturbator__ppu_run_until(nes, 0u);
+    CHECK_EQ_HEX(nes->ppu.status & 0xe0u, 0xe0u);
+    nesturbator__ppu_run_until(nes, 10u);
+    CHECK_EQ_U64(nes->ppu.scanline, 311u);
+    CHECK_EQ_U64(nes->ppu.dot, 1u);
+    CHECK_EQ_HEX(nes->ppu.status & 0xe0u, 0u);
+
+    nes->ticks = 0u;
+    nes->ppu.ppu_ticks = 0u;
+    nes->ppu.scanline = 0u;
+    nes->ppu.dot = 0u;
+    nes->ppu.status = 0u;
+    nes->ppu.mask = 0x18u;
+    nes->ppu.odd_frame = 0u;
+    const uint64_t dots_per_frame = UINT64_C(312) * UINT64_C(341);
+    nesturbator__ppu_run_until(nes, dots_per_frame * 10u);
+    CHECK_EQ_U64(nes->ppu.ppu_ticks, dots_per_frame * 10u);
+    CHECK_EQ_U64(nes->ppu.scanline, 0u);
+    CHECK_EQ_U64(nes->ppu.dot, 0u);
+    CHECK_EQ_U64(nes->ppu.odd_frame, 1u);
+    nesturbator__ppu_run_until(nes, dots_per_frame * 20u);
+    CHECK_EQ_U64(nes->ppu.ppu_ticks, dots_per_frame * 20u);
+    CHECK_EQ_U64(nes->ppu.scanline, 0u);
+    CHECK_EQ_U64(nes->ppu.dot, 0u);
+    CHECK_EQ_U64(nes->ppu.odd_frame, 0u);
+    nesturbator_destroy((nesturbator *)nes);
+}
+
+static uint16_t pal_row_pixels[240u * 260u];
+static uint8_t pal_row_chr[8192u];
+
+static struct nesturbator *pal_row_fixture(uint8_t rendering)
+{
+    struct nesturbator *nes = pal_nmi_fixture();
+    if (nes == NULL)
+        return NULL;
+    memset(pal_row_pixels, 0xbe, sizeof pal_row_pixels);
+    memset(pal_row_chr, 0, sizeof pal_row_chr);
+    for (unsigned page = 0u; page < 8u; page++)
+        nes->map.chr_r[page] = pal_row_chr + page * 1024u;
+    pal_row_chr[0] = 0xffu;  /* tile 0, source row 0, colour 1 */
+    pal_row_chr[15] = 0xffu; /* tile 0, source row 7, colour 2 */
+    nes->ppu.scanline = 311u;
+    nes->ppu.dot = 0u;
+    nes->ppu.mask = rendering != 0u ? 0x0au : 0u;
+    nes->ppu.palette[0] = 0x0fu;
+    nes->ppu.palette[1] = 0x11u;
+    nes->ppu.palette[2] = 0x22u;
+    nes->ppu.video_output = pal_row_pixels + 2u;
+    nes->ppu.video_pitch = 260u;
+    return nes;
+}
+
+static void check_pal_row_canaries(void)
+{
+    int intact = 1;
+    for (unsigned row = 0u; row < 240u; row++) {
+        intact &= pal_row_pixels[row * 260u] == 0xbebeu;
+        intact &= pal_row_pixels[row * 260u + 1u] == 0xbebeu;
+        intact &= pal_row_pixels[row * 260u + 258u] == 0xbebeu;
+        intact &= pal_row_pixels[row * 260u + 259u] == 0xbebeu;
+    }
+    CHECK(intact);
+}
+
+static void test_pal_native_rows_keep_physical_zero_and_239(void)
+{
+    const uint64_t through_row_239_pixel_255 = (UINT64_C(240) * 341u + 257u) * 10u;
+    struct nesturbator *nes = pal_row_fixture(1u);
+    CHECK(nes != NULL);
+    if (nes != NULL) {
+        nesturbator__ppu_run_until(nes, through_row_239_pixel_255);
+        int row_zero_matches = 1;
+        int row_239_matches = 1;
+        for (unsigned x = 0u; x < 256u; x++) {
+            row_zero_matches &= pal_row_pixels[2u + x] == 0x11u;
+            row_239_matches &= pal_row_pixels[239u * 260u + 2u + x] == 0x22u;
+        }
+        CHECK(row_zero_matches);
+        CHECK(row_239_matches);
+        check_pal_row_canaries();
+        nesturbator_destroy((nesturbator *)nes);
+    }
+
+    nes = pal_row_fixture(0u);
+    CHECK(nes != NULL);
+    if (nes != NULL) {
+        nesturbator__ppu_run_until(nes, through_row_239_pixel_255);
+        int row_zero_matches = 1;
+        int row_239_matches = 1;
+        for (unsigned x = 0u; x < 256u; x++) {
+            row_zero_matches &= pal_row_pixels[2u + x] == 0x0fu;
+            row_239_matches &= pal_row_pixels[239u * 260u + 2u + x] == 0x0fu;
+        }
+        CHECK(row_zero_matches);
+        CHECK(row_239_matches);
+        check_pal_row_canaries();
+        nesturbator_destroy((nesturbator *)nes);
+    }
+}
+
+static void test_pal_oam_refresh_and_write_window(void)
+{
+    struct nesturbator *nes = pal_nmi_fixture();
+    CHECK(nes != NULL);
+    if (nes == NULL)
+        return;
+
+    nmi_fixture_at(nes, 264u, 0u, 0x80u, 0u, 0u);
+    nes->ppu.oam_addr = 0x20u;
+    nesturbator__ppu_register_write(nes, 0x2004u, 0x5au);
+    CHECK_EQ_HEX(nes->ppu.oam[0x20u], 0x5au);
+    CHECK_EQ_HEX(nes->ppu.oam_addr, 0x21u);
+
+    nmi_fixture_at(nes, 265u, 0u, 0x80u, 0u, 0u);
+    nes->ppu.oam_addr = 0x40u;
+    nesturbator__ppu_register_write(nes, 0x2004u, 0xa5u);
+    CHECK_EQ_HEX(nes->ppu.oam[0x40u], 0u);
+    CHECK_EQ_HEX(nes->ppu.oam_addr, 0x40u);
+    nesturbator__ppu_run_until(nes, 20u);
+    CHECK_EQ_U64(nes->ppu.dot, 2u);
+    CHECK_EQ_HEX(nes->ppu.oam_addr, 0x41u);
+    nmi_fixture_at(nes, 310u, 0u, 0x80u, 0u, 0u);
+    nes->ppu.oam_addr = 0x10u;
+    nesturbator__ppu_run_until(nes, 3400u);
+    CHECK_EQ_U64(nes->ppu.dot, 340u);
+    CHECK_EQ_HEX(nes->ppu.oam_addr, 0xbau); /* 170 two-dot refresh increments */
+    nesturbator__ppu_run_until(nes, 3410u);
+    CHECK_EQ_U64(nes->ppu.scanline, 311u);
+    CHECK_EQ_U64(nes->ppu.dot, 0u);
+    CHECK_EQ_HEX(nes->ppu.oam_addr, 0xbau);
+    nes->ppu.oam_addr = 0x60u;
+    nesturbator__ppu_register_write(nes, 0x2004u, 0x3cu);
+    CHECK_EQ_HEX(nes->ppu.oam[0x60u], 0x3cu);
+    CHECK_EQ_HEX(nes->ppu.oam_addr, 0x61u);
+    nesturbator_destroy((nesturbator *)nes);
+}
+
 static void assert_sprite_overflow_phase(const char *name, uint64_t ticks, uint16_t expected_dot,
                                          uint8_t expected_status)
 {
@@ -849,6 +1058,10 @@ static void test_wrong_model_controls_are_oracle_distinct(void)
 
 int main(void)
 {
+    test_pal_all_reachable_m2_phases_at_vblank_edges();
+    test_pal_vblank_edges_and_full_raster();
+    test_pal_native_rows_keep_physical_zero_and_239();
+    test_pal_oam_refresh_and_write_window();
     test_flag_set_before_on_after_dot();
     test_flag_clear_before_on_after_dot();
     test_outside_window_control();

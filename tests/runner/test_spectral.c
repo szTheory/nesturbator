@@ -2,6 +2,7 @@
    transition-to-PCM synthesizer. */
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "../../src/internal.h"
@@ -15,12 +16,34 @@
 #define CPU_SAMPLE_STEP (24u * NESTURBATOR_AUDIO_SAMPLES_PER_PERIOD)
 #define Q30 INT64_C(1073741824)
 #define MAX_ANALYSIS_BIN (SPECTRAL_SAMPLES / 3u)
+#define PUBLIC_FRAME_SAMPLES_MAX 960u
+#define PUBLIC_FRAME_GUARD INT16_C(0x3456)
+#define PAL_EXPECTED_RATE_NUM 640u
+#define PAL_EXPECTED_RATE_DEN 709379u
+#define PAL_FRAME_TICKS UINT64_C(1063920)
+#define PAL_FRAME_OVERSHOOT_CPU_BOUND (514u + 8u + 11u * 4u + 34u)
+/* Ring-only conservative budget: one 514-cycle OAM transfer, one 8-cycle
+   instruction, up to eleven 4-cycle DMC opportunities at the fastest 50-cycle
+   PAL rate, and 34 cycles of margin. This does not qualify PAL DMA behavior. */
+#define PAL_RING_OVERSHOOT_BOUND                                                                   \
+    (((PAL_FRAME_OVERSHOOT_CPU_BOUND * UINT64_C(20480) + PAL_EXPECTED_RATE_DEN - 1u) /             \
+      PAL_EXPECTED_RATE_DEN) +                                                                     \
+     1u)
 
 static int32_t trig_cos[SPECTRAL_SAMPLES];
 static int32_t trig_sin[SPECTRAL_SAMPLES];
 static int32_t fft_real[SPECTRAL_SAMPLES];
 static int32_t fft_imag[SPECTRAL_SAMPLES];
 static int16_t tone_samples[SPECTRAL_SAMPLES];
+static int16_t public_capture[TOTAL_SAMPLES];
+static uint16_t public_video[256u * 240u];
+
+struct transition_trace {
+    struct nesturbator *machine;
+    uint64_t last_cycle;
+    uint32_t count;
+    uint8_t bad;
+};
 
 static const int64_t atan_turn_q32[] = {
     INT64_C(536870912), INT64_C(316933406), INT64_C(167458907), INT64_C(85004756),
@@ -338,6 +361,256 @@ static void run_tone(unsigned period, int triangle, unsigned raw_bin, unsigned *
     nesturbator_destroy(instance);
 }
 
+static void observe_transition(void *context, uint64_t cpu_cycle, int32_t level)
+{
+    struct transition_trace *trace = (struct transition_trace *)context;
+    (void)level;
+    if (cpu_cycle != trace->machine->cpu_cycle ||
+        (trace->count != 0u && cpu_cycle < trace->last_cycle))
+        trace->bad = 1u;
+    trace->last_cycle = cpu_cycle;
+    trace->count++;
+}
+
+static void make_public_image(uint8_t *image, size_t size, unsigned channel, uint8_t timer)
+{
+    memset(image, 0, size);
+    memcpy(image, "NES\032", 4u);
+    image[4] = 1u;
+    image[5] = 1u;
+    if (channel == 1u) {
+        static const uint8_t program[] = {0xa9u, 0x01u, 0x8du, 0x15u, 0x40u, 0xa9u, 0xbfu, 0x8du,
+                                          0x00u, 0x40u, 0xa9u, 0x00u, 0x8du, 0x02u, 0x40u, 0xa9u,
+                                          0x00u, 0x8du, 0x03u, 0x40u, 0x4cu, 0x14u, 0x80u};
+        memcpy(image + 16u, program, sizeof program);
+        image[16u + 11u] = timer;
+    } else if (channel == 2u) {
+        static const uint8_t program[] = {0xa9u, 0x04u, 0x8du, 0x15u, 0x40u, 0xa9u, 0xffu, 0x8du,
+                                          0x08u, 0x40u, 0xa9u, 0x00u, 0x8du, 0x0au, 0x40u, 0xa9u,
+                                          0x00u, 0x8du, 0x0bu, 0x40u, 0x4cu, 0x14u, 0x80u};
+        memcpy(image + 16u, program, sizeof program);
+        image[16u + 11u] = timer;
+    } else {
+        static const uint8_t silent_loop[] = {0x4cu, 0x00u, 0x80u};
+        memcpy(image + 16u, silent_loop, sizeof silent_loop);
+    }
+    image[16u + 0x3ffcu] = 0u;
+    image[16u + 0x3ffdu] = 0x80u;
+}
+
+static nesturbator *make_public_machine(enum nesturbator_region_preference preference,
+                                        unsigned channel, uint8_t timer)
+{
+    const size_t image_size = 16u + 16384u + 8192u;
+    uint8_t *image = (uint8_t *)calloc(1u, image_size);
+    nesturbator *instance = make_instance();
+    CHECK(image != NULL && instance != NULL);
+    if (image == NULL || instance == NULL) {
+        free(image);
+        nesturbator_destroy(instance);
+        return NULL;
+    }
+    make_public_image(image, image_size, channel, timer);
+    CHECK_EQ_U64(nesturbator_load_cartridge_region(instance, image, image_size, preference),
+                 NESTURBATOR_OK);
+    free(image);
+    return instance;
+}
+
+static uint32_t expected_public_samples(int pal, uint32_t *remainder)
+{
+    const uint64_t frame_ticks = pal != 0 ? PAL_FRAME_TICKS : UINT64_C(714732);
+    const uint32_t rate_num = pal != 0 ? PAL_EXPECTED_RATE_NUM : 352u;
+    const uint32_t rate_den = pal != 0 ? PAL_EXPECTED_RATE_DEN : 315000u;
+    uint64_t accumulated = *remainder + frame_ticks * rate_num;
+    uint32_t count = (uint32_t)(accumulated / rate_den);
+    *remainder = (uint32_t)(accumulated % rate_den);
+    return count;
+}
+
+static uint32_t run_exact_public_frame(nesturbator *instance, int16_t *storage,
+                                       uint32_t expected_count)
+{
+    CHECK(expected_count <= PUBLIC_FRAME_SAMPLES_MAX);
+    storage[0] = PUBLIC_FRAME_GUARD;
+    storage[expected_count + 1u] = PUBLIC_FRAME_GUARD;
+    nesturbator_frame io;
+    memset(&io, 0, sizeof io);
+    io.size = (uint32_t)sizeof io;
+    io.video = public_video;
+    io.video_pitch = 256u;
+    io.audio = storage + 1u;
+    io.audio_capacity = expected_count;
+    CHECK_EQ_U64(nesturbator_run_frame(instance, &io), NESTURBATOR_OK);
+    CHECK_EQ_U64(io.audio_count, expected_count);
+    CHECK_EQ_U64((uint16_t)storage[0], (uint16_t)PUBLIC_FRAME_GUARD);
+    CHECK_EQ_U64((uint16_t)storage[expected_count + 1u], (uint16_t)PUBLIC_FRAME_GUARD);
+    return io.audio_count;
+}
+
+static unsigned pal_tone_expected_bin(unsigned timer, int triangle)
+{
+    /* Independent rational oracle: PAL CPU/(16*(timer+1)) for pulse and
+       PAL CPU/(32*(timer+1)) for triangle. */
+    const uint64_t numerator = UINT64_C(53203425) * SPECTRAL_SAMPLES;
+    const uint64_t steps = triangle != 0 ? 32u : 16u;
+    const uint64_t denominator = UINT64_C(32) * steps * (timer + 1u) * 48000u;
+    return (unsigned)((numerator + denominator / 2u) / denominator);
+}
+
+static void test_public_pal_pcm_phase_and_pitch(void)
+{
+    const unsigned timer = 100u;
+    nesturbator *pal_a = make_public_machine(NESTURBATOR_REGION_PREFERENCE_PAL, 1, (uint8_t)timer);
+    nesturbator *pal_b = make_public_machine(NESTURBATOR_REGION_PREFERENCE_PAL, 1, (uint8_t)timer);
+    nesturbator *ntsc = make_public_machine(NESTURBATOR_REGION_PREFERENCE_NTSC, 1, (uint8_t)timer);
+    CHECK(pal_a != NULL && pal_b != NULL && ntsc != NULL);
+    if (pal_a == NULL || pal_b == NULL || ntsc == NULL) {
+        nesturbator_destroy(pal_a);
+        nesturbator_destroy(pal_b);
+        nesturbator_destroy(ntsc);
+        return;
+    }
+
+    struct transition_trace trace;
+    memset(&trace, 0, sizeof trace);
+    trace.machine = (struct nesturbator *)pal_a;
+    nesturbator__apu_set_transition_sink(trace.machine, observe_transition, &trace);
+
+    int16_t pal_a_frame[PUBLIC_FRAME_SAMPLES_MAX + 2u];
+    int16_t pal_b_frame[PUBLIC_FRAME_SAMPLES_MAX + 2u];
+    int16_t ntsc_frame[PUBLIC_FRAME_SAMPLES_MAX + 2u];
+    uint32_t pal_a_remainder = 0u;
+    uint32_t pal_b_remainder = 0u;
+    uint32_t ntsc_remainder = 0u;
+    uint32_t captured = 0u;
+    uint64_t pal_hash_a = UINT64_C(14695981039346656037);
+    uint64_t pal_hash_b = UINT64_C(14695981039346656037);
+
+    for (unsigned frame = 0u; frame < 40u; frame++) {
+        uint32_t expected_a = expected_public_samples(1, &pal_a_remainder);
+        uint32_t expected_b = expected_public_samples(1, &pal_b_remainder);
+        uint32_t expected_ntsc = expected_public_samples(0, &ntsc_remainder);
+        CHECK_EQ_U64(expected_a, expected_b);
+        CHECK_EQ_U64(run_exact_public_frame(pal_a, pal_a_frame, expected_a), expected_a);
+        CHECK_EQ_U64(run_exact_public_frame(ntsc, ntsc_frame, expected_ntsc), expected_ntsc);
+        CHECK_EQ_U64(run_exact_public_frame(pal_b, pal_b_frame, expected_b), expected_b);
+        CHECK_EQ_U64(
+            memcmp(pal_a_frame + 1u, pal_b_frame + 1u, (size_t)expected_a * sizeof pal_a_frame[0]),
+            0u);
+        for (uint32_t i = 0u; i < expected_a; i++) {
+            pal_hash_a = (pal_hash_a ^ (uint16_t)pal_a_frame[i + 1u]) * UINT64_C(1099511628211);
+            pal_hash_b = (pal_hash_b ^ (uint16_t)pal_b_frame[i + 1u]) * UINT64_C(1099511628211);
+        }
+        uint32_t copy_count = expected_a;
+        if (copy_count > TOTAL_SAMPLES - captured)
+            copy_count = TOTAL_SAMPLES - captured;
+        memcpy(public_capture + captured, pal_a_frame + 1u,
+               (size_t)copy_count * sizeof public_capture[0]);
+        captured += copy_count;
+
+        struct nesturbator *machine = (struct nesturbator *)pal_a;
+        CHECK_EQ_U64(machine->synth.overflow, 0u);
+        CHECK(machine->synth.pcm_count <= PAL_RING_OVERSHOOT_BOUND);
+        CHECK(machine->apu.sample_phase < PAL_EXPECTED_RATE_DEN);
+        CHECK_EQ_U64(machine->audio_rem, pal_a_remainder);
+        uint64_t nominal_ticks = (uint64_t)(frame + 1u) * PAL_FRAME_TICKS;
+        CHECK(machine->ticks >= nominal_ticks);
+        CHECK(machine->ticks - nominal_ticks <=
+              (uint64_t)PAL_FRAME_OVERSHOOT_CPU_BOUND * 32u + 16u);
+    }
+    CHECK_EQ_U64(captured, TOTAL_SAMPLES);
+    CHECK_EQ_U64(pal_hash_a, pal_hash_b);
+    CHECK(trace.count != 0u);
+    CHECK_EQ_U64(trace.bad, 0u);
+
+    memcpy(tone_samples, public_capture + WARMUP_SAMPLES, sizeof tone_samples);
+    for (unsigned i = 0u; i < SPECTRAL_SAMPLES; i++) {
+        int64_t window = (Q30 - trig_cos[i]) / 2;
+        fft_real[i] = (int32_t)(((int64_t)tone_samples[i] * window) / Q30);
+        fft_imag[i] = 0;
+    }
+    fft();
+    unsigned expected_bin = pal_tone_expected_bin(timer, 0);
+    unsigned peak_bin = 0u;
+    uint64_t peak = 0u;
+    for (unsigned bin = 1u; bin <= MAX_ANALYSIS_BIN; bin++) {
+        uint64_t candidate = magnitude(bin);
+        if (candidate > peak) {
+            peak = candidate;
+            peak_bin = bin;
+        }
+    }
+    CHECK(peak != 0u);
+    CHECK(peak_bin + 1u >= expected_bin && peak_bin <= expected_bin + 1u);
+
+    /* A loaded PAL machine with no enabled channels emits exact silence. */
+    nesturbator *silent = make_public_machine(NESTURBATOR_REGION_PREFERENCE_PAL, 0, 0u);
+    CHECK(silent != NULL);
+    if (silent != NULL) {
+        int16_t silence_frame[PUBLIC_FRAME_SAMPLES_MAX + 2u];
+        uint32_t remainder = 0u;
+        for (unsigned frame = 0u; frame < 3u; frame++) {
+            uint32_t expected = expected_public_samples(1, &remainder);
+            run_exact_public_frame(silent, silence_frame, expected);
+            for (uint32_t i = 0u; i < expected; i++)
+                CHECK_EQ_U64((uint16_t)silence_frame[i + 1u], 0u);
+        }
+        nesturbator_destroy(silent);
+    }
+    nesturbator_destroy(pal_a);
+    nesturbator_destroy(pal_b);
+    nesturbator_destroy(ntsc);
+}
+
+static void test_public_pal_triangle_pitch(void)
+{
+    const unsigned timer = 100u;
+    nesturbator *triangle =
+        make_public_machine(NESTURBATOR_REGION_PREFERENCE_PAL, 2u, (uint8_t)timer);
+    CHECK(triangle != NULL);
+    if (triangle == NULL)
+        return;
+    int16_t frame_samples[PUBLIC_FRAME_SAMPLES_MAX + 2u];
+    uint32_t remainder = 0u;
+    uint32_t captured = 0u;
+    for (unsigned frame = 0u; frame < 40u; frame++) {
+        uint32_t expected = expected_public_samples(1, &remainder);
+        run_exact_public_frame(triangle, frame_samples, expected);
+        uint32_t copy_count = expected;
+        if (copy_count > TOTAL_SAMPLES - captured)
+            copy_count = TOTAL_SAMPLES - captured;
+        memcpy(public_capture + captured, frame_samples + 1u,
+               (size_t)copy_count * sizeof public_capture[0]);
+        captured += copy_count;
+        struct nesturbator *machine = (struct nesturbator *)triangle;
+        CHECK_EQ_U64(machine->synth.overflow, 0u);
+        CHECK(machine->synth.pcm_count <= PAL_RING_OVERSHOOT_BOUND);
+        CHECK(machine->apu.sample_phase < PAL_EXPECTED_RATE_DEN);
+    }
+    CHECK_EQ_U64(captured, TOTAL_SAMPLES);
+    memcpy(tone_samples, public_capture + WARMUP_SAMPLES, sizeof tone_samples);
+    for (unsigned i = 0u; i < SPECTRAL_SAMPLES; i++) {
+        int64_t window = (Q30 - trig_cos[i]) / 2;
+        fft_real[i] = (int32_t)(((int64_t)tone_samples[i] * window) / Q30);
+        fft_imag[i] = 0;
+    }
+    fft();
+    unsigned expected_bin = pal_tone_expected_bin(timer, 1);
+    unsigned peak_bin = 0u;
+    uint64_t peak = 0u;
+    for (unsigned bin = 1u; bin <= MAX_ANALYSIS_BIN; bin++) {
+        uint64_t candidate = magnitude(bin);
+        if (candidate > peak) {
+            peak = candidate;
+            peak_bin = bin;
+        }
+    }
+    CHECK(peak != 0u);
+    CHECK(peak_bin + 1u >= expected_bin && peak_bin <= expected_bin + 1u);
+    nesturbator_destroy(triangle);
+}
+
 int main(void)
 {
     init_trig_table();
@@ -355,5 +628,7 @@ int main(void)
                                 : SPECTRAL_SAMPLES - triangle_native_bin;
     unsigned fundamental_bin = 0u;
     run_tone(1u, 1, triangle_bin, &fundamental_bin);
+    test_public_pal_pcm_phase_and_pitch();
+    test_public_pal_triangle_pitch();
     CHECK_DONE();
 }

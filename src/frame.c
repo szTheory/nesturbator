@@ -23,11 +23,13 @@ nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *i
     if (io->video_pitch < NESTURBATOR_WIDTH) {
         return NESTURBATOR_ERR_BUFFER_TOO_SMALL;
     }
-    /* Samples this frame: 352 per 315000 ticks, with the remainder carried
-       over (D-09). 798 or 799. */
-    uint64_t acc = (uint64_t)inst->audio_rem +
-                   (uint64_t)NESTURBATOR_TICKS_PER_FRAME * NESTURBATOR_AUDIO_SAMPLES_PER_PERIOD;
-    uint32_t n = (uint32_t)(acc / NESTURBATOR_AUDIO_TICKS_PER_PERIOD);
+    /* Carry the exact regional sample fraction across frames. NTSC uses
+       352/315000 samples per tick; PAL uses 640/709379. */
+    const uint32_t frame_ticks = nesturbator__frame_ticks(inst);
+    const uint32_t sample_num = nesturbator__sample_ticks_numerator(inst);
+    const uint32_t sample_den = nesturbator__sample_ticks_denominator(inst);
+    uint64_t acc = (uint64_t)inst->audio_rem + (uint64_t)frame_ticks * sample_num;
+    uint32_t n = (uint32_t)(acc / sample_den);
     if (io->audio == NULL && io->audio_capacity > 0u) {
         return NESTURBATOR_ERR_ARGUMENT;
     }
@@ -46,10 +48,14 @@ nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *i
                 row[x] = nesturbator__test_pixel(x, y);
             }
         }
-        inst->ticks += NESTURBATOR_TICKS_PER_FRAME;
+        inst->ticks += frame_ticks;
     } else {
         nesturbator__apu_begin_frame(inst, io->audio, n);
-        uint64_t target = inst->ticks + NESTURBATOR_TICKS_PER_FRAME;
+        /* PAL PCM follows the continuous CPU-cycle clock. Carry any completed
+           instruction/DMA overrun against the next absolute nominal frame
+           endpoint so its bounded PCM ring holds only the live overshoot. */
+        uint64_t target = nesturbator__is_pal(inst) != 0 ? (inst->frame_number + 1u) * frame_ticks
+                                                         : inst->ticks + frame_ticks;
         inst->ppu.video_output = io->video;
         inst->ppu.video_pitch = io->video_pitch;
         while (inst->ticks < target && inst->cpu.jammed == 0u) {
@@ -64,7 +70,7 @@ nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *i
         }
     }
 
-    inst->audio_rem = (uint32_t)(acc % NESTURBATOR_AUDIO_TICKS_PER_PERIOD);
+    inst->audio_rem = (uint32_t)(acc % sample_den);
     inst->frame_number += 1u;
     io->audio_count = n;
     io->frame_number = inst->frame_number;
