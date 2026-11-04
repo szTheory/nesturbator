@@ -12,52 +12,66 @@ function(reproduction_require_contains content needle diagnostic)
   endif()
 endfunction()
 
-function(reproduction_require_test_property tests_json test_name property expected diagnostic)
-  string(JSON test_count LENGTH "${tests_json}" tests)
-  set(found_test FALSE)
-  set(found_property FALSE)
-  set(observed_values)
-  foreach(test_index RANGE 0 ${test_count})
-    if(test_index GREATER_EQUAL test_count)
-      break()
-    endif()
-    string(JSON candidate_name GET "${tests_json}" tests ${test_index} name)
-    if(NOT candidate_name STREQUAL test_name)
-      continue()
-    endif()
-    set(found_test TRUE)
-    string(JSON property_count LENGTH "${tests_json}" tests ${test_index} properties)
-    foreach(property_index RANGE 0 ${property_count})
-      if(property_index GREATER_EQUAL property_count)
-        break()
-      endif()
-      string(JSON candidate_property GET "${tests_json}" tests ${test_index} properties ${property_index} name)
-      if(NOT candidate_property STREQUAL property)
-        continue()
-      endif()
-      set(found_property TRUE)
-      string(JSON value_type TYPE "${tests_json}" tests ${test_index} properties ${property_index} value)
-      if(value_type STREQUAL "ARRAY")
-        string(JSON value_count LENGTH "${tests_json}" tests ${test_index} properties ${property_index} value)
-        foreach(value_index RANGE 0 ${value_count})
-          if(value_index GREATER_EQUAL value_count)
-            break()
-          endif()
-          string(JSON value GET "${tests_json}" tests ${test_index} properties ${property_index} value ${value_index})
-          list(APPEND observed_values "${value}")
+macro(reproduction_index_test_metadata tests_json)
+  string(JSON reproduction_test_count LENGTH "${tests_json}" tests)
+  set(REPRO_TESTS_JSON "${tests_json}")
+  if(reproduction_test_count GREATER 0)
+    math(EXPR reproduction_last_test "${reproduction_test_count} - 1")
+    foreach(reproduction_test_index RANGE 0 ${reproduction_last_test})
+      string(JSON reproduction_test_name GET "${tests_json}" tests
+        ${reproduction_test_index} name)
+      string(MD5 reproduction_test_key "${reproduction_test_name}")
+      set(REPRO_TEST_INDEX_${reproduction_test_key} "${reproduction_test_index}")
+      string(JSON reproduction_property_count LENGTH "${tests_json}" tests
+        ${reproduction_test_index} properties)
+      if(reproduction_property_count GREATER 0)
+        math(EXPR reproduction_last_property "${reproduction_property_count} - 1")
+        foreach(reproduction_property_index RANGE 0 ${reproduction_last_property})
+          string(JSON reproduction_property_name GET "${tests_json}" tests
+            ${reproduction_test_index} properties ${reproduction_property_index} name)
+          string(MD5 reproduction_property_key "${reproduction_property_name}")
+          set(REPRO_PROPERTY_INDEX_${reproduction_test_key}_${reproduction_property_key}
+            "${reproduction_property_index}")
         endforeach()
-      else()
-        string(JSON value GET "${tests_json}" tests ${test_index} properties ${property_index} value)
-        list(APPEND observed_values "${value}")
       endif()
-      break()
     endforeach()
-    break()
-  endforeach()
+  endif()
+endmacro()
 
-  if(NOT found_test OR NOT found_property)
+function(reproduction_require_test_property test_name property expected diagnostic)
+  string(MD5 test_key "${test_name}")
+  set(test_index_var "REPRO_TEST_INDEX_${test_key}")
+  if(NOT DEFINED ${test_index_var})
     message(FATAL_ERROR "docs.reproduction: ${diagnostic}")
   endif()
+  set(test_index "${${test_index_var}}")
+  string(MD5 property_key "${property}")
+  set(property_index_var "REPRO_PROPERTY_INDEX_${test_key}_${property_key}")
+  if(NOT DEFINED ${property_index_var})
+    message(FATAL_ERROR "docs.reproduction: ${diagnostic}")
+  endif()
+  set(property_index "${${property_index_var}}")
+
+  string(JSON value_type TYPE "${REPRO_TESTS_JSON}" tests ${test_index}
+    properties ${property_index} value)
+  set(observed_values)
+  if(value_type STREQUAL "ARRAY")
+    string(JSON value_count LENGTH "${REPRO_TESTS_JSON}" tests ${test_index}
+      properties ${property_index} value)
+    if(value_count GREATER 0)
+      math(EXPR last_value "${value_count} - 1")
+      foreach(value_index RANGE 0 ${last_value})
+        string(JSON value GET "${REPRO_TESTS_JSON}" tests ${test_index}
+          properties ${property_index} value ${value_index})
+        list(APPEND observed_values "${value}")
+      endforeach()
+    endif()
+  else()
+    string(JSON value GET "${REPRO_TESTS_JSON}" tests ${test_index}
+      properties ${property_index} value)
+    list(APPEND observed_values "${value}")
+  endif()
+
   if(property STREQUAL "TIMEOUT")
     if(NOT expected IN_LIST observed_values AND NOT "${expected}.0" IN_LIST observed_values)
       message(FATAL_ERROR "docs.reproduction: ${diagnostic}")
@@ -383,27 +397,76 @@ function(reproduction_check doc_path)
   endif()
   string(REPLACE "|" ";" documented_tests "${test_names_text}")
 
-  execute_process(COMMAND "${CTEST}" --test-dir "${BUILD_DIR}" --show-only=json-v1
-    OUTPUT_VARIABLE all_tests_json ERROR_VARIABLE ctest_err RESULT_VARIABLE ctest_rc TIMEOUT 20)
-  if(NOT "${ctest_rc}" STREQUAL "0")
-    message(FATAL_ERROR "docs.reproduction: generated CTest metadata could not be read")
-  endif()
-  string(JSON all_test_count LENGTH "${all_tests_json}" tests)
-  set(generated_tests)
-  foreach(index RANGE 0 ${all_test_count})
-    if(index GREATER_EQUAL all_test_count)
-      break()
+  if(MODE STREQUAL "mutation_check")
+    foreach(var METADATA_SNAPSHOT_DIR METADATA_SNAPSHOT_TOKEN)
+      if(NOT DEFINED ${var} OR "${${var}}" STREQUAL "")
+        message(FATAL_ERROR "docs.reproduction: invocation metadata snapshot is incomplete")
+      endif()
+    endforeach()
+    get_filename_component(work_abs "${WORK}" ABSOLUTE)
+    get_filename_component(snapshot_dir_abs "${METADATA_SNAPSHOT_DIR}" ABSOLUTE)
+    cmake_path(IS_PREFIX work_abs "${snapshot_dir_abs}" NORMALIZE snapshot_inside_work)
+    set(snapshot_owner_file "${snapshot_dir_abs}/owner.txt")
+    set(snapshot_owner_expected
+      "token=${METADATA_SNAPSHOT_TOKEN}\nsource=${SOURCE_DIR}\nbuild=${BUILD_DIR}\nctest=${CTEST}\n")
+    if(NOT snapshot_inside_work OR NOT EXISTS "${snapshot_owner_file}" OR
+       NOT EXISTS "${snapshot_dir_abs}/all-tests.json" OR
+       NOT EXISTS "${snapshot_dir_abs}/selected-tests.json")
+      message(FATAL_ERROR "docs.reproduction: invocation metadata snapshot is missing or outside WORK")
     endif()
-    string(JSON test_name GET "${all_tests_json}" tests ${index} name)
-    list(APPEND generated_tests "${test_name}")
-  endforeach()
+    file(READ "${snapshot_owner_file}" snapshot_owner_actual)
+    if(NOT snapshot_owner_actual STREQUAL snapshot_owner_expected)
+      message(FATAL_ERROR "docs.reproduction: invocation metadata snapshot owner does not match this build")
+    endif()
+    file(READ "${snapshot_dir_abs}/all-tests.json" all_tests_json)
+    file(READ "${snapshot_dir_abs}/selected-tests.json" selected_tests_json)
+  else()
+    execute_process(COMMAND "${CTEST}" --test-dir "${BUILD_DIR}" --show-only=json-v1
+      OUTPUT_VARIABLE all_tests_json ERROR_VARIABLE ctest_err RESULT_VARIABLE ctest_rc TIMEOUT 20)
+    if(NOT "${ctest_rc}" STREQUAL "0")
+      message(FATAL_ERROR "docs.reproduction: generated CTest metadata could not be read")
+    endif()
+
+    # CTest itself evaluates the documented selector. Retain its selected
+    # property snapshot for indexed lookup below and for mutation children.
+    execute_process(COMMAND "${CTEST}" --test-dir "${BUILD_DIR}" --show-only=json-v1 -R "${test_regex}"
+      OUTPUT_VARIABLE selected_tests_json ERROR_VARIABLE selected_err RESULT_VARIABLE selected_rc TIMEOUT 20)
+    if(NOT "${selected_rc}" STREQUAL "0")
+      message(FATAL_ERROR "docs.reproduction: documented CTest selection could not be evaluated")
+    endif()
+    if(MODE STREQUAL "self_test")
+      foreach(var METADATA_SNAPSHOT_DIR METADATA_SNAPSHOT_TOKEN)
+        if(NOT DEFINED ${var} OR "${${var}}" STREQUAL "")
+          message(FATAL_ERROR "docs.reproduction self-test: invocation metadata snapshot is not configured")
+        endif()
+      endforeach()
+      file(MAKE_DIRECTORY "${METADATA_SNAPSHOT_DIR}")
+      file(WRITE "${METADATA_SNAPSHOT_DIR}/owner.txt"
+        "token=${METADATA_SNAPSHOT_TOKEN}\nsource=${SOURCE_DIR}\nbuild=${BUILD_DIR}\nctest=${CTEST}\n")
+      file(WRITE "${METADATA_SNAPSHOT_DIR}/all-tests.json" "${all_tests_json}")
+      file(WRITE "${METADATA_SNAPSHOT_DIR}/selected-tests.json" "${selected_tests_json}")
+    endif()
+  endif()
+
+  string(JSON selected_count LENGTH "${selected_tests_json}" tests)
+  if(selected_count LESS 1)
+    message(FATAL_ERROR "docs.reproduction: documented CTest selection matches no tests")
+  endif()
+  set(selected_tests)
+  if(selected_count GREATER 0)
+    math(EXPR last_selected_test "${selected_count} - 1")
+    foreach(selected_index RANGE 0 ${last_selected_test})
+      string(JSON selected_name GET "${selected_tests_json}" tests ${selected_index} name)
+      list(APPEND selected_tests "${selected_name}")
+    endforeach()
+  endif()
   foreach(test_name IN LISTS documented_tests)
     # The guide explicitly configures ci. ASan's short-run configuration
     # intentionally omits only the played-input test, not its build target.
     if(SHORT_RUNS AND test_name STREQUAL "runner.boot_to_play")
       continue()
     endif()
-    if(NOT test_name IN_LIST generated_tests)
+    if(NOT test_name IN_LIST selected_tests)
       message(FATAL_ERROR "docs.reproduction: documented CTest test is not generated: ${test_name}")
     endif()
   endforeach()
@@ -425,51 +488,52 @@ function(reproduction_check doc_path)
       message(FATAL_ERROR "docs.reproduction: documented CTest selection omits ${required_test}")
     endif()
   endforeach()
+  foreach(selected_name IN LISTS selected_tests)
+    if(selected_name IN_LIST documented_tests)
+      continue()
+    endif()
+    if(selected_name MATCHES "^runner\\.nesrunner_movie\\.(pos|none|attract|startonly)$" OR
+       selected_name STREQUAL "runner.save.fixture")
+      continue()
+    endif()
+    message(FATAL_ERROR "docs.reproduction: undocumented CTest selection includes ${selected_name}")
+  endforeach()
+  reproduction_index_test_metadata("${selected_tests_json}")
 
-  execute_process(COMMAND "${CTEST}" --test-dir "${BUILD_DIR}" --show-only=json-v1 -R "${test_regex}"
-    OUTPUT_VARIABLE selected_tests_json ERROR_VARIABLE selected_err RESULT_VARIABLE selected_rc TIMEOUT 20)
-  if(NOT "${selected_rc}" STREQUAL "0")
-    message(FATAL_ERROR "docs.reproduction: documented CTest selection could not be evaluated")
-  endif()
-  string(JSON selected_count LENGTH "${selected_tests_json}" tests)
-  if(selected_count LESS 1)
-    message(FATAL_ERROR "docs.reproduction: documented CTest selection matches no tests")
-  endif()
-
-  reproduction_require_test_property("${selected_tests_json}" "runner.reproduction.cold" "TIMEOUT" "180"
+  reproduction_require_test_property("runner.reproduction.cold" "TIMEOUT" "180"
     "generated cold replay timeout is not 180 seconds")
-  reproduction_require_test_property("${selected_tests_json}" "runner.reproduction.compare_self_test" "TIMEOUT" "60"
+  reproduction_require_test_property("runner.reproduction.compare_self_test" "TIMEOUT" "60"
     "generated movie comparison self-test timeout is not 60 seconds")
-  reproduction_require_test_property("${selected_tests_json}" "runner.reproduction.preflight" "TIMEOUT" "60"
+  reproduction_require_test_property("runner.reproduction.preflight" "TIMEOUT" "60"
     "generated checkpoint preflight timeout is not 60 seconds")
-  reproduction_require_test_property("${selected_tests_json}" "runner.reproduction.preflight_self_test" "TIMEOUT" "60"
+  reproduction_require_test_property("runner.reproduction.preflight_self_test" "TIMEOUT" "60"
     "generated preflight self-test timeout is not 60 seconds")
-  reproduction_require_test_property("${selected_tests_json}" "docs.reproduction" "TIMEOUT" "60"
+  reproduction_require_test_property("docs.reproduction" "TIMEOUT" "60"
     "generated reproduction document-check timeout is not 60 seconds")
-  reproduction_require_test_property("${selected_tests_json}" "docs.reproduction.self_test" "TIMEOUT" "60"
+  reproduction_require_test_property("docs.reproduction.self_test" "TIMEOUT" "60"
     "generated reproduction document self-test timeout is not 60 seconds")
   if(NOT SHORT_RUNS)
-    reproduction_require_test_property("${selected_tests_json}" "runner.boot_to_play" "TIMEOUT" "300"
+    reproduction_require_test_property("runner.boot_to_play" "TIMEOUT" "300"
       "generated played-input control timeout is not 300 seconds")
-    reproduction_require_test_property("${selected_tests_json}" "runner.boot_to_play" "FIXTURES_REQUIRED" "nesrunner_movies"
+    reproduction_require_test_property("runner.boot_to_play" "FIXTURES_REQUIRED" "nesrunner_movies"
       "played-input control is missing its movie fixtures")
   endif()
-  reproduction_require_test_property("${selected_tests_json}" "runner.save.fixture" "TIMEOUT" "10"
+  reproduction_require_test_property("runner.save.fixture" "TIMEOUT" "10"
     "required save fixture setup has no 10-second timeout")
-  reproduction_require_test_property("${selected_tests_json}" "runner.save.fixture" "FIXTURES_SETUP" "runner_save"
+  reproduction_require_test_property("runner.save.fixture" "FIXTURES_SETUP" "runner_save"
     "required save fixture setup is not registered")
   foreach(case IN ITEMS nmi_roundtrip nmi_idempotent nmi_wrong_load)
-    reproduction_require_test_property("${selected_tests_json}" "runner.state.${case}" "TIMEOUT" "60"
+    reproduction_require_test_property("runner.state.${case}" "TIMEOUT" "60"
       "generated runner.state.${case} timeout is not 60 seconds")
-    reproduction_require_test_property("${selected_tests_json}" "runner.state.${case}" "FIXTURES_REQUIRED" "runner_save"
+    reproduction_require_test_property("runner.state.${case}" "FIXTURES_REQUIRED" "runner_save"
       "generated runner.state.${case} save fixture dependency is missing")
-    reproduction_require_test_property("${selected_tests_json}" "runner.state.${case}" "DEPENDS" "runner.save.fixture"
+    reproduction_require_test_property("runner.state.${case}" "DEPENDS" "runner.save.fixture"
       "generated runner.state.${case} setup test dependency is missing")
   endforeach()
   foreach(scenario IN ITEMS pos none attract startonly)
-    reproduction_require_test_property("${all_tests_json}" "runner.nesrunner_movie.${scenario}" "TIMEOUT" "10"
+    reproduction_require_test_property("runner.nesrunner_movie.${scenario}" "TIMEOUT" "10"
       "required runner.nesrunner_movie.${scenario} setup timeout is not 10 seconds")
-    reproduction_require_test_property("${all_tests_json}" "runner.nesrunner_movie.${scenario}" "FIXTURES_SETUP" "nesrunner_movies"
+    reproduction_require_test_property("runner.nesrunner_movie.${scenario}" "FIXTURES_SETUP" "nesrunner_movies"
       "required runner.nesrunner_movie.${scenario} fixture is not registered")
   endforeach()
 
@@ -511,8 +575,11 @@ function(reproduction_expect_mutation root name mutated expected)
       "-DSOURCE_DIR=${SOURCE_DIR}"
       "-DBUILD_DIR=${BUILD_DIR}"
       "-DCTEST=${CTEST}"
+      "-DWORK=${WORK}"
       "-DSHORT_RUNS=${SHORT_RUNS}"
       "-DBOOT_TO_PLAY_TARGET=${BOOT_TO_PLAY_TARGET}"
+      "-DMETADATA_SNAPSHOT_DIR=${METADATA_SNAPSHOT_DIR}"
+      "-DMETADATA_SNAPSHOT_TOKEN=${METADATA_SNAPSHOT_TOKEN}"
       "-DDOC=${mutated_doc}"
       -P "${CMAKE_CURRENT_LIST_FILE}"
     OUTPUT_VARIABLE out ERROR_VARIABLE err RESULT_VARIABLE rc TIMEOUT 20)
@@ -523,9 +590,45 @@ function(reproduction_expect_mutation root name mutated expected)
   string(FIND "${combined}" "${expected}" diagnostic_pos)
   if(diagnostic_pos EQUAL -1)
     string(REGEX MATCH "docs\.reproduction[^\n]*" observed "${combined}")
-    message(FATAL_ERROR "docs.reproduction self-test: ${name} expected '${expected}', observed '${observed}'")
+    string(LENGTH "${combined}" combined_length)
+    if(combined_length GREATER 2048)
+      string(SUBSTRING "${combined}" 0 2048 combined)
+      string(APPEND combined "\n[child output truncated]")
+    endif()
+    message(FATAL_ERROR
+      "docs.reproduction self-test: ${name} expected '${expected}', rc='${rc}', "
+      "observed='${observed}', child output:\n${combined}")
   endif()
   message(STATUS "docs.reproduction.self_test: ${name} rejected for the expected reason")
+endfunction()
+
+function(reproduction_snapshot_self_test root name snapshot_dir token expected)
+  execute_process(COMMAND "${CMAKE_COMMAND}"
+      "-DMODE=mutation_check"
+      "-DSOURCE_DIR=${SOURCE_DIR}"
+      "-DBUILD_DIR=${BUILD_DIR}"
+      "-DCTEST=${CTEST}"
+      "-DWORK=${WORK}"
+      "-DSHORT_RUNS=${SHORT_RUNS}"
+      "-DBOOT_TO_PLAY_TARGET=${BOOT_TO_PLAY_TARGET}"
+      "-DMETADATA_SNAPSHOT_DIR=${snapshot_dir}"
+      "-DMETADATA_SNAPSHOT_TOKEN=${token}"
+      "-DDOC=${DOC}"
+      -P "${CMAKE_CURRENT_LIST_FILE}"
+    OUTPUT_VARIABLE out ERROR_VARIABLE err RESULT_VARIABLE rc TIMEOUT 20)
+  string(CONCAT combined "${out}" "${err}")
+  string(FIND "${combined}" "${expected}" diagnostic_pos)
+  if("${rc}" STREQUAL "0" OR diagnostic_pos EQUAL -1)
+    string(LENGTH "${combined}" combined_length)
+    if(combined_length GREATER 2048)
+      string(SUBSTRING "${combined}" 0 2048 combined)
+      string(APPEND combined "\n[child output truncated]")
+    endif()
+    message(FATAL_ERROR
+      "docs.reproduction self-test: ${name} did not reject the snapshot; "
+      "rc='${rc}', child output:\n${combined}")
+  endif()
+  message(STATUS "docs.reproduction.self_test: ${name} snapshot control rejected")
 endfunction()
 
 # Execute the published progress block with harmless command doubles. A failed
@@ -597,11 +700,23 @@ elseif(MODE STREQUAL "self_test")
       message(FATAL_ERROR "docs.reproduction self-test: -D${var}=... is required")
     endif()
   endforeach()
+  string(RANDOM LENGTH 20 ALPHABET 0123456789abcdef suffix)
+  get_filename_component(work_abs "${WORK}" ABSOLUTE)
+  set(root "${work_abs}/contract-${suffix}")
+  set(METADATA_SNAPSHOT_DIR "${root}/metadata")
+  set(METADATA_SNAPSHOT_TOKEN "${suffix}")
+  file(MAKE_DIRECTORY "${root}")
   reproduction_check("${DOC}")
   file(READ "${DOC}" original)
-  string(RANDOM LENGTH 20 ALPHABET 0123456789abcdef suffix)
-  set(root "${WORK}/contract-${suffix}")
-  file(MAKE_DIRECTORY "${root}")
+
+  reproduction_snapshot_self_test("${root}" "wrong-snapshot-token"
+    "${METADATA_SNAPSHOT_DIR}" "stale-${suffix}"
+    "metadata snapshot owner")
+  set(missing_snapshot_dir "${root}/missing-metadata")
+  file(MAKE_DIRECTORY "${missing_snapshot_dir}")
+  reproduction_snapshot_self_test("${root}" "missing-snapshot-files"
+    "${missing_snapshot_dir}" "${METADATA_SNAPSHOT_TOKEN}"
+    "metadata snapshot is missing")
 
   reproduction_progress_failure_controls("${root}")
 

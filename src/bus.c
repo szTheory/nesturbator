@@ -88,7 +88,10 @@ static inline uint8_t cycle(struct nesturbator *nes, uint8_t status_read,
                                                                     : NESTURBATOR_NMI_NONE;
     }
     const uint32_t m2_rise = nesturbator__m2_rise_ticks(nes);
-    const uint32_t cpu_cycle = nesturbator__cpu_cycle_ticks(nes);
+    /* M2 is high 6 ticks longer than its rise offset in both supported
+       profiles: 15 after +9 on NTSC, 19 after +13 on PAL [HWC.03, HWC.04].
+       Reusing the rise offset avoids selecting the same regional profile twice. */
+    const uint32_t ticks_after_m2_rise = m2_rise + 6u;
     nes->ticks += m2_rise;
     if (status_read != 0u) {
         ppu_catch_up(nes);
@@ -118,7 +121,7 @@ static inline uint8_t cycle(struct nesturbator *nes, uint8_t status_read,
     /* No timed helper runs between the history-only opening poll and close.
        Advance the remaining part of this CPU cycle together rather than materializing
        an otherwise unobservable intermediate timestamp on every cycle. */
-    nes->ticks += cpu_cycle - m2_rise;
+    nes->ticks += ticks_after_m2_rise;
     ppu_catch_up_before_close(nes);
     if (defer_nmi_close_sample == 0u) {
         /* An internal cycle has no bus side effect, so capture before the PPU

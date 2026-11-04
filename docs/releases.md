@@ -268,6 +268,43 @@ verified attestation's source and subject digest. The existing archive checker
 then verifies the contents and libretro metadata for each of the six OS and
 architecture groups.
 
+Published receipts use schema version 2. Their `scenario` object binds the
+DABG source URL and commit to the ROM digest. Its `rights` object records SPDX
+`Zlib`, the pinned commit's `LICENSE.txt` URL and source commit, the exact
+license text digest, permitted uses, restrictions, and the required standalone
+notice path and digest. The `distribution` object states that the ROM is absent
+from component archives and that the receipt is delivered as a source-evidence
+overlay. The required notice digest must equal the license text digest, and the
+published and verify-published paths retrieve the pinned upstream text (60
+seconds, no retry), compare its bytes with the tracked notice, and verify the
+digest before they accept or write the receipt. A failed fetch or byte mismatch
+blocks both paths.
+
+Before local acceptance, the pinned upstream text can be compared with the
+tracked source copy using a single bounded retrieval (60 seconds, no retry):
+
+```sh
+cmake -DSOURCE_DIR=. -DMODE=rights -DWORK=build/phase28-rights-verify -P tests/cmake/provider_receipt.cmake
+```
+
+This read-only check also verifies the manifest row, profile, gameplay guide,
+and `THIRD-PARTY-NOTICES.md` identity and license terms. The source distribution
+contains the exact DABG Zlib notice at
+[`tests/roms/licenses/DABG-ZLIB-LICENSE.txt`](../tests/roms/licenses/DABG-ZLIB-LICENSE.txt).
+The notice permits use for any purpose, including commercial use, alteration,
+and redistribution; users must preserve origin and authorship, mark altered
+source, and retain the unmodified notice in source distributions. Any downstream
+distribution that includes the ROM must carry the same notice. This repository
+does not modify downstream distributions.
+
+The exact component archive allowlists omit both `tests/roms/dabg.nes` and the
+standalone DABG notice; the notice index in the libretro archive does not place
+the ROM or standalone notice there. The fixed release asset inventory also
+omits `docs/provider-ntsc-release.json`, which remains only in the source
+checkout as the post-publication evidence overlay. The archive checker rejects
+extra files, and the published receipt still requires the exact existing asset,
+checksum, attestation, CI, and native replay gates.
+
 On a matching native target, the gate extracts the published library, runner
 and libretro packages. It runs the installed consumer from a moved prefix with
 a fresh build and replays the DABG gameplay and refusal controls, checks the

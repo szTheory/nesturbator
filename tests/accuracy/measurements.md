@@ -2298,3 +2298,38 @@ Measured `host_elapsed_guest_ns` was `4882667000`. `source_dirty=1` records only
 the generated Phase 28 acceptance and release evidence overlays, which are
 excluded from the input fingerprint. This was the registered CTest campaign;
 the separate interrupted collector remains stopped with unknown status.
+
+### Phase 28 candidate input-fingerprint refresh (2026-11-04)
+
+The registered `accuracycoin.campaign` fixture ran with corrected candidate
+commit `68ca4010d454`. It completed all 22 pages and all 146 scored rows with
+126 PASS, 20 FAIL, 5 inventory-only DRAW, and no skip, not-run, or timeout. The
+campaign report SHA-256 remains
+`f3b5bbf7ddcf4d18deabda6d875b441330dc71c97b8aca5fdcc38bf471f98f6c`; the
+scoreboard and outcome rows are unchanged. Guest execution time was
+`4525264000` ns.
+
+The 56-input fingerprint changed from
+`4f89c3fb693a43c4447d5fb8a17b437469b07a98cb91c01b16e0046cc4d38787` to
+`5869e7871f0b33ee61637c91c6bc1cc085c052105debcef2d617def4fa2aeceb` after the
+behavior-preserving `src/bus.c` region-offset optimization. The first full
+workflow correctly rejected the stale fingerprint metadata; only that
+fingerprint field is refreshed. Phase evidence files under `.planning` were
+dirty but are excluded from the build-input fingerprint. This was the
+registered CTest campaign, not a separate collector; the older interrupted
+campaign remains stopped with unknown status.
+
+### Phase 28 citation fingerprint refresh (2026-11-04)
+
+The full CI workflow on candidate `d6e8fc39c055` ran the registered
+`accuracycoin.campaign` test successfully (4.93 seconds). Its report digest
+remains `f3b5bbf7ddcf4d18deabda6d875b441330dc71c97b8aca5fdcc38bf471f98f6c`
+with 126 PASS, 20 FAIL and 5 inventory-only DRAW rows. The first full attempt
+correctly rejected the stale input fingerprint and corresponding activation
+check; the other 724 tests passed. The current 56-input fingerprint is
+`499ba5840dd0526152db9645de9b66f398594f2dde216baf0f224d91a65a56ab`, replacing
+`5869e7871f0b33ee61637c91c6bc1cc085c052105debcef2d617def4fa2aeceb` after a
+required `[HWC.03, HWC.04]` citation was added to the bus timing comment. Only
+the `build_inputs_sha256` metadata field is refreshed; this is not an
+emulation-behavior change or a standalone campaign rerun. The old interrupted
+campaign remains stopped with unknown status.

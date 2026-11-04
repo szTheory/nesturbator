@@ -1023,6 +1023,38 @@ tests/perf/allow.txt carries a valid line for that ROM; an unstable base (two ba
 differ) always fails; a base that cannot be built or run shows `n/a` and does not fail the pull
 request. Wall time is never measured or gated. The `perf.roms_render` test shows that
 all three ROMs draw a non-blank frame 60, so the job never measures an idle PPU.
+The bus derives the ticks after M2 rise from that profile's rise offset: NTSC uses +9 then
+15 ticks, and PAL uses +13 then 19 ticks. The existing observed-cycle test checks those
+openings and the resulting +24/+32 closes through production bus code.
+
+For the Phase 28 candidate diagnosis, a Clang 21 native coverage profile counted
+32,164,926 bus-cycle calls across the three 360-frame runs. The optimized local build had
+separate regional selections for M2 rise and the remaining ticks; deriving the latter as
+the rise offset plus six removes one selection per hot-path cycle while preserving both
+profiles. Before/after runner frame and audio hashes supplement the focused tests. GCC 14
+and Valgrind were unavailable locally, so only the required hosted Cachegrind job can
+establish whether the unchanged one-percent gate passes.
+
+The Phase 28 reproduction checks were slow because each invocation used
+`string(JSON)` once per generated test name (726 entries locally), and each
+later mutation child repeated both CTest metadata queries. A bounded local probe
+spent 2.14 seconds just enumerating those names; the metadata queries themselves
+took 0.01–0.03 seconds. Before the correction, the focused check and self-test
+took 9.61 and 21.94 seconds locally. On the retained hosted run, the Windows
+x64 self-test timed out at 60 seconds after nine named controls, and the ARM64
+run failed its stale-target expected-error check without the expected diagnostic
+at 58 seconds; the Intel macOS reproduction checks also reached their 60-second
+limits. The child timeout is unchanged at 20 seconds.
+
+The check now parses only CTest's actual selected test set and indexes its
+properties once. The self-test reads fresh generated metadata once, then gives
+each mutation child an invocation-owned, read-only snapshot guarded by a random
+token and build identity. All existing mutations and expected diagnostics stay
+active. The focused local check takes 0.07 seconds and the self-test takes
+0.22–0.25 seconds across the final runs.
+This uses the current CMake/CTest setup without a persistent cache, new
+dependency, extra CI lane or timeout change; hosted reproduction checks still
+need to confirm the improvement on Windows and Intel macOS.
 
 ### Phase 20 hosted evidence collection
 

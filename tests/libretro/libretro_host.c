@@ -4070,6 +4070,21 @@ typedef struct runner_profile_info {
     uint32_t sample_rate_den;
 } runner_profile_info;
 
+static bool runner_record_ending_is_exact(const char *line, int consumed)
+{
+    size_t length;
+    size_t prefix;
+    if (line == NULL || consumed <= 0)
+        return false;
+    length = strlen(line);
+    prefix = (size_t)consumed;
+    if (prefix >= length)
+        return false;
+    if (length == prefix + 1u && line[prefix] == '\n')
+        return true;
+    return length == prefix + 2u && line[prefix] == '\r' && line[prefix + 1u] == '\n';
+}
+
 static bool read_runner_info(const char *path, runner_profile_info *info)
 {
     FILE *file = fopen(path, "rb");
@@ -4091,14 +4106,21 @@ static bool read_runner_info(const char *path, runner_profile_info *info)
         records++;
         if (sscanf(line, "info region=%15s fps=%u/%u sample_rate=%u/%u%n", region, &fps_num,
                    &fps_den, &sample_rate_num, &sample_rate_den, &consumed) != 5 ||
-            consumed <= 0 || line[consumed] != '\n' || line[consumed + 1] != '\0')
+            !runner_record_ending_is_exact(line, consumed))
             continue;
-        if (strcmp(region, "ntsc") == 0)
+        if (strcmp(region, "ntsc") == 0) {
             info->region = NESTURBATOR_REGION_NTSC;
-        else if (strcmp(region, "pal") == 0)
+            if (fps_num != 39375000u || fps_den != 655171u || sample_rate_num != 48000u ||
+                sample_rate_den != 1u)
+                continue;
+        } else if (strcmp(region, "pal") == 0) {
             info->region = NESTURBATOR_REGION_PAL;
-        else
+            if (fps_num != 322445u || fps_den != 6448u || sample_rate_num != 48000u ||
+                sample_rate_den != 1u)
+                continue;
+        } else {
             continue;
+        }
         info->fps_num = fps_num;
         info->fps_den = fps_den;
         info->sample_rate_num = sample_rate_num;
@@ -4159,8 +4181,8 @@ static bool read_runner_presentation_hashes(const char *path, unsigned expected_
         int consumed = 0;
         if (sscanf(line, "frame %u ticks %llu sha256 %64s%n", &frame_number, &ticks, value,
                    &consumed) == 3) {
-            if (frame_number != expected_frame || strlen(value) != 64u || line[consumed] != '\n' ||
-                line[consumed + 1] != '\0') {
+            if (frame_number != expected_frame || strlen(value) != 64u ||
+                !runner_record_ending_is_exact(line, consumed)) {
                 valid = false;
                 continue;
             }
@@ -4168,14 +4190,14 @@ static bool read_runner_presentation_hashes(const char *path, unsigned expected_
             memcpy(hashes->frame, value, sizeof value);
             frame_records++;
         } else if (sscanf(line, "audio transitions sha256 %64s%n", value, &consumed) == 1) {
-            if (strlen(value) != 64u || line[consumed] != '\n' || line[consumed + 1] != '\0') {
+            if (strlen(value) != 64u || !runner_record_ending_is_exact(line, consumed)) {
                 valid = false;
                 continue;
             }
             memcpy(hashes->transitions, value, sizeof value);
             transition_records++;
         } else if (sscanf(line, "audio pcm sha256 %64s%n", value, &consumed) == 1) {
-            if (strlen(value) != 64u || line[consumed] != '\n' || line[consumed + 1] != '\0') {
+            if (strlen(value) != 64u || !runner_record_ending_is_exact(line, consumed)) {
                 valid = false;
                 continue;
             }
@@ -4187,6 +4209,97 @@ static bool read_runner_presentation_hashes(const char *path, unsigned expected_
         valid = false;
     fclose(file);
     return valid && frame_records == 1u && transition_records == 1u && pcm_records == 1u;
+}
+
+static bool write_runner_parser_fixture(const char *path, const char *text)
+{
+    FILE *file = fopen(path, "wb");
+    const size_t length = strlen(text);
+    bool ok;
+    if (file == NULL)
+        return false;
+    ok = fwrite(text, 1u, length, file) == length;
+    if (fclose(file) != 0)
+        ok = false;
+    return ok;
+}
+
+static void test_runner_parser_line_endings(const char *base_path)
+{
+    static const char ntsc_lf[] = "info region=ntsc fps=39375000/655171 sample_rate=48000/1\n";
+    static const char pal_crlf[] = "info region=pal fps=322445/6448 sample_rate=48000/1\r\n";
+    static const char duplicate[] = "info region=ntsc fps=39375000/655171 sample_rate=48000/1\r\n"
+                                    "info region=ntsc fps=39375000/655171 sample_rate=48000/1\r\n";
+    static const char truncated[] = "info region=ntsc fps=39375000/655171 sample_rate=48000/1";
+    static const char extra_token[] =
+        "info region=ntsc fps=39375000/655171 sample_rate=48000/1 trailing\r\n";
+    static const char invalid_region[] =
+        "info region=dendy fps=39375000/655171 sample_rate=48000/1\r\n";
+    static const char invalid_rate[] = "info region=pal fps=322446/6448 sample_rate=48000/1\r\n";
+    char path[4096];
+    runner_profile_info info;
+    struct runner_presentation_hashes hashes;
+    char frame_hash[65], transition_hash[65], pcm_hash[65], records[512];
+
+    const bool fixture_path_valid =
+        copy_path_with_suffix(path, sizeof path, base_path, ".runner-parser-control");
+    CHECK(fixture_path_valid);
+    if (!fixture_path_valid)
+        return;
+
+    memset(&info, 0, sizeof info);
+    CHECK(write_runner_parser_fixture(path, ntsc_lf));
+    CHECK(read_runner_info(path, &info));
+    CHECK_EQ_U64(info.region, NESTURBATOR_REGION_NTSC);
+    CHECK_EQ_U64(info.fps_num, 39375000u);
+    CHECK_EQ_U64(info.fps_den, 655171u);
+    CHECK_EQ_U64(info.sample_rate_num, 48000u);
+    CHECK_EQ_U64(info.sample_rate_den, 1u);
+
+    memset(&info, 0, sizeof info);
+    CHECK(write_runner_parser_fixture(path, pal_crlf));
+    CHECK(read_runner_info(path, &info));
+    CHECK_EQ_U64(info.region, NESTURBATOR_REGION_PAL);
+    CHECK_EQ_U64(info.fps_num, 322445u);
+    CHECK_EQ_U64(info.fps_den, 6448u);
+    CHECK_EQ_U64(info.sample_rate_num, 48000u);
+    CHECK_EQ_U64(info.sample_rate_den, 1u);
+
+    CHECK(write_runner_parser_fixture(path, duplicate));
+    CHECK(!read_runner_info(path, &info));
+    CHECK(write_runner_parser_fixture(path, truncated));
+    CHECK(!read_runner_info(path, &info));
+    CHECK(write_runner_parser_fixture(path, extra_token));
+    CHECK(!read_runner_info(path, &info));
+    CHECK(write_runner_parser_fixture(path, invalid_region));
+    CHECK(!read_runner_info(path, &info));
+    CHECK(write_runner_parser_fixture(path, invalid_rate));
+    CHECK(!read_runner_info(path, &info));
+
+    memset(frame_hash, 'a', 64u);
+    memset(transition_hash, 'b', 64u);
+    memset(pcm_hash, 'c', 64u);
+    frame_hash[64] = '\0';
+    transition_hash[64] = '\0';
+    pcm_hash[64] = '\0';
+    CHECK(snprintf(records, sizeof records,
+                   "frame 3 ticks 123 sha256 %s\r\naudio transitions sha256 %s\r\n"
+                   "audio pcm sha256 %s\r\n",
+                   frame_hash, transition_hash, pcm_hash) > 0);
+    CHECK(write_runner_parser_fixture(path, records));
+    CHECK(read_runner_presentation_hashes(path, 3u, &hashes));
+    CHECK_EQ_U64(hashes.ticks, 123u);
+    CHECK(strcmp(hashes.frame, frame_hash) == 0);
+    CHECK(strcmp(hashes.transitions, transition_hash) == 0);
+    CHECK(strcmp(hashes.pcm, pcm_hash) == 0);
+
+    CHECK(snprintf(records, sizeof records,
+                   "frame 3 ticks 123 sha256 %s trailing\r\naudio transitions sha256 %s\r\n"
+                   "audio pcm sha256 %s\r\n",
+                   frame_hash, transition_hash, pcm_hash) > 0);
+    CHECK(write_runner_parser_fixture(path, records));
+    CHECK(!read_runner_presentation_hashes(path, 3u, &hashes));
+    remove(path);
 }
 
 static bool runner_output_matches_without_info(const char *with_info_path,
@@ -5019,6 +5132,7 @@ int main(int argc, char **argv)
                         "<generated.nes>\n");
         return 2;
     }
+    test_runner_parser_line_endings(argv[5]);
     if (!module_open(argv[1])) {
         fprintf(stderr, "cannot load %s\n", argv[1]);
         return 1;

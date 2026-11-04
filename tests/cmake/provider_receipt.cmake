@@ -16,6 +16,15 @@ endif()
 set(PROFILE "${SOURCE_DIR}/docs/provider-ntsc.json")
 set(REPOSITORY "szTheory/nesturbator")
 set(OUTPUT_RECEIPT "${SOURCE_DIR}/docs/provider-ntsc-release.json")
+set(DABG_SOURCE_URL "https://github.com/NovaSquirrel/DABG")
+set(DABG_SOURCE_COMMIT "5ecc60b6af3f726851bfeb1c2555388c5953e0c0")
+set(DABG_ROM_SHA256 "eca79b9d0b546e96c1bc73099e239539fb9c7773ff10a431bb3a9cd6763208ca")
+set(DABG_LICENSE_URL "https://raw.githubusercontent.com/NovaSquirrel/DABG/5ecc60b6af3f726851bfeb1c2555388c5953e0c0/LICENSE.txt")
+set(DABG_LICENSE_TEXT_SHA256 "06fa223afb2949c20e030910d7010af2100a9e42ffa3d3f3c1c0307ec2903fdc")
+set(DABG_NOTICE_PATH "tests/roms/licenses/DABG-ZLIB-LICENSE.txt")
+set(DABG_PERMITTED_USES any-purpose commercial-use alteration redistribution)
+set(DABG_RESTRICTIONS preserve-origin-and-authorship mark-altered-source
+  retain-unmodified-source-notice downstream-rom-carries-notice)
 
 function(pr_json_set json path value out_json)
   string(REPLACE "." ";" path_parts "${path}")
@@ -77,6 +86,300 @@ function(pr_digest_valid digest out_valid)
   else()
     set(${out_valid} FALSE PARENT_SCOPE)
   endif()
+endfunction()
+
+function(pr_expect_string_array json field expected_values reason out_error)
+  string(REPLACE "." ";" path "${field}")
+  string(JSON actual_type ERROR_VARIABLE type_error TYPE "${json}" ${path})
+  if(type_error)
+    set(${out_error} "${reason}: ${field} is absent or malformed: ${type_error}" PARENT_SCOPE)
+    return()
+  elseif(NOT actual_type STREQUAL "ARRAY")
+    set(${out_error} "${reason}: ${field} must be JSON ARRAY, found ${actual_type}" PARENT_SCOPE)
+    return()
+  endif()
+  string(JSON actual_count ERROR_VARIABLE count_error LENGTH "${json}" ${path})
+  list(LENGTH expected_values expected_count)
+  if(count_error OR NOT actual_count EQUAL expected_count)
+    set(${out_error} "${reason}: ${field} must contain exactly ${expected_count} values" PARENT_SCOPE)
+    return()
+  endif()
+  set(actual_values)
+  if(actual_count GREATER 0)
+    math(EXPR last_index "${actual_count} - 1")
+    foreach(index RANGE 0 ${last_index})
+      string(JSON item_type ERROR_VARIABLE item_type_error TYPE "${json}" ${path} ${index})
+      if(item_type_error OR NOT item_type STREQUAL "STRING")
+        set(${out_error} "${reason}: ${field}[${index}] must be JSON STRING" PARENT_SCOPE)
+        return()
+      endif()
+      string(JSON item GET "${json}" ${path} ${index})
+      if(NOT item IN_LIST expected_values)
+        set(${out_error} "${reason}: ${field} contains unsupported value '${item}'" PARENT_SCOPE)
+        return()
+      endif()
+      list(APPEND actual_values "${item}")
+    endforeach()
+  endif()
+  if(NOT "${actual_values}" STREQUAL "${expected_values}")
+    set(${out_error} "${reason}: ${field} values or order differ from the pinned contract" PARENT_SCOPE)
+  else()
+    set(${out_error} "" PARENT_SCOPE)
+  endif()
+endfunction()
+
+function(pr_validate_rights_structure json expected_rom out_error)
+  set(${out_error} "" PARENT_SCOPE)
+  if(NOT expected_rom STREQUAL DABG_ROM_SHA256)
+    set(${out_error} "rights-scenario-mismatch: expected DABG ROM digest is not the pinned image" PARENT_SCOPE)
+    return()
+  endif()
+  foreach(pair IN ITEMS
+      "scenario.source_url;${DABG_SOURCE_URL}"
+      "scenario.source_commit;${DABG_SOURCE_COMMIT}"
+      "scenario.rom_sha256;${DABG_ROM_SHA256}"
+      "scenario.rights.spdx_id;Zlib"
+      "scenario.rights.license_url;${DABG_LICENSE_URL}"
+      "scenario.rights.license_source_commit;${DABG_SOURCE_COMMIT}"
+      "scenario.rights.license_text_sha256;${DABG_LICENSE_TEXT_SHA256}"
+      "scenario.rights.required_notice.path;${DABG_NOTICE_PATH}"
+      "scenario.rights.required_notice.sha256;${DABG_LICENSE_TEXT_SHA256}"
+      "distribution.receipt_delivery;source-evidence-overlay")
+    list(GET pair 0 field)
+    list(GET pair 1 expected)
+    if(field STREQUAL "scenario.source_url" OR field STREQUAL "scenario.source_commit")
+      set(reason rights-source-mismatch)
+    elseif(field STREQUAL "scenario.rom_sha256")
+      set(reason rights-scenario-mismatch)
+    elseif(field STREQUAL "distribution.receipt_delivery")
+      set(reason rights-distribution-mismatch)
+    elseif(field MATCHES "license|spdx")
+      set(reason rights-license-mismatch)
+    else()
+      set(reason rights-notice-mismatch)
+    endif()
+    pr_expect("${json}" "${field}" "${expected}" "${reason}" field_error)
+    if(field_error)
+      set(${out_error} "${field_error}" PARENT_SCOPE)
+      return()
+    endif()
+  endforeach()
+
+  pr_expect_boolean("${json}" "distribution.rom_in_component_archives" "false"
+    rights-distribution-mismatch field_error)
+  if(field_error)
+    set(${out_error} "${field_error}" PARENT_SCOPE)
+    return()
+  endif()
+  pr_expect_string_array("${json}" "scenario.rights.permitted_uses"
+    "${DABG_PERMITTED_USES}" rights-permitted-uses field_error)
+  if(field_error)
+    set(${out_error} "${field_error}" PARENT_SCOPE)
+    return()
+  endif()
+  pr_expect_string_array("${json}" "scenario.rights.restrictions"
+    "${DABG_RESTRICTIONS}" rights-restrictions field_error)
+  if(field_error)
+    set(${out_error} "${field_error}" PARENT_SCOPE)
+    return()
+  endif()
+endfunction()
+
+function(pr_add_rights_contract json out_json)
+  string(JSON updated SET "${json}" scenario "{}")
+  string(JSON updated SET "${updated}" scenario rights "{}")
+  string(JSON updated SET "${updated}" scenario rights required_notice "{}")
+  string(JSON updated SET "${updated}" distribution "{}")
+  pr_json_set("${updated}" scenario.source_url "\"${DABG_SOURCE_URL}\"" updated)
+  pr_json_set("${updated}" scenario.source_commit "\"${DABG_SOURCE_COMMIT}\"" updated)
+  pr_json_set("${updated}" scenario.rom_sha256 "\"${DABG_ROM_SHA256}\"" updated)
+  pr_json_set("${updated}" scenario.rights.spdx_id "\"Zlib\"" updated)
+  pr_json_set("${updated}" scenario.rights.license_url "\"${DABG_LICENSE_URL}\"" updated)
+  pr_json_set("${updated}" scenario.rights.license_source_commit "\"${DABG_SOURCE_COMMIT}\"" updated)
+  pr_json_set("${updated}" scenario.rights.license_text_sha256 "\"${DABG_LICENSE_TEXT_SHA256}\"" updated)
+  pr_json_set("${updated}" scenario.rights.required_notice.path "\"${DABG_NOTICE_PATH}\"" updated)
+  pr_json_set("${updated}" scenario.rights.required_notice.sha256 "\"${DABG_LICENSE_TEXT_SHA256}\"" updated)
+  list(JOIN DABG_PERMITTED_USES "\",\"" permitted_json_values)
+  list(JOIN DABG_RESTRICTIONS "\",\"" restriction_json_values)
+  pr_json_set("${updated}" scenario.rights.permitted_uses "[\"${permitted_json_values}\"]" updated)
+  pr_json_set("${updated}" scenario.rights.restrictions "[\"${restriction_json_values}\"]" updated)
+  pr_json_set("${updated}" distribution.rom_in_component_archives false updated)
+  pr_json_set("${updated}" distribution.receipt_delivery "\"source-evidence-overlay\"" updated)
+  set(${out_json} "${updated}" PARENT_SCOPE)
+endfunction()
+
+function(pr_validate_notice_file notice_file out_error)
+  if(NOT EXISTS "${notice_file}" OR IS_DIRECTORY "${notice_file}" OR IS_SYMLINK "${notice_file}")
+    set(${out_error} "rights-notice-content-mismatch: required notice file is missing or not a regular file" PARENT_SCOPE)
+    return()
+  endif()
+  file(SHA256 "${notice_file}" actual_notice_sha)
+  if(NOT actual_notice_sha STREQUAL DABG_LICENSE_TEXT_SHA256)
+    set(${out_error} "rights-notice-content-mismatch: actual notice digest ${actual_notice_sha} differs from the pinned text" PARENT_SCOPE)
+    return()
+  endif()
+  set(${out_error} "" PARENT_SCOPE)
+endfunction()
+
+function(pr_compare_pinned_notice notice_file source_url diagnostics_dir out_error)
+  pr_validate_notice_file("${notice_file}" notice_error)
+  if(notice_error)
+    set(${out_error} "${notice_error}" PARENT_SCOPE)
+    return()
+  endif()
+  if(NOT IS_DIRECTORY "${diagnostics_dir}" OR IS_SYMLINK "${diagnostics_dir}")
+    set(${out_error} "rights-upstream-work-invalid: diagnostics directory is missing or not a real directory" PARENT_SCOPE)
+    return()
+  endif()
+
+  string(RANDOM LENGTH 12 ALPHABET 0123456789abcdef fetch_nonce)
+  set(fetched_notice "${diagnostics_dir}/upstream-license-${fetch_nonce}.txt")
+  if(EXISTS "${fetched_notice}" OR IS_SYMLINK "${fetched_notice}")
+    set(${out_error} "rights-upstream-work-collision: preserving existing license artifact ${fetched_notice}" PARENT_SCOPE)
+    return()
+  endif()
+  file(DOWNLOAD "${source_url}" "${fetched_notice}"
+    STATUS download_status TIMEOUT 60 TLS_VERIFY ON)
+  list(GET download_status 0 download_code)
+  list(GET download_status 1 download_message)
+  if(NOT download_code STREQUAL "0")
+    set(${out_error} "rights-upstream-fetch-failed: ${download_message}" PARENT_SCOPE)
+    return()
+  endif()
+
+  execute_process(COMMAND "${CMAKE_COMMAND}" -E compare_files "${fetched_notice}" "${notice_file}"
+    RESULT_VARIABLE compare_result OUTPUT_VARIABLE compare_output ERROR_VARIABLE compare_error TIMEOUT 10)
+  if(NOT compare_result STREQUAL "0")
+    set(${out_error} "rights-upstream-notice-mismatch: pinned upstream bytes differ from the tracked notice: ${compare_output}${compare_error}" PARENT_SCOPE)
+    return()
+  endif()
+  file(SHA256 "${fetched_notice}" fetched_sha)
+  if(NOT fetched_sha STREQUAL DABG_LICENSE_TEXT_SHA256)
+    set(${out_error} "rights-upstream-digest-mismatch: retrieved text digest ${fetched_sha} differs from the observed pinned text" PARENT_SCOPE)
+    return()
+  endif()
+  set(${out_error} "" PARENT_SCOPE)
+endfunction()
+
+function(pr_validate_rights json notice_file out_error)
+  pr_validate_rights_structure("${json}" "${DABG_ROM_SHA256}" structure_error)
+  if(structure_error)
+    set(${out_error} "${structure_error}" PARENT_SCOPE)
+    return()
+  endif()
+  pr_validate_notice_file("${notice_file}" notice_error)
+  if(notice_error)
+    set(${out_error} "${notice_error}" PARENT_SCOPE)
+    return()
+  endif()
+  set(${out_error} "" PARENT_SCOPE)
+endfunction()
+
+function(pr_rights_check)
+  if(NOT DEFINED WORK OR "${WORK}" STREQUAL "")
+    message(FATAL_ERROR "provider_receipt MODE=rights requires WORK under SOURCE_DIR/build")
+  endif()
+  if(IS_SYMLINK "${WORK}")
+    message(FATAL_ERROR "rights verification refuses symlink WORK ${WORK}")
+  endif()
+  if(IS_SYMLINK "${SOURCE_DIR}/build")
+    message(FATAL_ERROR "rights verification refuses symlink SOURCE_DIR/build")
+  endif()
+  file(MAKE_DIRECTORY "${SOURCE_DIR}/build")
+  if(NOT IS_DIRECTORY "${SOURCE_DIR}/build")
+    message(FATAL_ERROR "rights verification could not create SOURCE_DIR/build")
+  endif()
+  file(REAL_PATH "${SOURCE_DIR}/build" build_real)
+  get_filename_component(work_absolute "${WORK}" ABSOLUTE BASE_DIR "${SOURCE_DIR}")
+  get_filename_component(work_parent "${work_absolute}" DIRECTORY)
+  if(NOT IS_DIRECTORY "${work_parent}")
+    message(FATAL_ERROR "rights verification WORK parent must already exist: ${work_parent}")
+  endif()
+  file(REAL_PATH "${work_parent}" work_parent_real)
+  cmake_path(IS_PREFIX build_real "${work_parent_real}" NORMALIZE work_inside_build)
+  if(NOT work_inside_build)
+    message(FATAL_ERROR "rights verification WORK must be a child of SOURCE_DIR/build: ${WORK}")
+  endif()
+  pr_owned_work("${work_absolute}" FALSE work_error)
+  if(work_error)
+    message(FATAL_ERROR "provider_receipt MODE=rights: ${work_error}")
+  endif()
+
+  set(tracked_paths
+    "${DABG_NOTICE_PATH}"
+    tests/roms/manifest.txt
+    THIRD-PARTY-NOTICES.md
+    tests/cmake/provider_receipt.cmake
+    docs/releases.md
+    docs/provider-ntsc.json
+    docs/nrom-gameplay.md)
+  execute_process(COMMAND git -C "${SOURCE_DIR}" ls-files --error-unmatch -- ${tracked_paths}
+    RESULT_VARIABLE tracked_result OUTPUT_VARIABLE tracked_output ERROR_VARIABLE tracked_error TIMEOUT 10)
+  if(NOT tracked_result STREQUAL "0")
+    message(FATAL_ERROR "rights source inputs must be tracked: ${tracked_error}${tracked_output}")
+  endif()
+  foreach(path IN LISTS tracked_paths)
+    if(NOT EXISTS "${SOURCE_DIR}/${path}" OR IS_DIRECTORY "${SOURCE_DIR}/${path}" OR IS_SYMLINK "${SOURCE_DIR}/${path}")
+      message(FATAL_ERROR "rights source input is missing or not a regular file: ${path}")
+    endif()
+  endforeach()
+
+  string(ASCII 9 tab)
+  set(expected_manifest_row
+    "tests/roms/dabg.nes${tab}${DABG_SOURCE_URL}/tree/${DABG_SOURCE_COMMIT}${tab}${DABG_SOURCE_COMMIT}${tab}Zlib${tab}${DABG_ROM_SHA256}")
+  file(STRINGS "${SOURCE_DIR}/tests/roms/manifest.txt" manifest_rows
+    REGEX "^tests/roms/dabg\\.nes")
+  list(LENGTH manifest_rows manifest_row_count)
+  if(NOT manifest_row_count EQUAL 1)
+    message(FATAL_ERROR "rights manifest must contain exactly one DABG source row")
+  endif()
+  list(GET manifest_rows 0 manifest_row)
+  if(NOT manifest_row STREQUAL expected_manifest_row)
+    message(FATAL_ERROR "rights manifest source/commit/license/ROM row differs from the pinned contract")
+  endif()
+
+  file(READ "${SOURCE_DIR}/THIRD-PARTY-NOTICES.md" notice_index)
+  foreach(required_text IN ITEMS
+      "${DABG_SOURCE_URL}"
+      "${DABG_SOURCE_COMMIT}"
+      "${DABG_ROM_SHA256}"
+      "https://github.com/NovaSquirrel/DABG/blob/${DABG_SOURCE_COMMIT}/LICENSE.txt"
+      "${DABG_NOTICE_PATH}"
+      "${DABG_LICENSE_TEXT_SHA256}"
+      "any purpose"
+      "commercial use"
+      "alteration"
+      "redistribution"
+      "origin"
+      "altered source"
+      "same notice")
+    string(FIND "${notice_index}" "${required_text}" required_index)
+    if(required_index LESS 0)
+      message(FATAL_ERROR "rights notice index omits required pinned source, text digest or license term: ${required_text}")
+    endif()
+  endforeach()
+  file(READ "${SOURCE_DIR}/docs/provider-ntsc.json" profile)
+  string(JSON profile_game ERROR_VARIABLE profile_game_error GET "${profile}" scenario game)
+  string(JSON profile_rom ERROR_VARIABLE profile_rom_error GET "${profile}" scenario rom)
+  string(JSON profile_rom_sha ERROR_VARIABLE profile_rom_sha_error GET "${profile}" scenario rom_sha256)
+  if(profile_game_error OR profile_rom_error OR profile_rom_sha_error OR
+     NOT profile_game STREQUAL "DABG" OR NOT profile_rom STREQUAL "tests/roms/dabg.nes" OR
+     NOT profile_rom_sha STREQUAL DABG_ROM_SHA256)
+    message(FATAL_ERROR "rights profile does not bind the pinned DABG image: ${profile_game_error}${profile_rom_error}${profile_rom_sha_error}")
+  endif()
+  file(READ "${SOURCE_DIR}/docs/nrom-gameplay.md" gameplay_guide)
+  foreach(required_guide_text IN ITEMS "${DABG_SOURCE_COMMIT}" "${DABG_ROM_SHA256}")
+    string(FIND "${gameplay_guide}" "${required_guide_text}" guide_index)
+    if(guide_index LESS 0)
+      message(FATAL_ERROR "rights gameplay guide omits pinned DABG identity ${required_guide_text}")
+    endif()
+  endforeach()
+  pr_compare_pinned_notice("${SOURCE_DIR}/${DABG_NOTICE_PATH}" "${DABG_LICENSE_URL}"
+    "${work_absolute}/diagnostics" upstream_notice_error)
+  if(upstream_notice_error)
+    message(FATAL_ERROR "rights pinned upstream verification failed without retry: ${upstream_notice_error}")
+  endif()
+  message(STATUS "pinned DABG source, manifest, notice index and exact upstream Zlib bytes passed rights verification")
 endfunction()
 
 function(pr_json_array_as_numeric_object json out_json)
@@ -1099,8 +1402,8 @@ function(pr_validate_structure json expected_tag expected_source expected_versio
     set(${out_error} "receipt-missing: ${schema_error}" PARENT_SCOPE)
     return()
   endif()
-  if(NOT schema STREQUAL "1")
-    set(${out_error} "receipt-schema: expected 1, found ${schema}" PARENT_SCOPE)
+  if(NOT schema STREQUAL "2")
+    set(${out_error} "receipt-schema: expected 2, found ${schema}" PARENT_SCOPE)
     return()
   endif()
   pr_expect("${json}" "receipt_kind" "published-package" receipt-kind mismatch)
@@ -1153,6 +1456,11 @@ function(pr_validate_structure json expected_tag expected_source expected_versio
   pr_expect("${json}" "inputs.rom_sha256" "${expected_scenario}" scenario-mismatch mismatch)
   if(mismatch)
     set(${out_error} "${mismatch}" PARENT_SCOPE)
+    return()
+  endif()
+  pr_validate_rights_structure("${json}" "${expected_scenario}" rights_error)
+  if(rights_error)
+    set(${out_error} "${rights_error}" PARENT_SCOPE)
     return()
   endif()
   foreach(pair IN ITEMS
@@ -1523,6 +1831,24 @@ function(pr_owned_work work allow_replace out_error)
   set(${out_error} "" PARENT_SCOPE)
 endfunction()
 
+function(pr_verify_published_notice notice_file out_error)
+  if(IS_SYMLINK "${SOURCE_DIR}/build")
+    set(${out_error} "rights-upstream-work-invalid: refusing symlink SOURCE_DIR/build" PARENT_SCOPE)
+    return()
+  endif()
+  file(MAKE_DIRECTORY "${SOURCE_DIR}/build")
+  string(RANDOM LENGTH 12 ALPHABET 0123456789abcdef verify_nonce)
+  set(verify_work "${SOURCE_DIR}/build/phase28-verify-published-rights-${verify_nonce}")
+  pr_owned_work("${verify_work}" FALSE work_error)
+  if(work_error)
+    set(${out_error} "${work_error}" PARENT_SCOPE)
+    return()
+  endif()
+  pr_compare_pinned_notice("${notice_file}" "${DABG_LICENSE_URL}"
+    "${verify_work}/diagnostics" upstream_notice_error)
+  set(${out_error} "${upstream_notice_error}" PARENT_SCOPE)
+endfunction()
+
 function(pr_selftest_work_root build_dir work_root out_build_real out_work_real out_error)
   if(NOT IS_DIRECTORY "${build_dir}" OR IS_SYMLINK "${build_dir}" OR
      NOT EXISTS "${build_dir}/CMakeCache.txt")
@@ -1624,7 +1950,7 @@ endfunction()
 
 function(pr_synthetic_fixture out_json)
   set(json "{}")
-  string(JSON json SET "${json}" schema_version 1)
+  string(JSON json SET "${json}" schema_version 2)
   string(JSON json SET "${json}" release "{}")
   string(JSON json SET "${json}" checksums "{}")
   string(JSON json SET "${json}" inputs "{}")
@@ -1665,7 +1991,8 @@ function(pr_synthetic_fixture out_json)
   pr_json_set("${json}" archives "[${archive_json}]" json)
   pr_json_set("${json}" inputs.profile_sha256 "\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"" json)
   pr_json_set("${json}" inputs.guide_sha256 "\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\"" json)
-  pr_json_set("${json}" inputs.rom_sha256 "\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"" json)
+  pr_json_set("${json}" inputs.rom_sha256 "\"${DABG_ROM_SHA256}\"" json)
+  pr_add_rights_contract("${json}" json)
   pr_json_set("${json}" compatibility.abi 1 json)
   pr_json_set("${json}" compatibility.behaviour_revision 17 json)
   pr_json_set("${json}" compatibility.state_format 6 json)
@@ -1963,10 +2290,55 @@ function(pr_receipt_controls work)
   pr_validate_structure("${fixture}" "v9.8.7" "0123456789012345678901234567890123456789"
     "9.8.7" "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-    "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    "${DABG_ROM_SHA256}"
     1 17 6 "${candidate_sha}" FALSE error)
   if(error)
     message(FATAL_ERROR "synthetic structural fixture failed: ${error}")
+  endif()
+  pr_validate_rights("${fixture}" "${SOURCE_DIR}/${DABG_NOTICE_PATH}" rights_positive_error)
+  if(rights_positive_error)
+    message(FATAL_ERROR "complete pinned rights contract failed its notice-byte control: ${rights_positive_error}")
+  endif()
+  set(upstream_fixture "${work}/pinned-upstream-license-fixture.txt")
+  file(COPY_FILE "${SOURCE_DIR}/${DABG_NOTICE_PATH}" "${upstream_fixture}")
+  file(TO_CMAKE_PATH "${upstream_fixture}" upstream_fixture_path)
+  if(upstream_fixture_path MATCHES "^[A-Za-z]:/")
+    set(upstream_fixture_url "file:///${upstream_fixture_path}")
+  else()
+    set(upstream_fixture_url "file://${upstream_fixture_path}")
+  endif()
+  set(upstream_control_work "${work}/upstream-notice-controls")
+  file(MAKE_DIRECTORY "${upstream_control_work}")
+  pr_compare_pinned_notice("${SOURCE_DIR}/${DABG_NOTICE_PATH}" "${upstream_fixture_url}"
+    "${upstream_control_work}" upstream_match_error)
+  if(upstream_match_error)
+    message(FATAL_ERROR "pinned upstream byte-equality positive control failed: ${upstream_match_error}")
+  endif()
+  set(altered_upstream_fixture "${work}/altered-upstream-license-fixture.txt")
+  file(COPY_FILE "${upstream_fixture}" "${altered_upstream_fixture}")
+  file(APPEND "${altered_upstream_fixture}" "altered upstream control\n")
+  file(TO_CMAKE_PATH "${altered_upstream_fixture}" altered_upstream_path)
+  if(altered_upstream_path MATCHES "^[A-Za-z]:/")
+    set(altered_upstream_url "file:///${altered_upstream_path}")
+  else()
+    set(altered_upstream_url "file://${altered_upstream_path}")
+  endif()
+  pr_compare_pinned_notice("${SOURCE_DIR}/${DABG_NOTICE_PATH}" "${altered_upstream_url}"
+    "${upstream_control_work}" upstream_mismatch_error)
+  if(NOT upstream_mismatch_error MATCHES "^rights-upstream-notice-mismatch:")
+    message(FATAL_ERROR "pinned upstream byte-equality negative control reached '${upstream_mismatch_error}'")
+  endif()
+  set(tampered_notice "${work}/tampered-dabg-notice.txt")
+  file(COPY_FILE "${SOURCE_DIR}/${DABG_NOTICE_PATH}" "${tampered_notice}")
+  file(APPEND "${tampered_notice}" "tampered control\n")
+  pr_validate_rights("${fixture}" "${tampered_notice}" tampered_notice_error)
+  if(NOT tampered_notice_error MATCHES "^rights-notice-content-mismatch:")
+    message(FATAL_ERROR "tampered notice control reached '${tampered_notice_error}'")
+  endif()
+  file(REMOVE "${tampered_notice}")
+  pr_validate_rights("${fixture}" "${work}/missing-dabg-notice.txt" missing_notice_error)
+  if(NOT missing_notice_error MATCHES "^rights-notice-content-mismatch:")
+    message(FATAL_ERROR "missing notice control reached '${missing_notice_error}'")
   endif()
   set(cases
     "draft|release.is_draft|true|draft-release"
@@ -1981,7 +2353,22 @@ function(pr_receipt_controls work)
     "bad_digest|archives.0.sha256|\"bad\"|bad-digest"
     "checksum_disagreement|archives.0.sha256|\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"|checksum-disagreement"
     "attestation_missing|archives.0.attestation|null|attestation-missing"
-    "missing_component|release.assets.0.name|\"unexpected.zip\"|asset-inventory-mismatch")
+    "missing_component|release.assets.0.name|\"unexpected.zip\"|asset-inventory-mismatch"
+    "rights_source_url|scenario.source_url|\"https://example.invalid/DABG\"|rights-source-mismatch"
+    "rights_source_commit|scenario.source_commit|\"0000000000000000000000000000000000000000\"|rights-source-mismatch"
+    "rights_scenario_rom|scenario.rom_sha256|\"0000000000000000000000000000000000000000000000000000000000000000\"|rights-scenario-mismatch"
+    "rights_spdx|scenario.rights.spdx_id|\"MIT\"|rights-license-mismatch"
+    "rights_license_url|scenario.rights.license_url|\"https://example.invalid/LICENSE.txt\"|rights-license-mismatch"
+    "rights_license_commit|scenario.rights.license_source_commit|\"0000000000000000000000000000000000000000\"|rights-license-mismatch"
+    "rights_license_digest|scenario.rights.license_text_sha256|\"0000000000000000000000000000000000000000000000000000000000000000\"|rights-license-mismatch"
+    "rights_permitted_use|scenario.rights.permitted_uses.0|\"noncommercial-only\"|rights-permitted-uses"
+    "rights_restriction|scenario.rights.restrictions.0|\"remove-notice\"|rights-restrictions"
+    "rights_notice_path|scenario.rights.required_notice.path|\"LICENSE.txt\"|rights-notice-mismatch"
+    "rights_notice_digest|scenario.rights.required_notice.sha256|\"0000000000000000000000000000000000000000000000000000000000000000\"|rights-notice-mismatch"
+    "rights_receipt_delivery|distribution.receipt_delivery|\"release-asset\"|rights-distribution-mismatch"
+    "rights_rom_distribution|distribution.rom_in_component_archives|true|rights-distribution-mismatch"
+    "rights_permitted_use_type|scenario.rights.permitted_uses|{}|rights-permitted-uses"
+    "rights_restriction_type|scenario.rights.restrictions|\"preserve-origin-and-authorship\"|rights-restrictions")
   foreach(case IN LISTS cases)
     string(REPLACE "|" ";" parts "${case}")
     list(GET parts 0 name)
@@ -1996,7 +2383,7 @@ function(pr_receipt_controls work)
     pr_validate_structure("${mutated}" "v9.8.7" "0123456789012345678901234567890123456789"
       "9.8.7" "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-      "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      "${DABG_ROM_SHA256}"
       1 17 6 "${candidate_sha}" FALSE actual_error)
     if(NOT actual_error MATCHES "^${expected_reason}:")
       message(FATAL_ERROR "${name} control reached '${actual_error}', expected ${expected_reason}")
@@ -2005,6 +2392,38 @@ function(pr_receipt_controls work)
         "attestation-missing: ${expected_missing_attestation_name} has no recorded attestation result")
       message(FATAL_ERROR
         "missing-attestation diagnostic named '${actual_error}', expected the current archive")
+    endif()
+  endforeach()
+  foreach(pair IN ITEMS
+      "scenario.source_url;rights-source-mismatch"
+      "scenario.source_commit;rights-source-mismatch"
+      "scenario.rom_sha256;rights-scenario-mismatch"
+      "scenario.rights.spdx_id;rights-license-mismatch"
+      "scenario.rights.license_url;rights-license-mismatch"
+      "scenario.rights.license_source_commit;rights-license-mismatch"
+      "scenario.rights.license_text_sha256;rights-license-mismatch"
+      "scenario.rights.permitted_uses;rights-permitted-uses"
+      "scenario.rights.restrictions;rights-restrictions"
+      "scenario.rights.required_notice.path;rights-notice-mismatch"
+      "scenario.rights.required_notice.sha256;rights-notice-mismatch"
+      "distribution.rom_in_component_archives;rights-distribution-mismatch"
+      "distribution.receipt_delivery;rights-distribution-mismatch")
+    string(REPLACE ";" "|" pair_text "${pair}")
+    string(REPLACE "|" ";" fields "${pair_text}")
+    list(GET fields 0 path_text)
+    list(GET fields 1 expected_reason)
+    string(REPLACE "." ";" path "${path_text}")
+    string(JSON missing_field ERROR_VARIABLE remove_error REMOVE "${fixture}" ${path})
+    if(remove_error)
+      message(FATAL_ERROR "cannot construct absent rights-field control for ${path_text}: ${remove_error}")
+    endif()
+    pr_validate_structure("${missing_field}" "v9.8.7" "0123456789012345678901234567890123456789"
+      "9.8.7" "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      "${DABG_ROM_SHA256}" 1 17 6 "${candidate_sha}" FALSE missing_field_error)
+    if(NOT missing_field_error MATCHES "^${expected_reason}:")
+      message(FATAL_ERROR
+        "absent ${path_text} control reached '${missing_field_error}', expected ${expected_reason}")
     endif()
   endforeach()
   foreach(pair IN ITEMS
@@ -2019,7 +2438,7 @@ function(pr_receipt_controls work)
     pr_validate_structure("${mutated}" "v9.8.7" "0123456789012345678901234567890123456789"
       "9.8.7" "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-      "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      "${DABG_ROM_SHA256}"
       1 17 6 "${candidate_sha}" FALSE actual_error)
     if(NOT actual_error MATCHES "^collection-type:.*JSON ARRAY.*OBJECT")
       message(FATAL_ERROR "${label} numeric-key object control reached '${actual_error}', expected a collection type rejection")
@@ -2037,7 +2456,7 @@ function(pr_receipt_controls work)
     pr_validate_structure("${mutated}" "v9.8.7" "0123456789012345678901234567890123456789"
       "9.8.7" "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-      "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      "${DABG_ROM_SHA256}"
       1 17 6 "${candidate_sha}" FALSE actual_error)
     if(NOT actual_error MATCHES "^collection-element-type:")
       message(FATAL_ERROR "${label} wrong element control reached '${actual_error}', expected a collection element type rejection")
@@ -2046,7 +2465,7 @@ function(pr_receipt_controls work)
   pr_validate_structure("${fixture}" "v9.8.7" "0123456789012345678901234567890123456789"
     "9.8.7" "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-    "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    "${DABG_ROM_SHA256}"
     1 17 6 "${candidate_sha}" TRUE verified_error)
   if(NOT verified_error MATCHES "^synthetic-fixture:")
     message(FATAL_ERROR "synthetic fixture was mistaken for live attestation evidence: ${verified_error}")
@@ -2077,7 +2496,7 @@ function(pr_receipt_controls work)
   pr_validate_structure("${live_fixture}" "v9.8.7" "0123456789012345678901234567890123456789"
     "9.8.7" "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-    "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    "${DABG_ROM_SHA256}"
     1 17 6 "${candidate_sha}" TRUE verified_live_error)
   if(verified_live_error)
     message(FATAL_ERROR "complete verified fixture failed: ${verified_live_error}")
@@ -2096,7 +2515,7 @@ function(pr_receipt_controls work)
   pr_validate_structure("${split_identity_fixture}" "v9.8.7" "0123456789012345678901234567890123456789"
     "9.8.7" "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-    "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    "${DABG_ROM_SHA256}"
     1 17 6 "${candidate_sha}" TRUE split_identity_error)
   if(split_identity_error)
     message(FATAL_ERROR
@@ -2109,7 +2528,7 @@ function(pr_receipt_controls work)
   pr_validate_structure("${mismatched_ci_fixture}" "v9.8.7" "0123456789012345678901234567890123456789"
     "9.8.7" "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-    "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    "${DABG_ROM_SHA256}"
     1 17 6 "${candidate_sha}" TRUE mismatched_ci_error)
   if(NOT mismatched_ci_error MATCHES "^run-identity-mismatch:")
     message(FATAL_ERROR "main CI source identity control reached '${mismatched_ci_error}', expected run-identity-mismatch")
@@ -2118,7 +2537,7 @@ function(pr_receipt_controls work)
   pr_validate_structure("{}" "v9.8.7" "0123456789012345678901234567890123456789"
     "9.8.7" "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-    "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    "${DABG_ROM_SHA256}"
     1 17 6 "${candidate_sha}" FALSE absent_error)
   if(NOT absent_error MATCHES "^receipt-missing:")
     message(FATAL_ERROR "absent receipt control reached the wrong reason: ${absent_error}")
@@ -2162,7 +2581,8 @@ function(pr_local_manifest source_dir out_paths out_manifest out_sha out_error)
        path MATCHES "^\.github/workflows/" OR path MATCHES "^scripts/" OR
        path MATCHES "^(CMakeLists\.txt|CMakePresets\.json|README\.md|LICENSE|THIRD-PARTY-NOTICES\.md|version\.txt|\.release-please-manifest\.json)$" OR
        path STREQUAL "docs/provider-ntsc.json" OR path STREQUAL "docs/provider-ntsc.md" OR
-       path STREQUAL "docs/nrom-gameplay.md")
+       path STREQUAL "docs/nrom-gameplay.md" OR path STREQUAL "docs/releases.md" OR
+       path STREQUAL "docs/testing.md")
       if(NOT EXISTS "${source_dir}/${path}")
         set(${out_error} "tracked candidate input is missing: ${path}" PARENT_SCOPE)
         return()
@@ -2810,6 +3230,12 @@ elseif(MODE STREQUAL "local")
 elseif(MODE STREQUAL "handoff")
   pr_handoff_acceptance()
   return()
+elseif(MODE STREQUAL "rights")
+  if(NOT DEFINED WORK OR "${WORK}" STREQUAL "")
+    message(FATAL_ERROR "provider_receipt MODE=rights requires WORK")
+  endif()
+  pr_rights_check()
+  return()
 elseif(MODE STREQUAL "hosted")
   if(NOT DEFINED STAGE OR STAGE STREQUAL "")
     message(FATAL_ERROR "provider_receipt MODE=hosted requires STAGE=candidate, main or release")
@@ -2854,6 +3280,14 @@ elseif(MODE STREQUAL "verify-published")
   if(verify_error)
     message(FATAL_ERROR "published receipt verification failed: ${verify_error}")
   endif()
+  pr_validate_rights("${receipt}" "${SOURCE_DIR}/${DABG_NOTICE_PATH}" rights_error)
+  if(rights_error)
+    message(FATAL_ERROR "published receipt rights verification failed: ${rights_error}")
+  endif()
+  pr_verify_published_notice("${SOURCE_DIR}/${DABG_NOTICE_PATH}" upstream_notice_error)
+  if(upstream_notice_error)
+    message(FATAL_ERROR "published receipt pinned upstream notice verification failed: ${upstream_notice_error}")
+  endif()
   pr_hosted_stage("release")
   file(READ "${RELEASE_EVIDENCE}" evidence)
   string(JSON evidence_source ERROR_VARIABLE evidence_source_error GET "${evidence}" release source_commit)
@@ -2864,7 +3298,7 @@ elseif(MODE STREQUAL "verify-published")
   message(STATUS "existing published receipt passed structural and live hosted identity checks; receipt was preserved and native replay was not repeated")
   return()
 elseif(NOT MODE STREQUAL "published")
-  message(FATAL_ERROR "provider_receipt MODE must be selftest, local, handoff, hosted, published or verify-published")
+  message(FATAL_ERROR "provider_receipt MODE must be selftest, local, handoff, rights, hosted, published or verify-published")
 endif()
 
 foreach(required IN ITEMS ACCEPTANCE TAG WORK)
@@ -2902,6 +3336,11 @@ execute_process(COMMAND git -C "${SOURCE_DIR}" status --porcelain
   RESULT_VARIABLE status_result OUTPUT_VARIABLE source_status ERROR_VARIABLE status_error TIMEOUT 10)
 if(NOT status_result STREQUAL "0" OR NOT source_status STREQUAL "")
   message(FATAL_ERROR "published receipt requires a clean exact source checkout: ${status_error}${source_status}")
+endif()
+pr_compare_pinned_notice("${SOURCE_DIR}/${DABG_NOTICE_PATH}" "${DABG_LICENSE_URL}"
+  "${WORK}/diagnostics" published_notice_error)
+if(published_notice_error)
+  message(FATAL_ERROR "published receipt pinned upstream rights verification failed before release inspection: ${published_notice_error}")
 endif()
 if(NOT DEFINED RELEASE_EVIDENCE OR RELEASE_EVIDENCE STREQUAL "")
   message(FATAL_ERROR "provider_receipt MODE=published requires RELEASE_EVIDENCE")
@@ -3469,7 +3908,7 @@ file(SHA256 "${libretro_extract}/${libretro_member}" libretro_core_sha)
 # Recheck the fully assembled evidence through the same independent structure
 # validator before making the receipt visible to the project.
 set(receipt "{}")
-string(JSON receipt SET "${receipt}" schema_version 1)
+string(JSON receipt SET "${receipt}" schema_version 2)
 string(JSON receipt SET "${receipt}" release "{}")
 string(JSON receipt SET "${receipt}" checksums "{}")
 string(JSON receipt SET "${receipt}" inputs "{}")
@@ -3526,11 +3965,16 @@ pr_json_set("${receipt}" linked_ci.exact_candidate "${candidate_ci}" receipt)
 pr_json_set("${receipt}" linked_ci.main "${main_ci}" receipt)
 pr_json_set("${receipt}" linked_ci.release_pr "${release_pr_ci}" receipt)
 pr_json_set("${receipt}" linked_ci.release_source "${release_ci}" receipt)
+pr_add_rights_contract("${receipt}" receipt)
 pr_validate_structure("${receipt}" "${TAG}" "${source_sha}" "${release_version}"
   "${profile_sha}" "${guide_sha}" "${scenario_rom_sha}" "${abi}" "${behaviour}"
   "${state_format}" "${candidate_sha}" TRUE final_error)
 if(final_error)
   message(FATAL_ERROR "completed published receipt failed final structural validation: ${final_error}")
+endif()
+pr_validate_rights("${receipt}" "${SOURCE_DIR}/${DABG_NOTICE_PATH}" final_rights_error)
+if(final_rights_error)
+  message(FATAL_ERROR "completed published receipt failed final rights validation: ${final_rights_error}")
 endif()
 file(WRITE "${OUTPUT_RECEIPT}" "${receipt}\n")
 message(STATUS "published NTSC provider receipt passed for ${TAG} at ${source_sha}; wrote ${OUTPUT_RECEIPT}")
