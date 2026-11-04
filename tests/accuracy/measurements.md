@@ -17,7 +17,9 @@ campaign but failed the input-fingerprint and activation metadata checks
 because the baseline still named the pre-format fingerprint
 `9461d786ad93fd0047fc297c1a501627902304ae187ef1f7c35245586a65e44d`. The
 baseline metadata now records this measured source and fingerprint. The
-overall workflow remains pending a fresh bounded run with that metadata.
+first campaign's 163 output files are retained under
+`build/phase28-local-requal-format-2/accuracycoin/full/`. The overall workflow
+remains pending a fresh bounded run with that metadata.
 
 ## Phase 24 behavior14 local acceptance, 2026-11-01
 

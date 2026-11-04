@@ -51,6 +51,6 @@ old_protected_scoreboard_rows=17
 migration_rows=17
 migration_path=tests/accuracy/migration.tsv
 old_scoreboard_path=tests/accuracy/old-673ef-scoreboard.txt
-campaign_artifact=build/ci/accuracycoin/full/
+campaign_artifact=build/phase28-local-requal-format-2/accuracycoin/full/
 input_policy=cold-boot;page-header-A;one-frame-A-press;one-frame-release
 source_dirty_reason=The registered campaign passed from clean formatted candidate source c026ce234c89; its 56-input digest and unchanged report hash are recorded above.
