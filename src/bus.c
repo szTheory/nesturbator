@@ -314,8 +314,51 @@ static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr, uint8_t dm
     return value;
 }
 
+/* With no active or pending DMC request, OAM alternates GET reads and PUT writes. [HWC.01] */
+static uint8_t oam_dma_without_dmc(struct nesturbator *nes, uint8_t page, uint16_t halted_read)
+{
+    uint8_t status_read = is_ppu_status_address(halted_read);
+    uint8_t status = cycle(nes, status_read, 1u, 1u);
+    (void)bus_read_data(nes, halted_read, status);
+    sample_interrupt_lines(nes);
+    ppu_catch_up(nes);
+
+    /* After the mandatory halt, a PUT edge needs one extra read before the first GET. [HWC.01] */
+    if ((nes->bus.apu_get_put_phase ^ 1u) == 0u) {
+        status = cycle(nes, status_read, 1u, 1u);
+        (void)bus_read_data(nes, halted_read, status);
+        sample_interrupt_lines(nes);
+        ppu_catch_up(nes);
+    }
+
+    for (uint16_t offset = 0u; offset < 256u; offset++) {
+        uint16_t address = (uint16_t)(((uint16_t)page << 8) | offset);
+        status_read = is_ppu_status_address(address);
+        NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_OAM_SOURCE, nes, address, 0u, offset);
+        status = cycle(nes, status_read, 1u, 1u);
+        uint8_t byte = bus_read_data(nes, address, status);
+        NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_OAM_SOURCE_COMPLETE, nes, address, byte, offset);
+        sample_interrupt_lines(nes);
+        ppu_catch_up(nes);
+
+        (void)cycle(nes, 0u, 1u, 1u);
+        nes->bus.open_bus = byte;
+        nes->bus.cpu_data = byte;
+        NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_OAM_DEST, nes, 0x2004u, byte, offset);
+        nesturbator__ppu_register_write(nes, 0x2004u, byte);
+        sample_interrupt_lines(nes);
+        ppu_catch_up(nes);
+    }
+    return 1u;
+}
+
 static uint8_t oam_dma(struct nesturbator *nes, uint8_t page, uint16_t halted_read)
 {
+    const struct nesturbator__dmc *dmc = &nes->apu.dmc;
+    if (dmc->remaining == 0u && dmc->dma_pending == 0u && dmc->abort_delay == 0u &&
+        dmc->enable_delay == 0u && dmc->dma_load_waiting == 0u)
+        return oam_dma_without_dmc(nes, page, halted_read);
+
     /* The CPU is already halted for the whole OAM transfer. DMC halt/dummy/
        alignment may overlap OAM accesses; only its memory GET steals an OAM
        GET. A following idle PUT aligns OAM before retrying that source byte.

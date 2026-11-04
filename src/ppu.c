@@ -25,11 +25,6 @@ static uint16_t prerender_line(const struct nesturbator *nes)
     return nesturbator__is_pal(nes) != 0 ? 311u : 261u;
 }
 
-static uint16_t raster_line_count(const struct nesturbator *nes)
-{
-    return nesturbator__is_pal(nes) != 0 ? 312u : 262u;
-}
-
 /* The 2C07 refreshes OAM during scanlines 265-310, advancing OAMADDR every two pixels except
    pixel zero. OAM decay itself is not modeled. [NESdev Wiki, OAM and OAMDMA, checked 2026-11-01] */
 static int pal_oam_refresh_active(const struct nesturbator *nes)
@@ -536,7 +531,10 @@ void nesturbator__ppu_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
 
 void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
 {
-    uint32_t dot_ticks = nesturbator__ppu_dot_ticks(nes);
+    const uint8_t pal = (uint8_t)nesturbator__is_pal(nes);
+    const uint16_t pre_render_line = pal != 0u ? 311u : 261u;
+    const uint16_t raster_lines = pal != 0u ? 312u : 262u;
+    const uint32_t dot_ticks = pal != 0u ? 10u : 8u;
     while (nes->ppu.ppu_ticks + dot_ticks <= ticks) {
         nes->ppu.ppu_ticks += dot_ticks;
         /* Model the analog PPU I/O bus decay at the conservative 30 ms end
@@ -554,7 +552,7 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
                 if (nes->ppu.vblank_suppress == 0u)
                     nes->ppu.status |= 0x80u;
                 nes->ppu.vblank_suppress = 0u;
-            } else if (nes->ppu.scanline == prerender_line(nes)) {
+            } else if (nes->ppu.scanline == pre_render_line) {
                 nes->ppu.status &= 0x1fu;
                 /* The reset signal clears with VBlank, sprite 0 and overflow.
                    [NESdev Wiki, PPU power up state] */
@@ -562,7 +560,11 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
             }
         }
         sprite_evaluate(nes);
-        if (pal_oam_refresh_active(nes) && nes->ppu.dot != 0u && (nes->ppu.dot & 1u) == 0u)
+        /* The 2C07 refreshes OAM during scanlines 265-310, advancing OAMADDR every two pixels
+           except pixel zero. OAM decay itself is not modeled. [NESdev Wiki, OAM and OAMDMA,
+           checked 2026-11-01] */
+        if (pal != 0u && nes->ppu.scanline >= 265u && nes->ppu.scanline <= 310u &&
+            nes->ppu.dot != 0u && (nes->ppu.dot & 1u) == 0u)
             nes->ppu.oam_addr++;
         /* Rendering skips pre-render dot 340 on odd NTSC frames. [HWP.03] The skip lands on
            scanline 0 dot 0 without the dot-340 read, so the bus keeps the dot-339 nametable
@@ -570,8 +572,8 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
            tick instead; the read is hash-neutral and A12-neutral (a nametable address has
            A12 low), but with PPUCTRL bit 4 set an even frame rises at dot 0 and an odd one does
            not. */
-        if (nesturbator__is_pal(nes) == 0 && nes->ppu.scanline == prerender_line(nes) &&
-            nes->ppu.dot == 340u && nes->ppu.odd_frame != 0u && (nes->ppu.mask & 0x18u) != 0u) {
+        if (pal == 0u && nes->ppu.scanline == pre_render_line && nes->ppu.dot == 340u &&
+            nes->ppu.odd_frame != 0u && (nes->ppu.mask & 0x18u) != 0u) {
             nes->ppu.scanline = 0u;
             nes->ppu.dot = 0u;
             nes->ppu.odd_frame = 0u;
@@ -585,7 +587,7 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
         if (nes->ppu.dot == 341u) {
             nes->ppu.dot = 0;
             nes->ppu.scanline++;
-            if (nes->ppu.scanline == raster_line_count(nes)) {
+            if (nes->ppu.scanline == raster_lines) {
                 nes->ppu.scanline = 0;
                 nes->ppu.odd_frame ^= 1u;
             }
@@ -594,7 +596,7 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
                lines that show v, and blargg's mmc3_test_2 4-scanline_timing (tests 8 and 9) puts
                the first clock for PPUCTRL bit 4 at dot 5, not dot 0. [NESdev Wiki, PPU
                rendering; blargg mmc3_test_2] */
-            if (rendering_active(nes) && nes->ppu.scanline != prerender_line(nes))
+            if (rendering_active(nes) && nes->ppu.scanline != pre_render_line)
                 set_bus(nes, bg_pattern_address(nes, 0u));
             else
                 set_bus(nes, nes->ppu.v);
