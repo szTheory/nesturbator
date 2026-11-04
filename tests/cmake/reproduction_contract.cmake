@@ -530,6 +530,18 @@ function(reproduction_check doc_path)
     reproduction_require_test_property("runner.state.${case}" "DEPENDS" "runner.save.fixture"
       "generated runner.state.${case} setup test dependency is missing")
   endforeach()
+  # Movie fixture setup tests are outside the documented selection when
+  # SHORT_RUNS omits runner.boot_to_play. Query that small subset separately
+  # instead of indexing the full CTest JSON, which also contains escaped
+  # regular expressions in unrelated tests.
+  execute_process(COMMAND "${CTEST}" --test-dir "${BUILD_DIR}" --show-only=json-v1
+      -R "^runner\\.nesrunner_movie\\.(pos|none|attract|startonly)$"
+    OUTPUT_VARIABLE movie_setup_tests_json ERROR_VARIABLE movie_setup_err
+    RESULT_VARIABLE movie_setup_rc TIMEOUT 20)
+  if(NOT "${movie_setup_rc}" STREQUAL "0")
+    message(FATAL_ERROR "docs.reproduction: movie fixture metadata could not be read")
+  endif()
+  reproduction_index_test_metadata("${movie_setup_tests_json}")
   foreach(scenario IN ITEMS pos none attract startonly)
     reproduction_require_test_property("runner.nesrunner_movie.${scenario}" "TIMEOUT" "10"
       "required runner.nesrunner_movie.${scenario} setup timeout is not 10 seconds")
