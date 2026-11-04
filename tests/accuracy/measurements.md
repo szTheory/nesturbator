@@ -2363,7 +2363,7 @@ reverted after it increased the PPU hot-loop instruction count.
 
 The 56-input fingerprint now changes from
 `7bf68ee9c693bce7145949cb5f1d873a0c0c7bb90ded735f3612ccb74187d546` to
-`ca20bfd39528b257ff2f863428428c5aa1cccb4a123881a4950bba0efe3f8f11` after
+`2033b25b04f24954d4975d8178f4f6dea82e0ae82762b9340e244889fdc68717` after
 removing the APU/PPU timing hoist, reverting the PPU condition reorder, and
 hoisting the PAL selector for the existing APU thresholds and fixed sample
 phase increments. Only the fingerprint metadata is updated here; the full
@@ -2378,13 +2378,6 @@ check except `perf`. Its three regional/game samples exceeded the 1% cap by
 matched exactly. The preceding `e6166fd` run used the same base SHA and measured
 2.46%, 2.46%, and 2.69%. Function totals show the PPU reorder added 180,203,166
 instructions to `nesturbator__ppu_run_until` between those exact candidates;
-the PPU source was restored to its `e6166fd` condition order.
-
-Candidate `3507ee8b9b29` then measured 2.34%, 2.32%, and 2.56% on the same
-three ROMs. The APU sample-phase update saved 10,720,512 instructions in
-`nesturbator__apu_clock` on nesteroids versus `e6166fd`, with the PPU count
-matching `e6166fd`; this was a small improvement but remained above the gate.
-The next APU change caches the frame counter/mode for its event comparisons and
-checks both usually-zero DMC delays through one common guard. It still needs
-exact-source local acceptance and hosted measurement; no threshold or exception
-was changed.
+the PPU source was restored to its `e6166fd` condition order. The APU source
+now reuses its regional selection for sample-phase constants; this revision
+still needs local acceptance and a fresh hosted measurement.
