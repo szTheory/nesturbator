@@ -34,7 +34,7 @@ static uint16_t raster_line_count(const struct nesturbator *nes)
    pixel zero. OAM decay itself is not modeled. [NESdev Wiki, OAM and OAMDMA, checked 2026-11-01] */
 static int pal_oam_refresh_active(const struct nesturbator *nes)
 {
-    return nes->ppu.scanline >= 265u && nes->ppu.scanline <= 310u && nesturbator__is_pal(nes) != 0;
+    return nesturbator__is_pal(nes) != 0 && nes->ppu.scanline >= 265u && nes->ppu.scanline <= 310u;
 }
 
 /* The fetch pipeline runs when background or sprites are on, on the visible lines and the
@@ -562,7 +562,7 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
             }
         }
         sprite_evaluate(nes);
-        if (nes->ppu.dot != 0u && (nes->ppu.dot & 1u) == 0u && pal_oam_refresh_active(nes))
+        if (pal_oam_refresh_active(nes) && nes->ppu.dot != 0u && (nes->ppu.dot & 1u) == 0u)
             nes->ppu.oam_addr++;
         /* Rendering skips pre-render dot 340 on odd NTSC frames. [HWP.03] The skip lands on
            scanline 0 dot 0 without the dot-340 read, so the bus keeps the dot-339 nametable
@@ -570,8 +570,8 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
            tick instead; the read is hash-neutral and A12-neutral (a nametable address has
            A12 low), but with PPUCTRL bit 4 set an even frame rises at dot 0 and an odd one does
            not. */
-        if (nes->ppu.dot == 340u && nes->ppu.odd_frame != 0u && (nes->ppu.mask & 0x18u) != 0u &&
-            nesturbator__is_pal(nes) == 0 && nes->ppu.scanline == prerender_line(nes)) {
+        if (nesturbator__is_pal(nes) == 0 && nes->ppu.scanline == prerender_line(nes) &&
+            nes->ppu.dot == 340u && nes->ppu.odd_frame != 0u && (nes->ppu.mask & 0x18u) != 0u) {
             nes->ppu.scanline = 0u;
             nes->ppu.dot = 0u;
             nes->ppu.odd_frame = 0u;

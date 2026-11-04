@@ -2357,17 +2357,27 @@ the older interrupted campaign remains stopped with unknown status.
 
 Hosted perf run `41874380078` on candidate `87256e711c73` measured a repeatable
 6.18% regression in the nesteroids case, with matching A/B instruction counts.
-The broad timing hoist in `src/apu.c` and `src/ppu.c` was therefore removed.
-The replacement keeps only short-circuit condition ordering in the PPU: test
-the dot parity and PAL refresh scanline range before checking the region, and
-test dot 340 before evaluating the odd-frame skip's region condition. The NTSC
-pre-render comparison remains 261 after the PAL guard. This is intended to
-preserve behavior while avoiding region checks in the common NTSC dot loop.
+The broad timing hoist in `src/apu.c` and `src/ppu.c` was removed. An attempted
+short-circuit condition reorder in the PPU was then measured separately and
+reverted after it increased the PPU hot-loop instruction count.
 
 The 56-input fingerprint now changes from
 `7bf68ee9c693bce7145949cb5f1d873a0c0c7bb90ded735f3612ccb74187d546` to
-`72a95c1de5b61967b11eb3cbcfd40634de114f6c5d70846d0db72a8d6213f9a3` after
-removing the APU/PPU timing hoist and applying the PPU condition ordering.
-Only the fingerprint metadata is updated here. Full local acceptance and the
-registered AccuracyCoin campaign are still required for this revision; no new
-campaign was started separately.
+`2033b25b04f24954d4975d8178f4f6dea82e0ae82762b9340e244889fdc68717` after
+removing the APU/PPU timing hoist, reverting the PPU condition reorder, and
+hoisting the PAL selector for the existing APU thresholds and fixed sample
+phase increments. Only the fingerprint metadata is updated here; the full
+workflow is still required for this source revision, and no new campaign was
+started separately.
+
+### Phase 28 hosted perf follow-up (2026-11-04)
+
+Candidate run `41882726001` on source `300768ffb582` passed every required
+check except `perf`. Its three regional/game samples exceeded the 1% cap by
+4.56% (nesteroids), 4.73% (runner), and 4.95% (M4). Base A/B Cachegrind counts
+matched exactly. The preceding `e6166fd` run used the same base SHA and measured
+2.46%, 2.46%, and 2.69%. Function totals show the PPU reorder added 180,203,166
+instructions to `nesturbator__ppu_run_until` between those exact candidates;
+the PPU source was restored to its `e6166fd` condition order. The APU source
+now reuses its regional selection for sample-phase constants; this revision
+still needs local acceptance and a fresh hosted measurement.

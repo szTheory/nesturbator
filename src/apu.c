@@ -229,6 +229,7 @@ void nesturbator__apu_end_frame(struct nesturbator *nes)
 
 void nesturbator__apu_clock(struct nesturbator *nes, uint8_t dmc_sample_ready)
 {
+    const uint8_t pal = (uint8_t)nesturbator__is_pal(nes);
     uint8_t level_changed = (uint8_t)(nes->apu.mixed_level_valid == 0u);
     if (nes->apu.frame_irq_clear_pending != 0u && nes->bus.apu_get_put_phase != 0u) {
         nes->apu.frame_irq = 0u;
@@ -355,7 +356,6 @@ void nesturbator__apu_clock(struct nesturbator *nes, uint8_t dmc_sample_ready)
         }
     } else {
         nes->apu.frame_cycle++;
-        const uint8_t pal = (uint8_t)nesturbator__is_pal(nes);
         const uint32_t quarter_1 = pal != 0u ? 8313u : 7457u;
         const uint32_t quarter_2 = pal != 0u ? 16627u : 14913u;
         const uint32_t quarter_3 = pal != 0u ? 24939u : 22371u;
@@ -394,13 +394,12 @@ void nesturbator__apu_clock(struct nesturbator *nes, uint8_t dmc_sample_ready)
        The transient validity flag forces the first clock after state load. */
     if (level_changed != 0u)
         update_mixed_level(nes);
-    const uint32_t sample_den = nesturbator__sample_ticks_denominator(nes);
-    nes->apu.sample_phase +=
-        nesturbator__cpu_cycle_ticks(nes) * nesturbator__sample_ticks_numerator(nes);
+    const uint32_t sample_den = pal != 0u ? 709379u : NESTURBATOR_AUDIO_TICKS_PER_PERIOD;
+    nes->apu.sample_phase += pal != 0u ? 20480u : 24u * NESTURBATOR_AUDIO_SAMPLES_PER_PERIOD;
     if (nes->apu.sample_phase >= sample_den) {
         nes->apu.sample_phase -= sample_den;
         if (nes->apu.sample_output != NULL &&
-            (nesturbator__is_pal(nes) != 0 || nes->apu.sample_count < nes->apu.sample_limit)) {
+            (pal != 0u || nes->apu.sample_count < nes->apu.sample_limit)) {
             nesturbator__synth_sample(nes);
             nes->apu.sample_count++;
         }
