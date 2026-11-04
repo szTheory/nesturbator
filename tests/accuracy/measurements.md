@@ -2333,3 +2333,22 @@ required `[HWC.03, HWC.04]` citation was added to the bus timing comment. Only
 the `build_inputs_sha256` metadata field is refreshed; this is not an
 emulation-behavior change or a standalone campaign rerun. The old interrupted
 campaign remains stopped with unknown status.
+
+### Phase 28 regional timing fingerprint refresh (2026-11-04)
+
+The registered `accuracycoin.campaign` fixture ran during full local acceptance
+on candidate `ec81365bc38a`. It completed all 22 pages and 146 scored rows with
+126 PASS, 20 FAIL, 5 inventory-only DRAW, and no skip, not-run, or timeout. The
+report digest remains
+`f3b5bbf7ddcf4d18deabda6d875b441330dc71c97b8aca5fdcc38bf471f98f6c`; guest
+execution time was `5896361000` ns.
+
+The 56-input fingerprint changed from
+`499ba5840dd0526152db9645de9b66f398594f2dde216baf0f224d91a65a56ab` to
+`7bf68ee9c693bce7145949cb5f1d873a0c0c7bb90ded735f3612ccb74187d546` after
+behavior-preserving regional timing optimizations in `src/apu.c` and
+`src/ppu.c`. The first full acceptance correctly rejected the stale fingerprint
+in the input-identity and activation checks; the campaign report and outcome
+rows matched the pinned baseline. Only the `build_inputs_sha256` metadata field
+is refreshed. This was the registered CTest campaign, not a separate collector;
+the older interrupted campaign remains stopped with unknown status.
