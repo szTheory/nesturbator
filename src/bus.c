@@ -87,9 +87,7 @@ static inline uint8_t cycle(struct nesturbator *nes, uint8_t status_read,
         nes->cpu.nmi_pending = nesturbator__ppu_nmi_line(nes) != 0u ? NESTURBATOR_NMI_RECOGNIZED
                                                                     : NESTURBATOR_NMI_NONE;
     }
-    /* NTSC and PAL are encoded as 0 and 1. The PAL profile widens the
-       regional M2 rise from +9 to +13 ticks [HWC.03, HWC.04]. */
-    const uint32_t m2_rise = 9u + ((uint32_t)nes->cart.effective_region << 2);
+    const uint32_t m2_rise = nesturbator__m2_rise_ticks(nes);
     /* M2 is high 6 ticks longer than its rise offset in both supported
        profiles: 15 after +9 on NTSC, 19 after +13 on PAL [HWC.03, HWC.04].
        Reusing the rise offset avoids selecting the same regional profile twice. */
@@ -278,6 +276,13 @@ static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr, uint8_t dm
         nes, addr, sync_read, (uint8_t)(dmc_was_pending != 0u || nes->apu.dmc.dma_pending != 0u));
 #endif
     uint8_t value;
+    if (aborted == 0u && nes->apu.dmc.dma_pending == 0u) {
+        value = bus_read_data(nes, addr, sample);
+        NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_CPU_READ_COMPLETE, nes, addr, value, 0u);
+        sample_interrupt_lines(nes);
+        ppu_catch_up(nes);
+        return value;
+    }
     uint8_t halted = 0u;
     if (aborted != 0u) {
         NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_HALT_ACCEPTED, nes, addr, 0u, 1u);
