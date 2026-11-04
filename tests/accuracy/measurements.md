@@ -2352,3 +2352,22 @@ in the input-identity and activation checks; the campaign report and outcome
 rows matched the pinned baseline. Only the `build_inputs_sha256` metadata field
 is refreshed. This was the registered CTest campaign, not a separate collector;
 the older interrupted campaign remains stopped with unknown status.
+
+### Phase 28 PPU hot-path revision (2026-11-04)
+
+Hosted perf run `41874380078` on candidate `87256e711c73` measured a repeatable
+6.18% regression in the nesteroids case, with matching A/B instruction counts.
+The broad timing hoist in `src/apu.c` and `src/ppu.c` was therefore removed.
+The replacement keeps only short-circuit condition ordering in the PPU: test
+the dot parity and PAL refresh scanline range before checking the region, and
+test dot 340 before evaluating the odd-frame skip's region condition. The NTSC
+pre-render comparison remains 261 after the PAL guard. This is intended to
+preserve behavior while avoiding region checks in the common NTSC dot loop.
+
+The 56-input fingerprint now changes from
+`7bf68ee9c693bce7145949cb5f1d873a0c0c7bb90ded735f3612ccb74187d546` to
+`72a95c1de5b61967b11eb3cbcfd40634de114f6c5d70846d0db72a8d6213f9a3` after
+removing the APU/PPU timing hoist and applying the PPU condition ordering.
+Only the fingerprint metadata is updated here. Full local acceptance and the
+registered AccuracyCoin campaign are still required for this revision; no new
+campaign was started separately.
