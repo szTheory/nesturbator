@@ -355,38 +355,49 @@ void nesturbator__apu_clock(struct nesturbator *nes, uint8_t dmc_sample_ready)
             }
         }
     } else {
-        nes->apu.frame_cycle++;
-        const uint32_t quarter_1 = pal != 0u ? 8313u : 7457u;
-        const uint32_t quarter_2 = pal != 0u ? 16627u : 14913u;
-        const uint32_t quarter_3 = pal != 0u ? 24939u : 22371u;
-        const uint32_t quarter_4 = pal != 0u ? 33253u : 29829u;
-        const uint32_t quarter_5 = pal != 0u ? 41565u : 37281u;
-        if (nes->apu.frame_cycle == quarter_1 || nes->apu.frame_cycle == quarter_2 ||
-            nes->apu.frame_cycle == quarter_3 ||
-            (nes->apu.frame_mode == 0u && nes->apu.frame_cycle == quarter_4) ||
-            (nes->apu.frame_mode != 0u && nes->apu.frame_cycle == quarter_5)) {
-            level_changed = 1u;
-            frame_quarter_clock(&nes->apu);
-            if (nes->apu.frame_cycle == quarter_2 ||
-                (nes->apu.frame_mode == 0u && nes->apu.frame_cycle == quarter_4) ||
-                (nes->apu.frame_mode != 0u && nes->apu.frame_cycle == quarter_5))
-                length_clock(&nes->apu);
+        /* Select the regional path before its constant thresholds on each APU clock. */
+        const uint32_t frame_cycle = ++nes->apu.frame_cycle;
+        if (pal != 0u) {
+            if (frame_cycle == 8313u || frame_cycle == 16627u || frame_cycle == 24939u ||
+                (nes->apu.frame_mode == 0u && frame_cycle == 33253u) ||
+                (nes->apu.frame_mode != 0u && frame_cycle == 41565u)) {
+                level_changed = 1u;
+                frame_quarter_clock(&nes->apu);
+                if (frame_cycle == 16627u || (nes->apu.frame_mode == 0u && frame_cycle == 33253u) ||
+                    (nes->apu.frame_mode != 0u && frame_cycle == 41565u))
+                    length_clock(&nes->apu);
+            }
+            if (nes->apu.frame_mode == 0u && (frame_cycle == 33252u || frame_cycle == 33253u))
+                nes->apu.frame_irq = 1u;
+            if (nes->apu.frame_mode == 0u && frame_cycle == 33254u) {
+                /* The status flag is reasserted through this edge unless the
+                   inhibit latch suppresses the IRQ line at the final cycle. */
+                nes->apu.frame_irq = (uint8_t)(nes->apu.frame_irq_inhibit == 0u);
+            }
+            if ((nes->apu.frame_mode == 0u && frame_cycle >= 33254u) ||
+                (nes->apu.frame_mode != 0u && frame_cycle >= 41566u))
+                nes->apu.frame_cycle = 0u;
+        } else {
+            if (frame_cycle == 7457u || frame_cycle == 14913u || frame_cycle == 22371u ||
+                (nes->apu.frame_mode == 0u && frame_cycle == 29829u) ||
+                (nes->apu.frame_mode != 0u && frame_cycle == 37281u)) {
+                level_changed = 1u;
+                frame_quarter_clock(&nes->apu);
+                if (frame_cycle == 14913u || (nes->apu.frame_mode == 0u && frame_cycle == 29829u) ||
+                    (nes->apu.frame_mode != 0u && frame_cycle == 37281u))
+                    length_clock(&nes->apu);
+            }
+            if (nes->apu.frame_mode == 0u && (frame_cycle == 29828u || frame_cycle == 29829u))
+                nes->apu.frame_irq = 1u;
+            if (nes->apu.frame_mode == 0u && frame_cycle == 29830u) {
+                /* The status flag is reasserted through this edge unless the
+                   inhibit latch suppresses the IRQ line at the final cycle. */
+                nes->apu.frame_irq = (uint8_t)(nes->apu.frame_irq_inhibit == 0u);
+            }
+            if ((nes->apu.frame_mode == 0u && frame_cycle >= 29830u) ||
+                (nes->apu.frame_mode != 0u && frame_cycle >= 37282u))
+                nes->apu.frame_cycle = 0u;
         }
-        const uint32_t irq_first = pal != 0u ? 33252u : 29828u;
-        const uint32_t irq_last = pal != 0u ? 33253u : 29829u;
-        const uint32_t four_step_wrap = pal != 0u ? 33254u : 29830u;
-        const uint32_t five_step_wrap = pal != 0u ? 41566u : 37282u;
-        if (nes->apu.frame_mode == 0u &&
-            (nes->apu.frame_cycle == irq_first || nes->apu.frame_cycle == irq_last))
-            nes->apu.frame_irq = 1u;
-        if (nes->apu.frame_mode == 0u && nes->apu.frame_cycle == four_step_wrap) {
-            /* The status flag is reasserted through this edge unless the
-               inhibit latch suppresses the IRQ line at the final cycle. */
-            nes->apu.frame_irq = (uint8_t)(nes->apu.frame_irq_inhibit == 0u);
-        }
-        if ((nes->apu.frame_mode == 0u && nes->apu.frame_cycle >= four_step_wrap) ||
-            (nes->apu.frame_mode != 0u && nes->apu.frame_cycle >= five_step_wrap))
-            nes->apu.frame_cycle = 0u;
     }
     nesturbator__irq_update(nes);
     /* Timer decrements do not change channel output. Recompute only at
