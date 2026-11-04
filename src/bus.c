@@ -276,6 +276,13 @@ static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr, uint8_t dm
         nes, addr, sync_read, (uint8_t)(dmc_was_pending != 0u || nes->apu.dmc.dma_pending != 0u));
 #endif
     uint8_t value;
+    if (aborted == 0u && nes->apu.dmc.dma_pending == 0u) {
+        value = bus_read_data(nes, addr, sample);
+        NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_CPU_READ_COMPLETE, nes, addr, value, 0u);
+        sample_interrupt_lines(nes);
+        ppu_catch_up(nes);
+        return value;
+    }
     uint8_t halted = 0u;
     if (aborted != 0u) {
         NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_HALT_ACCEPTED, nes, addr, 0u, 1u);
