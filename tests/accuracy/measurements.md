@@ -1,5 +1,24 @@
 # AccuracyCoin bounded campaign measurements
 
+## Phase 28 format-gate requalification — 2026-11-03
+
+The required pre-push gate found 25 unformatted source blobs among 41 changed
+C/C++ files. Formatting those files with clang-format 18.1.8 changed no
+emulation behavior, but it changed the AccuracyCoin build-input identity. The
+registered `accuracycoin.campaign` test then passed on clean candidate source
+`c026ce234c89`: 22 pages completed, 126 PASS, 20 FAIL, 5 inventory-only DRAW,
+and no skipped, not-run, or timed-out rows. The report SHA-256 stayed
+`f3b5bbf7ddcf4d18deabda6d875b441330dc71c97b8aca5fdcc38bf471f98f6c`.
+
+The measured 56-input fingerprint is
+`295133e6dc358ca2e74bc318335b5e320714854f184e1ed0c59e7d021f8710be`, and
+`host_elapsed_guest_ns` is `4641244000`. The first full CTest run passed the
+campaign but failed the input-fingerprint and activation metadata checks
+because the baseline still named the pre-format fingerprint
+`9461d786ad93fd0047fc297c1a501627902304ae187ef1f7c35245586a65e44d`. The
+baseline metadata now records this measured source and fingerprint. The
+overall workflow remains pending a fresh bounded run with that metadata.
+
 ## Phase 24 behavior14 local acceptance, 2026-11-01
 
 The final local `cmake --workflow --preset ci` run completed successfully from
