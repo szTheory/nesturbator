@@ -278,10 +278,12 @@ void nesturbator__apu_clock(struct nesturbator *nes, uint8_t dmc_sample_ready)
         noise->counter--;
     }
     struct nesturbator__dmc *dmc = &nes->apu.dmc;
-    if (dmc->abort_delay != 0u)
-        dmc->abort_delay--;
-    if (dmc->enable_delay != 0u)
-        dmc->enable_delay--;
+    const uint8_t abort_delay = dmc->abort_delay;
+    const uint8_t enable_delay = dmc->enable_delay;
+    if ((abort_delay | enable_delay) != 0u) {
+        dmc->abort_delay = (uint8_t)(abort_delay - (abort_delay != 0u));
+        dmc->enable_delay = (uint8_t)(enable_delay - (enable_delay != 0u));
+    }
     /* DMC rate entries are CPU-cycle periods, but the timer receives only
        every other CPU cycle. Its half-rate edge is offset from the pulse
        timer edge; the AccuracyCoin page-14 sync probes pin that phase.
@@ -356,36 +358,35 @@ void nesturbator__apu_clock(struct nesturbator *nes, uint8_t dmc_sample_ready)
         }
     } else {
         nes->apu.frame_cycle++;
+        const uint32_t frame_cycle = nes->apu.frame_cycle;
+        const uint8_t frame_mode = nes->apu.frame_mode;
         const uint32_t quarter_1 = pal != 0u ? 8313u : 7457u;
         const uint32_t quarter_2 = pal != 0u ? 16627u : 14913u;
         const uint32_t quarter_3 = pal != 0u ? 24939u : 22371u;
         const uint32_t quarter_4 = pal != 0u ? 33253u : 29829u;
         const uint32_t quarter_5 = pal != 0u ? 41565u : 37281u;
-        if (nes->apu.frame_cycle == quarter_1 || nes->apu.frame_cycle == quarter_2 ||
-            nes->apu.frame_cycle == quarter_3 ||
-            (nes->apu.frame_mode == 0u && nes->apu.frame_cycle == quarter_4) ||
-            (nes->apu.frame_mode != 0u && nes->apu.frame_cycle == quarter_5)) {
+        if (frame_cycle == quarter_1 || frame_cycle == quarter_2 || frame_cycle == quarter_3 ||
+            (frame_mode == 0u && frame_cycle == quarter_4) ||
+            (frame_mode != 0u && frame_cycle == quarter_5)) {
             level_changed = 1u;
             frame_quarter_clock(&nes->apu);
-            if (nes->apu.frame_cycle == quarter_2 ||
-                (nes->apu.frame_mode == 0u && nes->apu.frame_cycle == quarter_4) ||
-                (nes->apu.frame_mode != 0u && nes->apu.frame_cycle == quarter_5))
+            if (frame_cycle == quarter_2 || (frame_mode == 0u && frame_cycle == quarter_4) ||
+                (frame_mode != 0u && frame_cycle == quarter_5))
                 length_clock(&nes->apu);
         }
         const uint32_t irq_first = pal != 0u ? 33252u : 29828u;
         const uint32_t irq_last = pal != 0u ? 33253u : 29829u;
         const uint32_t four_step_wrap = pal != 0u ? 33254u : 29830u;
         const uint32_t five_step_wrap = pal != 0u ? 41566u : 37282u;
-        if (nes->apu.frame_mode == 0u &&
-            (nes->apu.frame_cycle == irq_first || nes->apu.frame_cycle == irq_last))
+        if (frame_mode == 0u && (frame_cycle == irq_first || frame_cycle == irq_last))
             nes->apu.frame_irq = 1u;
-        if (nes->apu.frame_mode == 0u && nes->apu.frame_cycle == four_step_wrap) {
+        if (frame_mode == 0u && frame_cycle == four_step_wrap) {
             /* The status flag is reasserted through this edge unless the
                inhibit latch suppresses the IRQ line at the final cycle. */
             nes->apu.frame_irq = (uint8_t)(nes->apu.frame_irq_inhibit == 0u);
         }
-        if ((nes->apu.frame_mode == 0u && nes->apu.frame_cycle >= four_step_wrap) ||
-            (nes->apu.frame_mode != 0u && nes->apu.frame_cycle >= five_step_wrap))
+        if ((frame_mode == 0u && frame_cycle >= four_step_wrap) ||
+            (frame_mode != 0u && frame_cycle >= five_step_wrap))
             nes->apu.frame_cycle = 0u;
     }
     nesturbator__irq_update(nes);
