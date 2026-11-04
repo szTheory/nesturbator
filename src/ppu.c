@@ -25,11 +25,6 @@ static uint16_t prerender_line(const struct nesturbator *nes)
     return nesturbator__is_pal(nes) != 0 ? 311u : 261u;
 }
 
-static uint16_t raster_line_count(const struct nesturbator *nes)
-{
-    return nesturbator__is_pal(nes) != 0 ? 312u : 262u;
-}
-
 /* The 2C07 refreshes OAM during scanlines 265-310, advancing OAMADDR every two pixels except
    pixel zero. OAM decay itself is not modeled. [NESdev Wiki, OAM and OAMDMA, checked 2026-11-01] */
 static int pal_oam_refresh_active(const struct nesturbator *nes)
@@ -40,10 +35,10 @@ static int pal_oam_refresh_active(const struct nesturbator *nes)
 /* The fetch pipeline runs when background or sprites are on, on the visible lines and the
    region's pre-render line. Otherwise the bus shows v. [NESdev Wiki, PPU rendering and scrolling]
  */
-static int rendering_active(const struct nesturbator *nes)
+static int rendering_active(const struct nesturbator *nes, uint16_t prerender_scanline)
 {
     return (nes->ppu.mask & 0x18u) != 0u &&
-           (nes->ppu.scanline < NESTURBATOR_HEIGHT || nes->ppu.scanline == prerender_line(nes));
+           (nes->ppu.scanline < NESTURBATOR_HEIGHT || nes->ppu.scanline == prerender_scanline);
 }
 
 /* Coarse X increment with nametable wrap. [NESdev Wiki, PPU scrolling "Wrapping around"] */
@@ -191,10 +186,10 @@ static void background_access(struct nesturbator *nes)
     }
 }
 
-static void sprite_evaluate(struct nesturbator *nes)
+static void sprite_evaluate(struct nesturbator *nes, uint16_t prerender_scanline)
 {
     struct nesturbator__ppu *ppu = &nes->ppu;
-    if (ppu->scanline >= NESTURBATOR_HEIGHT && ppu->scanline != prerender_line(nes))
+    if (ppu->scanline >= NESTURBATOR_HEIGHT && ppu->scanline != prerender_scanline)
         return;
     if (ppu->dot == 65u) {
         ppu->eval_count = 0u;
@@ -208,14 +203,13 @@ static void sprite_evaluate(struct nesturbator *nes)
         ppu->eval_copy_remaining = 0u;
         /* Pre-render evaluation prepares visible scanline zero; Y+1 wraps
            at eight bits on the 2C02. [HWP.02][HWP.06] */
-        ppu->eval_target =
-            ppu->scanline == prerender_line(nes) ? 0u : (uint8_t)(ppu->scanline + 1u);
+        ppu->eval_target = ppu->scanline == prerender_scanline ? 0u : (uint8_t)(ppu->scanline + 1u);
         memset(ppu->secondary_oam, 0xff, sizeof ppu->secondary_oam);
     }
     /* The overflow comparison result reaches the readable status bit on the following dot.
        AccuracyCoin TEST_2002FlagTiming distinguishes this from the compare dot at M2 fall. */
-    if (ppu->eval_remaining == 3u && ppu->eval_count == 8u &&
-        ppu->scanline != prerender_line(nes) && ppu->dot >= 65u && (ppu->dot & 1u) != 0u)
+    if (ppu->eval_remaining == 3u && ppu->eval_count == 8u && ppu->scanline != prerender_scanline &&
+        ppu->dot >= 65u && (ppu->dot & 1u) != 0u)
         ppu->status |= 0x20u;
     if ((ppu->mask & 0x18u) == 0u)
         return;
@@ -291,14 +285,14 @@ static uint8_t reverse_bits(uint8_t value)
    (A12 high). The low 4 bits of an empty fetch are not documented; the slot's own row is used.
    [NESdev Wiki, PPU sprite evaluation and PPU rendering] */
 static inline uint16_t sprite_pattern_address(const struct nesturbator *nes, unsigned slot,
-                                              unsigned plane)
+                                              unsigned plane, uint16_t prerender_scanline)
 {
     const struct nesturbator__ppu *ppu = &nes->ppu;
     uint8_t height = (ppu->control & 0x20u) != 0u ? 16u : 8u;
     uint16_t base = (uint16_t)(slot * 4u);
     uint8_t tile = slot < ppu->eval_count ? ppu->secondary_oam[base + 1u] : 0xffu;
     uint8_t attr = ppu->secondary_oam[base + 2u];
-    uint8_t target = ppu->scanline == prerender_line(nes) ? 0u : (uint8_t)(ppu->scanline + 1u);
+    uint8_t target = ppu->scanline == prerender_scanline ? 0u : (uint8_t)(ppu->scanline + 1u);
     uint16_t top = (uint16_t)ppu->secondary_oam[base] + 1u;
     uint8_t row = target == 0u && top == 256u ? 0u : (uint8_t)((uint16_t)target - top);
     if ((attr & 0x80u) != 0u)
@@ -323,7 +317,7 @@ static inline uint16_t sprite_pattern_address(const struct nesturbator *nes, uns
    zeros. The dot-257 address uses v before the horizontal copy, which the caller applies after
    this returns; the dot-258 read rebuilds its high bits from the copied v and keeps the
    latched low 8, the mix NESdev "PPU scrolling" describes. */
-static void sprite_access(struct nesturbator *nes)
+static void sprite_access(struct nesturbator *nes, uint16_t prerender_scanline)
 {
     struct nesturbator__ppu *ppu = &nes->ppu;
     unsigned offset = (unsigned)ppu->dot - 257u;
@@ -344,18 +338,18 @@ static void sprite_access(struct nesturbator *nes)
         (void)read_dot(nes, nt_address(nes));
         break;
     case 4u:
-        address_dot(nes, sprite_pattern_address(nes, slot, 0u));
+        address_dot(nes, sprite_pattern_address(nes, slot, 0u, prerender_scanline));
         break;
     case 5u: {
-        uint8_t lo = read_dot(nes, sprite_pattern_address(nes, slot, 0u));
+        uint8_t lo = read_dot(nes, sprite_pattern_address(nes, slot, 0u, prerender_scanline));
         ppu->sprite_lo[slot] = filled ? lo : 0u;
         break;
     }
     case 6u:
-        address_dot(nes, sprite_pattern_address(nes, slot, 1u));
+        address_dot(nes, sprite_pattern_address(nes, slot, 1u, prerender_scanline));
         break;
     default: {
-        uint8_t hi = read_dot(nes, sprite_pattern_address(nes, slot, 1u));
+        uint8_t hi = read_dot(nes, sprite_pattern_address(nes, slot, 1u, prerender_scanline));
         uint8_t attr = ppu->secondary_oam[slot * 4u + 2u];
         ppu->sprite_hi[slot] = filled ? hi : 0u;
         if (filled && (attr & 0x40u) != 0u) {
@@ -377,13 +371,13 @@ static void sprite_access(struct nesturbator *nes)
    rendering off, or on lines 240-260, the bus shows v on every dot. Otherwise: shift, reload,
    then the dot's access. Background tiles use dots 1-256 and 321-336, sprite slots 257-320 and
    two dummy nametable accesses 337-340. [NESdev Wiki, PPU rendering] */
-static void fetch_step(struct nesturbator *nes)
+static void fetch_step(struct nesturbator *nes, uint16_t prerender_scanline)
 {
     struct nesturbator__ppu *ppu = &nes->ppu;
     uint16_t dot = ppu->dot;
     if (dot > 340u)
         return;
-    if (!rendering_active(nes)) {
+    if (!rendering_active(nes, prerender_scanline)) {
         if (dot == 257u)
             ppu->sprite_count = ppu->eval_count;
         set_bus(nes, ppu->v);
@@ -396,13 +390,13 @@ static void fetch_step(struct nesturbator *nes)
     if (dot <= 256u || (dot >= 321u && dot <= 336u)) {
         background_access(nes);
     } else if (dot <= 320u) {
-        sprite_access(nes);
+        sprite_access(nes, prerender_scanline);
         if (dot == 257u) {
             copy_horizontal(nes);
             ppu->sprite_count = ppu->eval_count;
         }
         /* Pre-render only: the vertical copy repeats on 280-304. */
-        if (ppu->scanline == prerender_line(nes) && dot >= 280u && dot <= 304u)
+        if (ppu->scanline == prerender_scanline && dot >= 280u && dot <= 304u)
             copy_vertical(nes);
     } else if ((dot & 1u) != 0u) {
         address_dot(nes, nt_address(nes));
@@ -536,7 +530,10 @@ void nesturbator__ppu_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
 
 void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
 {
-    uint32_t dot_ticks = nesturbator__ppu_dot_ticks(nes);
+    const uint8_t pal = (uint8_t)nesturbator__is_pal(nes);
+    const uint16_t prerender_scanline = pal != 0u ? 311u : 261u;
+    const uint16_t line_count = pal != 0u ? 312u : 262u;
+    const uint32_t dot_ticks = pal != 0u ? 10u : 8u;
     while (nes->ppu.ppu_ticks + dot_ticks <= ticks) {
         nes->ppu.ppu_ticks += dot_ticks;
         /* Model the analog PPU I/O bus decay at the conservative 30 ms end
@@ -554,15 +551,17 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
                 if (nes->ppu.vblank_suppress == 0u)
                     nes->ppu.status |= 0x80u;
                 nes->ppu.vblank_suppress = 0u;
-            } else if (nes->ppu.scanline == prerender_line(nes)) {
+            } else if (nes->ppu.scanline == prerender_scanline) {
                 nes->ppu.status &= 0x1fu;
                 /* The reset signal clears with VBlank, sprite 0 and overflow.
                    [NESdev Wiki, PPU power up state] */
                 nes->ppu.reset_flag = 0u;
             }
         }
-        sprite_evaluate(nes);
-        if (pal_oam_refresh_active(nes) && nes->ppu.dot != 0u && (nes->ppu.dot & 1u) == 0u)
+        sprite_evaluate(nes, prerender_scanline);
+        /* dot advances above, so this even-dot check excludes dot zero. */
+        if ((nes->ppu.dot & 1u) == 0u && pal != 0u && nes->ppu.scanline >= 265u &&
+            nes->ppu.scanline <= 310u)
             nes->ppu.oam_addr++;
         /* Rendering skips pre-render dot 340 on odd NTSC frames. [HWP.03] The skip lands on
            scanline 0 dot 0 without the dot-340 read, so the bus keeps the dot-339 nametable
@@ -570,8 +569,8 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
            tick instead; the read is hash-neutral and A12-neutral (a nametable address has
            A12 low), but with PPUCTRL bit 4 set an even frame rises at dot 0 and an odd one does
            not. */
-        if (nesturbator__is_pal(nes) == 0 && nes->ppu.scanline == prerender_line(nes) &&
-            nes->ppu.dot == 340u && nes->ppu.odd_frame != 0u && (nes->ppu.mask & 0x18u) != 0u) {
+        if (nes->ppu.dot == 340u && nes->ppu.scanline == prerender_scanline &&
+            nes->ppu.odd_frame != 0u && (nes->ppu.mask & 0x18u) != 0u && pal == 0u) {
             nes->ppu.scanline = 0u;
             nes->ppu.dot = 0u;
             nes->ppu.odd_frame = 0u;
@@ -581,11 +580,11 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
             (nes->ppu.status & 0x40u) == 0u && nes->ppu.scanline < NESTURBATOR_HEIGHT &&
             nes->ppu.dot >= 2u && nes->ppu.dot <= 257u)
             detect_sprite_zero_hit(nes, (uint32_t)nes->ppu.dot - 2u);
-        fetch_step(nes);
+        fetch_step(nes, prerender_scanline);
         if (nes->ppu.dot == 341u) {
             nes->ppu.dot = 0;
             nes->ppu.scanline++;
-            if (nes->ppu.scanline == raster_line_count(nes)) {
+            if (nes->ppu.scanline == line_count) {
                 nes->ppu.scanline = 0;
                 nes->ppu.odd_frame ^= 1u;
             }
@@ -594,7 +593,8 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
                lines that show v, and blargg's mmc3_test_2 4-scanline_timing (tests 8 and 9) puts
                the first clock for PPUCTRL bit 4 at dot 5, not dot 0. [NESdev Wiki, PPU
                rendering; blargg mmc3_test_2] */
-            if (rendering_active(nes) && nes->ppu.scanline != prerender_line(nes))
+            if (rendering_active(nes, prerender_scanline) &&
+                nes->ppu.scanline != prerender_scanline)
                 set_bus(nes, bg_pattern_address(nes, 0u));
             else
                 set_bus(nes, nes->ppu.v);
@@ -615,7 +615,7 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
    reads and writes"] With rendering off the bus follows v at once. */
 static void advance_v_after_data_access(struct nesturbator *nes)
 {
-    if (rendering_active(nes)) {
+    if (rendering_active(nes, prerender_line(nes))) {
         inc_coarse_x(nes);
         inc_y(nes);
     } else {
@@ -749,7 +749,7 @@ void nesturbator__ppu_register_write(struct nesturbator *nes, uint16_t reg, uint
         } else {
             nes->ppu.t = (uint16_t)((nes->ppu.t & 0x7f00u) | value);
             nes->ppu.v = nes->ppu.t;
-            if (!rendering_active(nes))
+            if (!rendering_active(nes, prerender_line(nes)))
                 set_bus(nes, nes->ppu.v);
         }
         nes->ppu.address_latch ^= 1u;

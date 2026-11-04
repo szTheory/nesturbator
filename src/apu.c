@@ -229,6 +229,7 @@ void nesturbator__apu_end_frame(struct nesturbator *nes)
 
 void nesturbator__apu_clock(struct nesturbator *nes, uint8_t dmc_sample_ready)
 {
+    const uint8_t pal = (uint8_t)nesturbator__is_pal(nes);
     uint8_t level_changed = (uint8_t)(nes->apu.mixed_level_valid == 0u);
     if (nes->apu.frame_irq_clear_pending != 0u && nes->bus.apu_get_put_phase != 0u) {
         nes->apu.frame_irq = 0u;
@@ -355,37 +356,53 @@ void nesturbator__apu_clock(struct nesturbator *nes, uint8_t dmc_sample_ready)
         }
     } else {
         nes->apu.frame_cycle++;
-        const uint8_t pal = (uint8_t)nesturbator__is_pal(nes);
-        const uint32_t quarter_1 = pal != 0u ? 8313u : 7457u;
-        const uint32_t quarter_2 = pal != 0u ? 16627u : 14913u;
-        const uint32_t quarter_3 = pal != 0u ? 24939u : 22371u;
-        const uint32_t quarter_4 = pal != 0u ? 33253u : 29829u;
-        const uint32_t quarter_5 = pal != 0u ? 41565u : 37281u;
-        if (nes->apu.frame_cycle == quarter_1 || nes->apu.frame_cycle == quarter_2 ||
-            nes->apu.frame_cycle == quarter_3 ||
-            (nes->apu.frame_mode == 0u && nes->apu.frame_cycle == quarter_4) ||
-            (nes->apu.frame_mode != 0u && nes->apu.frame_cycle == quarter_5)) {
+        const uint32_t frame_cycle = nes->apu.frame_cycle;
+        uint8_t quarter_event = 0u;
+        uint8_t length_event = 0u;
+        uint8_t irq_event = 0u;
+        uint8_t irq_wrap_event = 0u;
+        uint8_t cycle_wrap_event = 0u;
+        if (pal != 0u) {
+            quarter_event =
+                (uint8_t)(frame_cycle == 8313u || frame_cycle == 16627u || frame_cycle == 24939u ||
+                          (nes->apu.frame_mode == 0u && frame_cycle == 33253u) ||
+                          (nes->apu.frame_mode != 0u && frame_cycle == 41565u));
+            length_event = (uint8_t)(frame_cycle == 16627u ||
+                                     (nes->apu.frame_mode == 0u && frame_cycle == 33253u) ||
+                                     (nes->apu.frame_mode != 0u && frame_cycle == 41565u));
+            irq_event = (uint8_t)(nes->apu.frame_mode == 0u &&
+                                  (frame_cycle == 33252u || frame_cycle == 33253u));
+            irq_wrap_event = (uint8_t)(nes->apu.frame_mode == 0u && frame_cycle == 33254u);
+            cycle_wrap_event = (uint8_t)((nes->apu.frame_mode == 0u && frame_cycle >= 33254u) ||
+                                         (nes->apu.frame_mode != 0u && frame_cycle >= 41566u));
+        } else {
+            quarter_event =
+                (uint8_t)(frame_cycle == 7457u || frame_cycle == 14913u || frame_cycle == 22371u ||
+                          (nes->apu.frame_mode == 0u && frame_cycle == 29829u) ||
+                          (nes->apu.frame_mode != 0u && frame_cycle == 37281u));
+            length_event = (uint8_t)(frame_cycle == 14913u ||
+                                     (nes->apu.frame_mode == 0u && frame_cycle == 29829u) ||
+                                     (nes->apu.frame_mode != 0u && frame_cycle == 37281u));
+            irq_event = (uint8_t)(nes->apu.frame_mode == 0u &&
+                                  (frame_cycle == 29828u || frame_cycle == 29829u));
+            irq_wrap_event = (uint8_t)(nes->apu.frame_mode == 0u && frame_cycle == 29830u);
+            cycle_wrap_event = (uint8_t)((nes->apu.frame_mode == 0u && frame_cycle >= 29830u) ||
+                                         (nes->apu.frame_mode != 0u && frame_cycle >= 37282u));
+        }
+        if (quarter_event != 0u) {
             level_changed = 1u;
             frame_quarter_clock(&nes->apu);
-            if (nes->apu.frame_cycle == quarter_2 ||
-                (nes->apu.frame_mode == 0u && nes->apu.frame_cycle == quarter_4) ||
-                (nes->apu.frame_mode != 0u && nes->apu.frame_cycle == quarter_5))
+            if (length_event != 0u)
                 length_clock(&nes->apu);
         }
-        const uint32_t irq_first = pal != 0u ? 33252u : 29828u;
-        const uint32_t irq_last = pal != 0u ? 33253u : 29829u;
-        const uint32_t four_step_wrap = pal != 0u ? 33254u : 29830u;
-        const uint32_t five_step_wrap = pal != 0u ? 41566u : 37282u;
-        if (nes->apu.frame_mode == 0u &&
-            (nes->apu.frame_cycle == irq_first || nes->apu.frame_cycle == irq_last))
+        if (irq_event != 0u)
             nes->apu.frame_irq = 1u;
-        if (nes->apu.frame_mode == 0u && nes->apu.frame_cycle == four_step_wrap) {
+        if (irq_wrap_event != 0u) {
             /* The status flag is reasserted through this edge unless the
                inhibit latch suppresses the IRQ line at the final cycle. */
             nes->apu.frame_irq = (uint8_t)(nes->apu.frame_irq_inhibit == 0u);
         }
-        if ((nes->apu.frame_mode == 0u && nes->apu.frame_cycle >= four_step_wrap) ||
-            (nes->apu.frame_mode != 0u && nes->apu.frame_cycle >= five_step_wrap))
+        if (cycle_wrap_event != 0u)
             nes->apu.frame_cycle = 0u;
     }
     nesturbator__irq_update(nes);
@@ -394,13 +411,12 @@ void nesturbator__apu_clock(struct nesturbator *nes, uint8_t dmc_sample_ready)
        The transient validity flag forces the first clock after state load. */
     if (level_changed != 0u)
         update_mixed_level(nes);
-    const uint32_t sample_den = nesturbator__sample_ticks_denominator(nes);
-    nes->apu.sample_phase +=
-        nesturbator__cpu_cycle_ticks(nes) * nesturbator__sample_ticks_numerator(nes);
+    const uint32_t sample_den = pal != 0u ? 709379u : NESTURBATOR_AUDIO_TICKS_PER_PERIOD;
+    nes->apu.sample_phase += pal != 0u ? 20480u : 24u * NESTURBATOR_AUDIO_SAMPLES_PER_PERIOD;
     if (nes->apu.sample_phase >= sample_den) {
         nes->apu.sample_phase -= sample_den;
         if (nes->apu.sample_output != NULL &&
-            (nesturbator__is_pal(nes) != 0 || nes->apu.sample_count < nes->apu.sample_limit)) {
+            (pal != 0u || nes->apu.sample_count < nes->apu.sample_limit)) {
             nesturbator__synth_sample(nes);
             nes->apu.sample_count++;
         }
