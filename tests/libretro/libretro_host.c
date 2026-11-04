@@ -4013,6 +4013,18 @@ static bool write_region_fixture(const char *path, const uint8_t *image, size_t 
     return ok;
 }
 
+static bool copy_path_with_suffix(char *output, size_t capacity, const char *path,
+                                  const char *suffix)
+{
+    const size_t path_length = strlen(path);
+    const size_t suffix_length = strlen(suffix);
+    if (path_length >= capacity || suffix_length >= capacity - path_length)
+        return false;
+    memcpy(output, path, path_length);
+    memcpy(output + path_length, suffix, suffix_length + 1u);
+    return true;
+}
+
 static bool read_runner_ticks(const char *path, uint64_t *ticks)
 {
     FILE *file = fopen(path, "rb");
@@ -4562,11 +4574,22 @@ static void check_region_selection_matrix(const char *runner, const char *base_p
         CHECK(size != 0u);
         if (size == 0u)
             continue;
-        CHECK(snprintf(fixture_path, sizeof fixture_path, "%s.region-%s.nes", base_path,
-                       cases[c].name) > 0);
+        const int fixture_path_length = snprintf(fixture_path, sizeof fixture_path,
+                                                 "%s.region-%s.nes", base_path, cases[c].name);
+        CHECK(fixture_path_length > 0 && (size_t)fixture_path_length < sizeof fixture_path);
+        if (fixture_path_length <= 0 || (size_t)fixture_path_length >= sizeof fixture_path)
+            continue;
         CHECK(write_region_fixture(fixture_path, image, size));
-        snprintf(output_path, sizeof output_path, "%s.output", fixture_path);
-        snprintf(info_output_path, sizeof info_output_path, "%s.info", fixture_path);
+        const bool output_path_valid =
+            copy_path_with_suffix(output_path, sizeof output_path, fixture_path, ".output");
+        const bool info_output_path_valid =
+            copy_path_with_suffix(info_output_path, sizeof info_output_path, fixture_path, ".info");
+        CHECK(output_path_valid);
+        CHECK(info_output_path_valid);
+        if (!output_path_valid || !info_output_path_valid) {
+            remove(fixture_path);
+            continue;
+        }
         memset(&game, 0, sizeof game);
         game.data = image;
         game.size = size;
