@@ -232,7 +232,7 @@ static int validate_image(const uint8_t *image, size_t size,
     if (!nesturbator__mapper_ops_for(mapper, &probe))
         return 0;
     /* Interpret regional metadata only after the complete header/layout has
-       passed validation. NES 2.0 timing values 0 and 1 are authoritative;
+       passed validation. NES version-two timing values 0 and 1 are authoritative;
        value 2 is ambiguous and value 3 (Dendy) is unsupported. */
     if (nes2) {
         const uint8_t timing = image[12] & 3u;

@@ -181,7 +181,7 @@ enum nesturbator_status {
 enum nesturbator_region { NESTURBATOR_REGION_NTSC = 0, NESTURBATOR_REGION_PAL = 1 };
 
 /* A host preference is supplied per load. Auto and contradictory preferences
-   do not override explicit single-region NES 2.0 metadata. */
+   do not override explicit single-region NES version-two metadata. */
 enum nesturbator_region_preference {
     NESTURBATOR_REGION_PREFERENCE_AUTO = 0,
     NESTURBATOR_REGION_PREFERENCE_NTSC = 1,
@@ -424,10 +424,10 @@ void nesturbator_destroy(nesturbator *inst);
    0, 2, 3 and 7 refuse the battery bit and every RAM size. Other mappers, unsupported
    console/region/RAM profiles, malformed headers, truncation, extra payload, and images above 64
    MiB return NESTURBATOR_ERR_CARTRIDGE before cartridge allocation and leave a previously loaded
-   cartridge untouched. NES 2.0 NTSC/PAL timing metadata is honored, multi-region and legacy iNES
-   default to NTSC, and Dendy is refused. Allocation failure returns NESTURBATOR_ERR_NO_MEMORY. A
-   loaded image starts the CPU at the reset vector read through the board's power-on banks. An image
-   whose mapper has no board is refused before any allocation. Every rejection returns
+   cartridge untouched. NES version-two NTSC/PAL timing metadata is honored, multi-region and legacy
+   iNES default to NTSC, and Dendy is refused. Allocation failure returns NESTURBATOR_ERR_NO_MEMORY.
+   A loaded image starts the CPU at the reset vector read through the board's power-on banks. An
+   image whose mapper has no board is refused before any allocation. Every rejection returns
    NESTURBATOR_ERR_CARTRIDGE with the instance unchanged. Unload releases
    cartridge state. */
 nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *data, size_t size);
@@ -436,7 +436,7 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
    neither preference persistence nor metadata resolution lives in the adapters.
    Libretro samples its option only for non-NULL content loads; option changes
    and reset leave the loaded region and AV timing unchanged until reload.
-   Explicit NES 2.0 NTSC/PAL declarations take precedence; a preference selects
+   Explicit NES version-two NTSC/PAL declarations take precedence; a preference selects
    only multi-region or legacy iNES content. Dendy and invalid preferences are
    refused without changing the active machine. The selected region stays fixed
    until unload or a successful later load. The public frame remains 256x240.
@@ -583,7 +583,7 @@ nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *i
 /* Copies up to `count` display XRGB8888 entries (0x00RRGGBB), indexed by
  * native pixel value (palette entry | raw emphasis << 6). A loaded PAL
  * instance selects the named NESdev 2C07 wiki palette model, published as
- * pally v0.24.1 output; see https://www.nesdev.org/wiki/File%3A2C07_wiki.pal.
+ * pally output; see https://www.nesdev.org/wiki/File%3A2C07_wiki.pal.
  * Its model uses phase-7 colorburst, line-alternating V and delay-line comb
  * decoding. For PAL, raw PPUMASK emphasis bits 5, 6 and 7 map to green, red
  * and blue. It is a modeled display table, not a hardware RGB capture or
