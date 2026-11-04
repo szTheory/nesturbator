@@ -2284,3 +2284,17 @@ campaign_artifact=build/phase24-acceptance/20261101T010016Z/observed/accuracycoi
 input_policy=cold-boot;page-header-A;one-frame-A-press;one-frame-release
 source_dirty_reason=The behavior14 campaign ran from commit 0c8cc53b1672 with a dirty checkout. Uncommitted measured metadata and local planning and AGENTS notes were present. Emulator corrections remain at committed behavior14 source 324a769e413003cce3aa30d6a5a78a441ce558d8. The 56-input fingerprint records the exact tested build-input bytes.
 ```
+
+### No-float comment fingerprint refresh
+
+The registered `accuracycoin.campaign` test was rerun after rewriting decimal
+version text in core comments so the no-float source scan can pass. Source
+`57e83f2fc38b` completed 22/22 pages and all 146 scored rows: 126 PASS, 20 FAIL,
+5 DRAW, with no skip, not-run, or timeout. The 56-input fingerprint is
+`4f89c3fb693a43c4447d5fb8a17b437469b07a98cb91c01b16e0046cc4d38787`; the
+campaign report hash remains
+`f3b5bbf7ddcf4d18deabda6d875b441330dc71c97b8aca5fdcc38bf471f98f6c`.
+Measured `host_elapsed_guest_ns` was `4882667000`. `source_dirty=1` records only
+the generated Phase 28 acceptance and release evidence overlays, which are
+excluded from the input fingerprint. This was the registered CTest campaign;
+the separate interrupted collector remains stopped with unknown status.
