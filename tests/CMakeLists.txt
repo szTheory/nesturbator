@@ -2302,6 +2302,22 @@ add_test(NAME install.consumer
     --test-command consumer)
 set_tests_properties(install.consumer PROPERTIES FIXTURES_REQUIRED staged)
 
+# A candidate gameplay scenario must be a real, moved-prefix public consumer.
+# The integration driver owns its install tree and does not use install.stage.
+add_test(NAME install.gameplay
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DBINARY_DIR=${PROJECT_BINARY_DIR}"
+    "-DGENERATOR=${CMAKE_GENERATOR}"
+    "-DC_COMPILER=${CMAKE_C_COMPILER}"
+    "-DBUILD_TYPE=${CMAKE_BUILD_TYPE}"
+    "-DC_FLAGS=${CMAKE_C_FLAGS}"
+    "-DLINK_FLAGS=${CMAKE_EXE_LINKER_FLAGS}"
+    "-DCONFIG=$<CONFIG>"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/qualified_consumer.cmake")
+set_tests_properties(install.gameplay PROPERTIES TIMEOUT 60)
+
+
 # A C-only project embeds the source tree with add_subdirectory, gets only the
 # library and its listed nesturbator_ helpers, and runs one frame with it.
 add_test(NAME embed.subdirectory
