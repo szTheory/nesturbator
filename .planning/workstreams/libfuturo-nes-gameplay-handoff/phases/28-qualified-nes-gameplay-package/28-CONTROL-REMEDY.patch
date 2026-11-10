@@ -1,0 +1,65 @@
+diff --git a/tests/cmake/accuracycoin_input_fingerprint_controls.cmake b/tests/cmake/accuracycoin_input_fingerprint_controls.cmake
+--- a/tests/cmake/accuracycoin_input_fingerprint_controls.cmake
++++ b/tests/cmake/accuracycoin_input_fingerprint_controls.cmake
+@@ -129,15 +129,22 @@
+ 
+ file(READ "${binding_fixture}/tests/accuracy/input-binding-v1.json" binding)
+ set(changed_cmake "cmake_minimum_required(VERSION 3.25)\n# synthetic maintenance identity mutation\n")
+-string(SHA256 changed_cmake_hash "${changed_cmake}")
+-string(REPLACE "93de8a1181f3aca9fd7450b83c85f065e379abb63cc4c54a53fb47fda00ce67e"
+-  "${changed_cmake_hash}" altered_history "${binding}")
+-if(altered_history STREQUAL binding)
+-  message(FATAL_ERROR "historical path/hash mutation control did not alter its fixture")
+-endif()
+-file(WRITE "${binding_fixture}/CMakeLists.txt" "${changed_cmake}")
+-file(WRITE "${binding_fixture}/tests/accuracy/input-binding-v1.json" "${altered_history}")
+-binding_expect_rejection("historical manifest hash" "historical manifest differs from its pinned 56-input identity")
++# Hash the persisted fixture bytes, including its requested line endings.
++# Both formats must reach the pinned aggregate guard on every host.
++foreach(newline_style IN ITEMS LF CRLF)
++  file(CONFIGURE OUTPUT "${binding_fixture}/CMakeLists.txt"
++    CONTENT "${changed_cmake}" @ONLY NEWLINE_STYLE "${newline_style}")
++  file(SHA256 "${binding_fixture}/CMakeLists.txt" changed_cmake_hash)
++  string(REPLACE "93de8a1181f3aca9fd7450b83c85f065e379abb63cc4c54a53fb47fda00ce67e"
++    "${changed_cmake_hash}" altered_history "${binding}")
++  if(altered_history STREQUAL binding)
++    message(FATAL_ERROR "historical path/hash mutation control did not alter its fixture")
++  endif()
++  file(WRITE "${binding_fixture}/tests/accuracy/input-binding-v1.json" "${altered_history}")
++  binding_expect_rejection("historical manifest hash ${newline_style}"
++    "historical manifest differs from its pinned 56-input identity")
++endforeach()
++configure_file("${SOURCE_DIR}/CMakeLists.txt" "${binding_fixture}/CMakeLists.txt" COPYONLY)
+ configure_file("${SOURCE_DIR}/tests/accuracy/input-binding-v1.json"
+   "${binding_fixture}/tests/accuracy/input-binding-v1.json" COPYONLY)
+ 
+diff --git a/tests/cmake/provider_receipt.cmake b/tests/cmake/provider_receipt.cmake
+--- a/tests/cmake/provider_receipt.cmake
++++ b/tests/cmake/provider_receipt.cmake
+@@ -3789,15 +3789,18 @@
+        NOT error STREQUAL "reset-scope: protected or out-of-scope delta: ${path}")
+       message(FATAL_ERROR "reset protected ${path} control reached '${error}'")
+     endif()
++    # The next case's add/commit stages this restoration together with its
++    # own mutation, so the compared HEAD still contains only that one case.
+     file(WRITE "${repo}/${path}" "owned base fixture\n")
+-    execute_process(COMMAND git -C "${repo}" add -- . RESULT_VARIABLE add_result TIMEOUT 5)
+-    execute_process(COMMAND git -C "${repo}" -c user.name=Nesturbator-Tests
+-      -c user.email=0+tests@users.noreply.github.com commit --quiet -m restored
+-      RESULT_VARIABLE commit_result TIMEOUT 5)
+-    if(NOT add_result STREQUAL "0" OR NOT commit_result STREQUAL "0")
+-      message(FATAL_ERROR "reset synthetic restoration failed")
+-    endif()
+-  endforeach()
++  endforeach()
++  # Commit the final restoration once before the registration controls.
++  execute_process(COMMAND git -C "${repo}" add -- . RESULT_VARIABLE add_result TIMEOUT 5)
++  execute_process(COMMAND git -C "${repo}" -c user.name=Nesturbator-Tests
++    -c user.email=0+tests@users.noreply.github.com commit --quiet -m restored
++    RESULT_VARIABLE commit_result TIMEOUT 5)
++  if(NOT add_result STREQUAL "0" OR NOT commit_result STREQUAL "0")
++    message(FATAL_ERROR "reset synthetic restoration failed")
++  endif()
+   foreach(mutation IN ITEMS
+       "set_tests_properties(accuracycoin.campaign PROPERTIES DISABLED TRUE)"
+       "set_property(TEST accuracycoin.campaign PROPERTY TIMEOUT 9999)"

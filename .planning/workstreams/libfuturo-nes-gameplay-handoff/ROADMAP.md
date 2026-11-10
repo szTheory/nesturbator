@@ -18,7 +18,7 @@ Planning milestone completion remains separate from package publication. Release
 
 An integrator should receive one current, identified Nesturbator release, a truthful initial NTSC provider profile, and a reproducible licensed NROM gameplay scenario through the installed public C package. These outcomes share an exact source/package identity, so one phase owns the full handoff. Splitting package publication from its profile and gameplay proof would create an unnecessary second candidate and requalification boundary. Actual LibFuturo installed-consumer, native-host and game-session acceptance remain LibFuturo-owned.
 
-The owner approved the four [requirements](REQUIREMENTS.md) and single-phase roadmap on 2026-11-03. PR64 and failed recoveries remain historical and non-qualifying. D42 completed its actual-base NTSC consumer/profile/rights source in19–21, then22's sole local workflow failed. D44 explicitly approves one separately scoped evidence-maintenance successor from frozen source `2e0f2057304f60bab9a06a085a3e9477f1da022b`. Fresh plans25–28 cover narrow historical/current binding and receipt controls, one local freeze/full workflow, exact candidate/main CI and normal release/published-byte gates. Granularity remains coarse; four sequential concerns share one candidate. No D39/D42/MMC2 retry or historical campaign/capture restart is authorized.
+The owner approved the four [requirements](REQUIREMENTS.md) and single-phase roadmap on 2026-11-03. PR64/65 and failed recoveries remain historical and non-qualifying. D42 completed actual-base NTSC source in19–21, then22 failed its sole local workflow. D44 plans25/26 succeeded locally, then27 failed its sole required candidate CI;28 remains historically unstarted and blocked, with future scheduling superseded by32. The owner explicitly approved D45's two-control remedy and separate fresh route from exact `d8155bee6ea7dfd59aa3ff2ad61e60d1ed26dfa3`. New29–32 cover bounded controls/route support, one freeze/local workflow, exact candidate/main CI and normal successful release/published-byte gates. Four sequential concerns share one new candidate; no old D39/D42/D44/MMC2 retry or historical campaign/capture restart is authorized.
 
 ## Phases
 
@@ -36,7 +36,7 @@ The owner approved the four [requirements](REQUIREMENTS.md) and single-phase roa
   2. A clean C consumer can configure, build and run using only a relocated install prefix, load permitted content, advance frames with input, and receive video and audio; a refused replacement load leaves the active game usable. Its result does not depend on headers or libraries from the source or build tree.
   3. The manifest-permitted DABG NTSC NROM follows a bounded, reproducible input recipe from boot to a declared gameplay transition with visible response and non-silent audio. Its source-mapped progress predicate establishes interactive progress; a title picture, input activity, audio or a frame hash alone cannot satisfy it.
   4. An integrator can use the version-bound profile to determine the tested package/source, selected NTSC content and region limits, load/refusal policy, controller sampling, pixel interpretation, audio format/cadence/buffer bounds and lifecycle. Battery-backed game memory and machine snapshots are described separately, and capabilities without current consumer proof remain explicitly unqualified.
-**Plans**:23 active records:21 outcomes (11 successful,10 halted) and2 incomplete D44 successors. Plans25/26 are complete with reviewed maintenance and one successful full local qualification/handoff; only27 is ready.28 requires successful27. Physical canonical plans28;06/14/15/23/24 are superseded. D42 remains spent and22 halted;23/24 retain historical blocked/unstarted disposition. No new acceptance or requirement completion resulted from planning.
+**Plans**:26 active records:22 outcomes (11 successful,11 halted) and4 unstarted D45 successors. Physical canonical plans32;06/14/15/23/24/28 are scheduler-superseded.25/26 succeeded;27 remains terminally halted and28's unmet historical prerequisite remains unchanged. Only29 is initially ready after independent plan check and exact checkout preparation;30–32 depend on successful new predecessors. D45 approval is recorded; planning consumes no acceptance allowance and closes no requirement.
 
 Plans:
 **Wave 1**
@@ -89,29 +89,41 @@ Plans:
 **Reset wave 6 — superseded history**
 - 28-24-PLAN.md — Unstarted/blocked; future scheduling superseded by28-28
 
-**D44 wave 1 — ready after independent plan check/checkout preparation**
+**D44 wave 1 — completed history**
 - [x] 28-25-PLAN.md — Exact historical/current binding, mutation controls and minimum fresh receipt/driver support
 
 **D44 wave 2 — depends on successful25**
 - [x] 28-26-PLAN.md — One clean source freeze and sole bounded local full workflow
 
 **D44 wave 3 — depends on successful26**
-- [ ] 28-27-PLAN.md — Sole exact-candidate/main required CI and normal protected release lineage
+- [x] 28-27-PLAN.md — Sole exact-candidate/main required CI and normal protected release lineage
 
-**D44 wave 4 — depends on successful27**
-- [ ] 28-28-PLAN.md — Actual published-byte/native/rights receipt and complete provider handoff
+**D44 wave 4 — scheduler-superseded history**
+- 28-28-PLAN.md — Unstarted and historically blocked by terminal27; future handoff scheduling superseded by32, never treated as success
 
-**Superseded plans:** 28-06/14/15/23/24 retain historical instructions/evidence; none is active work. The new root has no successful-halted-evidence dependency. See [D44 source audit and execution map](phases/28-qualified-nes-gameplay-package/28-D44-SOURCE-AUDIT.md) and historical [reset source audit](phases/28-qualified-nes-gameplay-package/28-RESET-SOURCE-AUDIT.md).
+**D45 wave 1 — sole initially ready successor after independent plan check/checkout preparation**
+- [ ] 28-29-PLAN.md — Two persisted-byte/scope control fixes, measured15second headroom and minimum new route/driver support
+
+**D45 wave 2 — depends on successful29**
+- [ ] 28-30-PLAN.md — One new source freeze and sole bounded local full qualification
+
+**D45 wave 3 — depends on successful30**
+- [ ] 28-31-PLAN.md — One exact-candidate/main required CI and normal successful release lineage
+
+**D45 wave 4 — depends on successful31**
+- [ ] 28-32-PLAN.md — Actual published-byte/native/rights receipt and complete provider handoff
+
+**Superseded plans:** 28-06/14/15/23/24/28 retain historical instructions/evidence; none is active work. The new root has no successful-halted-evidence dependency. See [D45 source audit and execution map](phases/28-qualified-nes-gameplay-package/28-D45-SOURCE-AUDIT.md), historical [D44 audit](phases/28-qualified-nes-gameplay-package/28-D44-SOURCE-AUDIT.md) and [reset audit](phases/28-qualified-nes-gameplay-package/28-RESET-SOURCE-AUDIT.md).
 
 **Cross-cutting constraints:** <!-- gsd:generated -->
-- D-37/D-38 retire the APU table attempt and preserve spent capture-3 and untouched candidate-only capture-4. D21 and old28-14/15 remain superseded. D39 and D42 are terminal; only D44's explicitly separate fresh evidence-maintenance route is authorized now. Historical diagnostic/route constraints below remain preserved history.
+- D-37/D-38 retire the APU table attempt and preserve spent capture-3 and untouched candidate-only capture-4. D21 and old28-14/15 remain superseded. D39/D42/D44 are terminal; only D45's explicitly approved separate fresh control-maintenance route is authorized now. Historical diagnostic/route constraints below remain preserved history.
 - D-39 is limited to the exact base, tested merge and PR head in 28-18-PLAN.md; one optimized `-g` diagnostic set only because required artifact 13372440822 has no source-file line mappings, using three unchanged workloads, serial execution, four workers and a 900-second ceiling. Any missing/unstable attribution or modeled row above +1% is terminal NO-GO.
 - Only a conservative source-level GO for all three unchanged workloads permits at most one behavior-preserving correction, one local `cmake --workflow --preset ci`, and one exact-head required CI run. No retry, threshold change, capture-root use, campaign restart or workflow edit is authorized by D-39.
 - The 2026-11-09 CI timing review found an approximately 11m17s critical path, with macOS Intel ci-build at approximately 10m50s; no safe material workflow optimization was evident. Workflows stay unchanged within D-39.
 - D-42 explicitly supersedes the old 28-06 scheduler route without changing 28-18's failed outcome. The exact-base reset keeps the existing hosted/release gates but binds its own fresh identity and actual base API. D-42 authorizes no src/build-flag changes, capture/APU work, baseline edits, second candidate or retry after any failed gate.
 - LibFuturo Phase 9 remains blocked pending Nesturbator's eligible published package/source/build identity, version-bound NTSC profile, licensed scenario and use/notice terms, exact-candidate and resulting-main CI, plus LibFuturo's relocated installed-consumer proof. Nesturbator owns package/profile/scenario evidence; LibFuturo owns its installed consumer, NES host and gameplay acceptance. No Playstead acceptance is established.
 
-Plans18 and22 remain terminally halted; neither satisfies a successful prerequisite. D44's discussion/approval is complete and fresh25–28 are planned. After independent plan check and scoped planning commit, the orchestrator prepares/binds exactly the approved fresh checkout before dispatching `$gsd-execute-phase 28 --ws libfuturo-nes-gameplay-handoff`. No diagnostic/candidate/capture/workflow/hosted/release/campaign allowance was consumed in planning.
+Plans18/22/27 remain terminally halted; none satisfies a successful prerequisite. D45's discussion/approval is complete and fresh29–32 are planned. After independent plan check and scoped planning ownership resolution, the orchestrator exclusively prepares/binds exactly build/phase28-d45-candidate on agent-phase28-d45-controls from the approved base before unfiltered execution. No diagnostic/candidate/capture/workflow/hosted/release/campaign allowance was consumed in planning.
 
 ### Phase 28 evidence and release boundary
 
@@ -125,18 +137,26 @@ See the [coordination context](../docs/coordination/milestone-context-2026-11-03
 
 ## Progress
 
-D44 discussion/approval is complete and25–28 are written; independent plan check and exact checkout preparation precede execution.23 active records have19 outcomes and4 incomplete successors;25 alone is ready,23/24 are superseded historical blocked records. Preserve D42's terminal failure and unchanged historical baseline/results/ROM/provenance; the fresh separate allowance is explicit, never inferred. Phase28/publication remain open; all old campaign/capture/APU/MMC2 stops and consumer ownership remain.
+D45 discussion/approval is complete and29–32 are written; independent plan check and exact checkout preparation precede execution.26 active records have22 outcomes and4 incomplete successors;29 alone is initially ready and28 is scheduler-superseded historical blocked work. Preserve all terminal D42/D44 failures and historical baseline/results/ROM/provenance; the fresh separate allowance is explicit. Phase28/publication remain open; all old campaign/capture/APU/MMC2 stops and consumer ownership remain.
 
 | Phase | Plans with Outcome | Status | Completed |
 |-------|-------------------|--------|-----------|
-| 28. Qualified NES gameplay package | 19/23 outcomes | PLANNING: D44 plans written, independent check then fresh route | — |
+| 28. Qualified NES gameplay package | 22/26 outcomes | PLANNING: D45 plans written, independent check then fresh route | — |
 
 ## Backlog disposition
 
 2026-10-13: Backlog 999.2, “Bump AccuracyCoin past 673ef55,” was promoted into [Phase 17](milestones/v4-ROADMAP.md#phase-17-complete-pinned-conformance-baseline) and CONF-01 through CONF-04. No duplicate active backlog remains.
 
-Current disposition: D44 explicitly approves the [scoped evidence-maintenance proposal](phases/28-qualified-nes-gameplay-package/28-EVIDENCE-MAINTENANCE-REVIEW.md). Orchestrator completes independent plan check and scoped planning commit, prepares the exact fresh checkout and continues `$gsd-execute-phase 28 --ws libfuturo-nes-gameplay-handoff`. No user acknowledgement is needed. Historical [D42 local failure](phases/28-qualified-nes-gameplay-package/28-RESET-FAILURE.md) stays terminal.
+Current disposition: D45 explicitly approves the [two-control remedy and separate fresh route](phases/28-qualified-nes-gameplay-package/28-CONTROL-REMEDY-REVIEW.md#exact-proposed-authority). The assistant completes independent plan check, scoped planning ownership and exact checkout preparation, then continues authorized execution automatically. No user acknowledgment is needed. D42's local failure and D44's candidate CI failure stay terminal. Fresh-context entry: `$gsd-autonomous --ws libfuturo-nes-gameplay-handoff --from 28`; context may be cleared after selected STATE and D45 resume are current.
 
 ### Follow-up discussion disposition — 2026-11-10
 
-The bounded review and independent read-only checks are complete and the owner approved D44. Fresh25–28 implement exactly that proposal; only their future route replaces scheduling23/24. Earlier D42 execution/approval-pending text is historical; D42 is spent. Do not repeat the discussion, ask routine acknowledgements or dispatch from stale verification recommendations. Planning consumed no run/campaign/remote allowance and closed no requirement.
+The bounded control-remedy review and independent conceptual check are complete and the owner explicitly approved D45. Fresh29–32 implement that exact proposal; only future scheduling28 is superseded. D44/D42 approvals and executed failures remain historical/spent. Reuse completed discussion, avoid routine acknowledgments and dispatch only from checked current readiness. Planning consumed no run/campaign/remote allowance and closed no requirement.
+
+## D45 actual disposition — handoff stopped
+
+29 completed with final controls and independent code review.30's sole freeze
+and complete local workflow passed, then its sole handoff call failed missing
+required narrative checklist text.30 is halted,31/32 blocked. No hosted
+admission/publication/new requirement completion. No actual gate was retried.
+Read-only review supports the [exact prepared evidence-only exception](phases/28-qualified-nes-gameplay-package/28-D45-HANDOFF-RECOVERY-REVIEW.md), pending explicit owner approval; no new candidate/full workflow proposed.

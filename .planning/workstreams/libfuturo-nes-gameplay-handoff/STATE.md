@@ -4,46 +4,62 @@ milestone: v9
 milestone_name: LibFuturo NES gameplay handoff
 current_phase: 28
 current_phase_name: Qualified NES gameplay package
-current_plan: 27
-status: executing
-stopped_at: Plan26 local qualification complete; Plan27 pretrigger evidence review in progress; no hosted attempt yet
-last_updated: "2026-11-10T21:09:55.801212+00:00"
+current_plan: 30
+status: blocked
+stopped_at: D45 full local passed; handoff failed missing checklist; no retry or hosted work
+last_updated: "2026-11-10T22:21:01.977811+00:00"
 last_activity: 2026-11-10
-last_activity_desc: Sole local full workflow and handoff passed; preparing exact candidate CI with release lookup preflight.
+last_activity_desc: D45 local qualification passed; handoff failed; evidence-only exception reviewed, owner decision pending.
 state_head: 7a004f2a4f8833a23b820fbb834f295911561636
 progress:
   total_phases: 1
   completed_phases: 0
-  total_plans: 23
-  completed_plans: 21
-  percent: 91
+  total_plans: 26
+  completed_plans: 24
+  percent: 95
 ---
 
 # Project State
 
 ## Project Reference
 
-See [PROJECT.md](PROJECT.md), updated during the v9 opening on 2026-11-03, and AGENTS.md.
+See [PROJECT.md](../../PROJECT.md), updated during the v9 opening on 2026-11-03, and AGENTS.md.
 **Core value:** Games behave as on the console, identically across platforms, from a small MIT C library.
 **Current focus:** Phase 28 — Qualified NES gameplay package
 
 ## Current Position
 
-Terminal disposition evidence is committed on the isolated branch at `96f74ff5542fffed3b5b8a9fb127aaa7c5a74f12`; the failed frozen source identity remains unchanged. STATE and ROADMAP record the actual blocked outcome after that summary commit.
+Terminal disposition evidence is committed on the isolated branch; the failed frozen source and pushed CI identities remain unchanged. Current STATE and the linked halted resume supersede historical startup notes below.
 
-**Current route: approved D-44 local qualification complete; Plan27 pretrigger checks in progress.** Plans25/26 have successful summaries. The sole frozen source is ce80b9e20b55d2eea65b2ed82952416b9619296e; current435 manifest83cafa1e8b12736bbba5ab5da728766fccf011296c98b51f4e7235e2f524127e and independent/current56 identity81c99389a68a8994f030c5d1c88cfefbe9667fbb048730a4056e60e51eee3795 remain unchanged and separate from historical78822adf identity. One full local workflow passed in434seconds, all700 test results, fresh campaign, installed gameplay/runtime and3 local archives. One handoff negative control and saved-result inspection passed. Active index23 records:21 outcomes,2 incomplete successors; only27 is ready. No hosted trigger, push/PR, publication or new requirement completion exists. No local/full/campaign/handoff command may be repeated.
+**Current route: D45 terminally stopped at handoff; no runtime work continues.**
 
-Current remote main remains approved b25146c6efaac41c58f60555f59f0fe79a90ca68 with squash-only/CI-required active ruleset and no bypass. Related PR64/63/51 are preserved with no auto-merge. Qualification inputs in current/historical worktrees are clean; current untracked files are copied administrative context/evidence. Original root MMC2/migration remains separately owned and preserved. Independent review confirmed the existing explicit metadata path covers the optional automatic release-PR title lookup mismatch: capture the actual open Release Please PR number/head/tested merge from its single-PR response before the sole hosted-main observer; later release validation rechecks all identities/CI. The orchestrator is applying that path. No source correction or remote admission has occurred; continue after the evidence commit. No owner action is currently needed.
+Plan29 completed. Plan30's sole freeze and full local qualification passed,
+including configured campaign, installed gameplay/runtime and all packages.
+Its single handoff call then failed because the generated narrative lacks the
+required remaining release-checklist text. The assistant omitted this preparation;
+D44's corresponding narrative had it appended. Frozen source and all successful
+local evidence remain exact. No source/evidence correction, retry, hosted
+admission, push, PR, merge or publication followed.31/32 stay blocked.
 
-Resume with unfiltered `$gsd-execute-phase --ws libfuturo-nes-gameplay-handoff 28` if a fresh session is required; read [current resume](phases/28-qualified-nes-gameplay-package/28-D44-EXECUTION-RESUME.md), [local summary](phases/28-qualified-nes-gameplay-package/28-26-SUMMARY.md) and [review](phases/28-qualified-nes-gameplay-package/28-D44-REVIEW.md). Context may be cleared after the recorded running checks are reconciled.
+Assistant next completes bounded read-only review of the prepared evidence-only
+remedy, then presents any exact new approval needed. Existing no-retry stop
+remains automatically; no user acknowledgment is needed to retain it.
+See [current D45 resume](phases/28-qualified-nes-gameplay-package/28-D45-RESUME.md)
+and [failure](phases/28-qualified-nes-gameplay-package/28-D45-HANDOFF-FAILURE.json).
 
-Plans19–21 have successful summaries;22 froze source `2e0f2057304f60bab9a06a085a3e9477f1da022b` and failed its sole local workflow. That frozen source, failed identity, ledger, logs and later disposition commits remain unchanged. D44 begins from that exact product source in the approved separate checkout; no historical failed prerequisite is treated as success. See [failure and read-only attribution](phases/28-qualified-nes-gameplay-package/28-RESET-FAILURE.md), [failed identity](phases/28-qualified-nes-gameplay-package/28-RESET-IDENTITY.json) and [halted summary](phases/28-qualified-nes-gameplay-package/28-22-SUMMARY.md).
+Frozen local source remainsce80b9e20b55d2eea65b2ed82952416b9619296e, complete435 manifest83cafa1e8b12736bbba5ab5da728766fccf011296c98b51f4e7235e2f524127e. Exact pushed/CI head d8155bee6ea7dfd59aa3ff2ad61e60d1ed26dfa3, testedmerge563de10e8ca73e6d3a4a466473dd69bc0203a0cf, requiredCI42905550344 attempt1 failed. Actual local success, partial platform evidence and all historical limitations remain preserved; successful Nightly never substitutes for required CI. [Failure identity](phases/28-qualified-nes-gameplay-package/28-D44-CI-FAILURE.json).
+
+The identical-source sender completed the same candidate push under unchanged hooks; it was not a second candidate or qualification run. Original dirty MMC2/migration, all earlier failed ledgers and D42 transport/history remain untouched. MMC2's independent full-CI stop remains; the proposal does not authorize that retry. The released v0.1.12 baseline is not a substitute for this pending provider qualification.
+
+### Historical D42/D44 setup — allowances now spent
+
+Plans19–21 have successful summaries;22 froze source `2e0f2057304f60bab9a06a085a3e9477f1da022b` and failed its sole local workflow. That frozen source, failed identity, ledger, logs and later disposition commits remain unchanged. D44 began from that exact product source in the approved separate checkout; no historical failed prerequisite is treated as success. See [failure and read-only attribution](phases/28-qualified-nes-gameplay-package/28-RESET-FAILURE.md), [failed identity](phases/28-qualified-nes-gameplay-package/28-RESET-IDENTITY.json) and [halted summary](phases/28-qualified-nes-gameplay-package/28-22-SUMMARY.md).
 
 The existing fingerprint binds the entire `tests/CMakeLists.txt`. Independent read-only reconstruction proves it is the sole changed path among 56 protected inputs, due to the four authorized provider/gameplay registrations. All other fingerprint inputs and the baseline retain their approved-base bytes. Configure/build passed; remaining test work was stopped after observed protected failures, no complete successful test inventory/package step is claimed, and the route ledger records failed local attempt 1. No failed gate was rerun. No candidate/main hosted CI, push, PR or publication started.
 
 Keep the stop automatically: no source repair, baseline edit, refreeze, second candidate, new local/hosted attempt or publication under D-42. D-39 remains terminal, APU/capture routes remain retired/spent as recorded, capture 4 remains untouched and the historical stopped campaign remains unknown. The original dirty MMC2 checkout/migration and historical worktrees are preserved. The independently reviewed same-source clean transport checkout is unused/unpushed; it is not a new candidate or authority to proceed.
 
-D-44 explicitly approves the bounded separate historical/current binding and fresh route in the saved proposal. Independent MMC2 remains stopped at its own full-CI gate; no retry follows from this approval. No conditional scene/core-fault trigger newly surfaced. The new controls are synthetic/non-full; only plan26 may consume the sole new local full workflow and its configured fresh campaign.
+D44 approved the bounded separate historical/current binding and fresh route in the saved proposal. Plan26 consumed its sole local full workflow and configured fresh campaign; Plan27 then consumed and failed its candidate CI. That approval provides no further attempt. Independent MMC2 remains stopped at its own full-CI gate; no retry follows from D44. No conditional scene/core-fault trigger newly surfaced.
 
 ### Historical position before the D-42 reset plans
 
@@ -60,15 +76,13 @@ Last activity: 2026-11-09 — Plan 28-18 halted at the D-39 diagnostic and final
 ## Next Action
 
 **Autonomous entry:** `$gsd-autonomous --ws libfuturo-nes-gameplay-handoff --from 28`.
-**Pending discussion:** no — complete. **Pending owner decision:** no — the owner
-approved the [scoped remedy and fresh route](phases/28-qualified-nes-gameplay-package/28-EVIDENCE-MAINTENANCE-REVIEW.md), recorded as D-44.
-
-The orchestrator acts next: independently check the written25–28 plans, commit only scoped planning artifacts in its approved clean checkout, reconcile live readiness, then prepare and bind `build/phase28-d43-candidate` on `agent-phase28-d43-evidence` through the installed manifest-recorded adapter and continue with `$gsd-execute-phase 28 --ws libfuturo-nes-gameplay-handoff` unfiltered. Read original-root current policies explicitly; copy only selected workstream administration, never dirty root policies/config or migration as tracked source changes. Do not ask for per-step acknowledgements.
-D-42 stays terminal; no old ledger or failed source is repaired/retried. D-44's
-one successor/local/candidate/main allowances and exact roots/caps/stops apply.
-No new candidate, acceptance or remote action has started yet. Preserve unrelated
-migration/MMC2 changes and historical campaign/capture/APU stops. Context may
-be cleared after reading this STATE and the [resume](phases/28-qualified-nes-gameplay-package/28-RESET-RESUME.md).
+**Discussion:** completed bounded technical/evidence and authority/workflow
+review; reuse it without another fanout.
+**Pending owner decision:** approve the exact [checklist-only handoff exception](phases/28-qualified-nes-gameplay-package/28-D45-HANDOFF-RECOVERY-REVIEW.md#exact-proposed-exception), or retain the stop. Recommendation: approve this narrower unchanged-source recovery; no new full workflow/candidate is justified by the evidence omission.
+**Next actor:** owner answers the concrete approval question in chat. Assistant
+then records the answer and continues automatically only within that exception.
+No manual planning/execution command or acknowledgment is needed. The existing
+stop remains automatically until an explicit answer.
 
 ### Historical recovery notes — not the current reset route
 
@@ -90,8 +104,8 @@ Plan 28-16 is halted before capture-3. Its frozen baseline is rejected because i
 - v8 requirement scope and Phases 25–27 are approved; the phases cover all seven requirements once with no added hardware, integration, dependency or campaign scope.
 - Keep the 2C07 palette explicitly modeled and the 2A07 DMA rule source-backed; unresolved later no-op-cycle bus behavior and direct hardware proof are not silently converted into acceptance claims. Use owned/permitted fixtures and preserve NTSC outputs.
 - v7 covers only the five selected failing NTSC DMA rows at the existing pin and declared RP2A03G target; the three passing DMA rows and every other protected PASS key remain guards.
-- [Workflow, 2026-11-05]: Use unfiltered `$gsd-execute-phase N` by default. Check live phase-plan-index completion/readiness against STATE and ROADMAP before dispatch; after a predecessor summary gate, resume with the same command. See [RETROSPECTIVE.md](RETROSPECTIVE.md#current-workflow-lesson--2026-11-05).
-- [Workflow, 2026-11-05]: Owner grants standing authority for automated local ACT/Cachegrind captures explicitly scoped by an approved plan. Preserve exact plan limits and no-retry stops; see [AGENTS.md](../AGENTS.md).
+- [Workflow, 2026-11-05]: Use unfiltered `$gsd-execute-phase N` by default. Check live phase-plan-index completion/readiness against STATE and ROADMAP before dispatch; after a predecessor summary gate, resume with the same command. See [RETROSPECTIVE.md](../../RETROSPECTIVE.md#current-workflow-lesson--2026-11-05).
+- [Workflow, 2026-11-05]: Owner grants standing authority for automated local ACT/Cachegrind captures explicitly scoped by an approved plan. Preserve exact plan limits and no-retry stops; see [AGENTS.md](../../../AGENTS.md).
 - One phase owns all four requirements: independently justified corrections, owned wrong-model fixtures, regression preservation and state/documentation consequences belong together. Shared causes require traces.
 - Preserve integer-only instance state, clean-room sources and the library/runner/libretro deliverables. Review format/revision impact if in-flight fields change; tests and README/public-header comments accompany each behavior change.
 - Existing cold replay and native checkpoint routes remain separate; exact-build support differs from loader checks. Declared provenance is not authentication; repeatability and native/adapter equality do not establish host or hardware correctness.
@@ -121,7 +135,7 @@ Plan 28-16 is halted before capture-3. Its frozen baseline is rejected because i
 - [Phase 26]: Native states record effective region in existing format-6 header byte 23; region mismatch is rejected before application. Behavior revision is 17; ABI 1 and format 6 remain unchanged.
 - [Phase 26]: Same-region PAL state continuation and atomic cross-region refusal are covered by native and libretro tests. All 12 checked revision-16 NTSC states load and advance; this does not establish universal build or historical behavior compatibility.
 - [Phase 26]: Generated prompts to acknowledge already locked DMA-01 and STATE-01 limits were superseded by evidence review; UAT is complete while both prohibitions remain unresolved. Reopen only if evidence, claims, required action, or authority changes.
-- [Phase 26, historical candidate]: The bounded local workflow on `90d7173` passed 714 tests and packaging; the later current-source workflow on `42b092f` passed 722 tests and packaging and is recorded in the current [verification report](milestones/v8-phases/26-pal-dma-and-regional-state-continuation/26-VERIFICATION.md). Unresolved DMA/STATE fallback rows and both transparency prohibitions remain flagged.
+- [Phase 26, historical candidate]: The bounded local workflow on `90d7173` passed 714 tests and packaging; the later current-source workflow on `42b092f` passed 722 tests and packaging and is recorded in the current [verification report](../../milestones/v8-phases/26-pal-dma-and-regional-state-continuation/26-VERIFICATION.md). Unresolved DMA/STATE fallback rows and both transparency prohibitions remain flagged.
 - [Phase 27]: Runner --info reports the loaded region and exact frame/sample fractions; default stdout remains unchanged.
 - [Phase 27]: Library region and info queries remain separate; libretro AV and region derive from the same loaded instance.
 - [Phase 27]: The intermediate AccuracyCoin capture remains historical to its candidate; final source binding waits for frozen Phase 27 inputs.
@@ -160,12 +174,12 @@ The three deferred property/mutation/signal proposals remain outside v8; their r
 
 - **Phase24 authority and evidence:** Canonical report and shared completion gate pass; all requirements/phase complete. The three old human-only labels have explicit superseding dispositions under owner-directed automation. Existing execution/publication boundaries remain unchanged; historical authority is not inferred from CI success.
 - Phase 23 document-test timeouts/wall-time jumps, five heuristic edges and Phase 22/23 judgment-tier prohibitions remain unresolved/flagged. No new timeout or restart is justified. Windows/PowerShell, host recovery and cross-build compatibility remain unqualified; commercial reports remain unclassified and daily progress untouched.
-- Collector Git/filesystem-mode, ignored-fixture/relative-root and duplicate-validator debt remain open. Historical attribution/revision advisories, Phase 19 cost/citation/early-stage coverage, real-campaign minimization controls and macOS nofp limits remain in the [v5 audit](milestones/v5-MILESTONE-AUDIT.md) and [product ledger](PRODUCT-ROADMAP.md#unresolved-debt-and-delivered-tune-up). New evidence cannot inherit old-run qualification.
+- Collector Git/filesystem-mode, ignored-fixture/relative-root and duplicate-validator debt remain open. Historical attribution/revision advisories, Phase 19 cost/citation/early-stage coverage, real-campaign minimization controls and macOS nofp limits remain in the [v5 audit](../../milestones/v5-MILESTONE-AUDIT.md) and [product ledger](../../PRODUCT-ROADMAP.md#unresolved-debt-and-delivered-tune-up). New evidence cannot inherit old-run qualification.
 - WINDOWS entry 18 was reconciled from fixed existing evidence; the original refused append remains historical. Physical exact-timestamp precedence is unmeasured. Historic Phase 16 safety stops, runtime windows and thresholds remain unchanged; no closeout or approval waives them.
 - Plan 25-05's first full workflow failed at CTest (706/712); all six stale test/metadata contracts were diagnosed and fixed. The final bounded local workflow passed 712/712 and packaging on `fc48e45` under standing local-CI authority and existing per-test/fixture limits. The older interrupted run remains unknown and is not relabeled by the final run.
 - Phase 26's reported DMA model is based on the cited trace and authors' interpretation, not direct hardware proof. Later held no-op-cycle addresses/register effects and other unsettled PAL abort/reload behavior remain unknown. The final local workflow and state compatibility evidence do not resolve those flags or qualify universal cross-build behavior.
-- Phase 27's intermediate Plan 27-01 report remains distinct from final evidence. Plan 27-04 bound the final report to the frozen behavior-17 candidate; the 56-input fingerprint stayed unchanged and the bounded full workflow passed. Preserve the behavior-14 historical receipt and keep the older interrupted campaign stopped/unknown; see [27-ACCEPTANCE.md](milestones/v8-phases/27-pal-host-presentation-and-ntsc-preservation/27-ACCEPTANCE.md).
-- Phase 25's two prior PAL state-loader findings are fixed by Phase 27.1's endpoint bound and pre-apply frame-counter validation. The current Phase 27.1 verification covers both closures; Phase 26 did not cover these exact cases. See the [Phase 27.1 verification](milestones/v8-phases/27.1-close-state-01-regional-state-validation-gaps/27.1-VERIFICATION.md) and the refreshed [Phase 25 review disposition](milestones/v8-phases/25-region-selection-and-pal-timing/25-REVIEW-DISPOSITION.md).
+- Phase 27's intermediate Plan 27-01 report remains distinct from final evidence. Plan 27-04 bound the final report to the frozen behavior-17 candidate; the 56-input fingerprint stayed unchanged and the bounded full workflow passed. Preserve the behavior-14 historical receipt and keep the older interrupted campaign stopped/unknown; see [27-ACCEPTANCE.md](../../milestones/v8-phases/27-pal-host-presentation-and-ntsc-preservation/27-ACCEPTANCE.md).
+- Phase 25's two prior PAL state-loader findings are fixed by Phase 27.1's endpoint bound and pre-apply frame-counter validation. The current Phase 27.1 verification covers both closures; Phase 26 did not cover these exact cases. See the [Phase 27.1 verification](../../milestones/v8-phases/27.1-close-state-01-regional-state-validation-gaps/27.1-VERIFICATION.md) and the refreshed [Phase 25 review disposition](../../milestones/v8-phases/25-region-selection-and-pal-timing/25-REVIEW-DISPOSITION.md).
 - Phase 28 Plan 28-01 was interrupted before its summary, then completed by preserving its four task commits and current work, rerunning both planned checks, and reconciling the measured install.gameplay time to 2.06 seconds. See [28-01-SUMMARY.md](phases/28-qualified-nes-gameplay-package/28-01-SUMMARY.md). Final phase verification exists at [28-VERIFICATION.md](phases/28-qualified-nes-gameplay-package/28-VERIFICATION.md) with status `gaps_found`; the published receipt does not exist, so hosted CI and PROF-01/PKG-01 remain incomplete.
 - The first 28-04 attempt is blocked at the exact candidate gate. PR #64 remains open at `a79b98350e97043d7851ddead7bf562ebb47931f`; hosted run [41756835289](https://github.com/szTheory/nesturbator/actions/runs/41756835289) failed. Revised plans 28-04 through 28-06 now cover recovery and release gates. PR #63 remains open for a fresh supersession check after any eventual merge; unrelated PR #51 is untouched.
 - Phase 28 Plan 28-07 stopped at Task 1: exact-source profiling supports conservative net savings on Nesteroids and Runner but misses the unchanged +1% gate on M4_P256K_C256K by 6,474,328 Ir; Tasks 2/3 and downstream Plan 28-06 remain ineligible.
@@ -181,8 +195,8 @@ The three deferred property/mutation/signal proposals remain outside v8; their r
 ## Delivery and Carried Evidence
 
 v7 is archived with its roadmap, requirements, audit, product-roadmap snapshot and Phase 24 artifacts under `milestones/`. The four quick-task folders remain in `.planning/quick/` because they have no milestone ownership.
-v6 is archived: both phases, all ten requirements and three flows passed; its [audit](milestones/v6-MILESTONE-AUDIT.md) and [closeout](milestones/v6-CLOSEOUT.md) retain non-blocking debt. Release PR #56 later published v0.1.12 with 18 archives and SHA256SUMS; milestone completion and package publication remain separate.
-Quick tasks 261026-i8z, 261029-sdj and 261031-ecd remain delivered. [261031-fq6](quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-SUMMARY.md) merged; PR/main-push CI passed, while its exact generated Release Please main-push skip event remains unobserved. No user action is needed for that completed task.
+v6 is archived: both phases, all ten requirements and three flows passed; its [audit](../../milestones/v6-MILESTONE-AUDIT.md) and [closeout](../../milestones/v6-CLOSEOUT.md) retain non-blocking debt. Release PR #56 later published v0.1.12 with 18 archives and SHA256SUMS; milestone completion and package publication remain separate.
+Quick tasks 261026-i8z, 261029-sdj and 261031-ecd remain delivered. [261031-fq6](../../quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-SUMMARY.md) merged; PR/main-push CI passed, while its exact generated Release Please main-push skip event remains unobserved. No user action is needed for that completed task.
 Pre-existing local edits to AGENTS.md, config, continue and quick-task records remain outside this roadmap's scope; they were not reverted.
 
 ## Deferred Items
@@ -231,17 +245,21 @@ Phase 27.1 closes the two STATE-01 validation cases later identified by the v8 a
 
 ## Session Continuity
 
-**Last session:** 2026-11-10T16:31:43.344679+00:00
-**Stopped at:** D-42 terminal local protected-evidence failure; Plan 22 halted and 23/24 never started.
-**Next actor:** Owner — run `$gsd-autonomous --ws libfuturo-nes-gameplay-handoff --from 28` after clearing context if desired. The orchestrator first executes the pending follow-up discussion; no retry or baseline change is implicitly authorized.
-**Resume file:** .planning/workstreams/libfuturo-nes-gameplay-handoff/phases/28-qualified-nes-gameplay-package/28-RESET-RESUME.md
-**Context:** The sole candidate/local attempt is spent. Read the failed identity, failure report, actual route ledger and committed source-bound summaries before any action. Context may be cleared. The new entry command authorizes automatic discussion/research; execution remains stopped until its real scope/authority boundary is resolved. No acknowledgement to preserve the stop is needed.
+**Current:** D45 terminal handoff failure preserved after successful local
+qualification. Evidence-only draft patch and exact exception are reviewed and
+prepared, NOT APPLIED. Static required-text/path and patch dry-run passed.
+**Next actor:** owner — approve or decline the exact checklist/handoff exception.
+**Resume:** [28-D45-RESUME.md](phases/28-qualified-nes-gameplay-package/28-D45-RESUME.md).
+**Fresh-context entry:** `$gsd-autonomous --ws libfuturo-nes-gameplay-handoff --from 28`. Context may be cleared. Reuse completed review; invocation alone is not exception approval.
 
 ## Operator Next Steps
 
-- Preserve candidate/build/log/ledger evidence and every prior stop. Current required work cannot continue without a new concrete scope/authority decision. The same local evidence-binding problem also blocks MMC2 acceptance; recommend a bounded maintenance discussion before another feature phase. Keep all unrelated dirty work intact.
+Runtime/hosted/publication do not continue automatically while this actual
+no-retry exception is pending. On approval assistant proceeds without additional
+routine acknowledgments; on refusal retain stop. No failed report/record/log
+is overwritten and no existing route or MMC2 limit is renewed.
 
-## Owner approval — 2026-11-10
+## Historical owner approval — D44, now spent — 2026-11-10
 
 The owner selected **“Approve the scoped remedy and fresh route”** in response
 to the saved complete proposal and its approval question. D-44 authorizes that
@@ -258,10 +276,41 @@ stops. This does not authorize MMC2 retry, emulator/build/workflow changes or
 other profiling/capture/campaign work. Continue the authorized current workflow
 without per-step acknowledgements.
 
-## Current execution — D-44
+## Historical execution — D44
 
-Plan 28-25 is running sequentially in the manifest-owned approved checkout `build/phase28-d43-candidate` on `agent-phase28-d43-evidence`. Planning passed independent review and was committed there with normal hooks. Product source remains unfrozen; no live local/candidate/main allowance has been consumed. The executor owns the scoped code/controls and ignored driver; the orchestrator owns Git/shared state and acts next without user input.
+Plans25/26 completed, including reviewed controls, one freeze and one successful
+full local qualification. Plan27 then consumed the sole candidate CI allowance
+and failed. Plan28 remains unstarted and blocked. All startup statements that
+previously described unused allowances or a live executor are superseded.
 
-Current implementation continuity: [current execution continuity](phases/28-qualified-nes-gameplay-package/28-D44-EXECUTION-RESUME.md). The orchestrator and live executor continue; no user action is needed.
+[The execution log](phases/28-qualified-nes-gameplay-package/28-D44-EXECUTION-RESUME.md)
+retains the detailed history. Use the current halted resume for further action;
+no D44 executor, test, hosted run or release route is active.
 
-Plan28-25 Task1 is verified and committed in the approved checkout; Task2 driver/docs and final independent review continue. Full/candidate/main allowances remain unused.
+## Current session continuity — D45
+
+Owner approval received: 2026-11-10T22:42:57.998241+00:00. The assistant acts next; planning and execution continue automatically. Previous pending-owner statements above are historical and superseded by this approval. Use the D45 resume and exact fresh-context command above; do not restart D44.
+
+## D45 plan29 actual result
+
+Five approved product files committed; independent final code review approved.
+Final focused controls and synthetic driver controls passed on exact final bytes;
+receipt1.75seconds under15. Whole nonplanning tracked diff exactly five paths;
+other438tracked inputs byte-equal. Full discovery700tests with configured
+campaign and all required fixtures, fourworkers, unchanged caps.
+Only30 ready. Assistant next freezes once and runs the single full local
+workflow. No hosted/publication yet. No user action needed.
+
+## Sole local operation running
+
+Driver local-once started in parent exec session25533 after successful unique
+freeze. Source adbb84b79bc5bb70385db51f6acb0b3a424c0609; independent435manifest
+confirmed equal to frozen ledger. Monitor existing session and owned output only;
+DO NOT invoke local-once/freeze/workflow again. Driver enforces exact limits.
+No hosted admission yet. Assistant continues automatically.
+
+## Superseding D45 stop
+
+Plan30 halted after actual handoff failure. Earlier running/next-freeze notes
+are superseded. No operation remains active. Assistant completes read-only
+remedy review; runtime, hosted and publication remain stopped.

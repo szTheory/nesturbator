@@ -1,0 +1,26 @@
+{
+  "status": "terminal-handoff-failure",
+  "source_commit": "adbb84b79bc5bb70385db51f6acb0b3a424c0609",
+  "observed_at": "2026-11-10T23:45:35.946511+00:00",
+  "failed_operation": "single MODE=handoff call",
+  "returncode": 1,
+  "reason": "generated narrative lacks required literal publication: **pending** and other remaining release checklist text",
+  "failure_before_negative_control": true,
+  "local_status": "passed",
+  "local_workflow_seconds": 560,
+  "candidate_attempts": 0,
+  "main_attempts": 0,
+  "published_attempts": 0,
+  "frozen_input_sha256": "65646381173d785de235efc66684f27e887a68d58fa5f1802d1dc3b11964f84d",
+  "sha256": {
+    "build/phase28-d45/route.json": "6e16fe12afa7a5c5c9bc7019d566429622c7c2359f1824463d8f381d6ec94e77",
+    "build/phase28-d45/driver-state.json": "8b04de6f6caf1ef4d62f3057b06e04d88f55517de65bf0395aa53ef20ab0bc35",
+    "build/phase28-d45/run.py": "1303d50bbdf4526c7dfe565f1be19ad79d996792362af36c1c53db8c8d1efd4f",
+    "build/phase28-d45/handoff-call-result.json": "114cbb2095564d009b125ebf47be161ff18260e8859714d59bda0eba37398376",
+    "build/phase28-d45/handoff-call.stdout.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/phase28-d45/handoff-call.stderr.txt": "78f9aa34d4303e9d858103cfba04f9e51fd3e356e1764d3a8a1dfcdb439b8dfa",
+    ".planning/workstreams/libfuturo-nes-gameplay-handoff/phases/28-qualified-nes-gameplay-package/28-D45-IDENTITY.json": "84277279f1ec7640e3853dec4fdf5ff727cf3405251f510b3fb3c67d336f2670",
+    ".planning/workstreams/libfuturo-nes-gameplay-handoff/phases/28-qualified-nes-gameplay-package/28-D45-ACCEPTANCE.md": "d66e690da363869271f94c605baec71a28031d812db0e62cea08e0c7c127bba7"
+  },
+  "no_retry": true
+}

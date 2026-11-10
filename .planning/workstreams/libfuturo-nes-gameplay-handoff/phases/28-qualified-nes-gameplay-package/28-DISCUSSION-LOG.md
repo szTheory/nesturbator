@@ -245,3 +245,79 @@ Preserve baseline/result/ROM/provenance bytes and all old routes/campaign/captur
 stops. This does not authorize MMC2 retry, emulator/build/workflow changes or
 other profiling/capture/campaign work. Continue the authorized current workflow
 without per-step acknowledgements.
+
+
+## Autonomous handoff correction and workflow defaults — 2026-11-10
+
+The owner reaffirmed that the assistant should drive internal GSD stages after
+context clearing, use relevant-role fanout to diminishing returns, prefer primary
+sources where research resolves uncertainty, minimize dependencies, start useful
+automated verification early, avoid unnecessary human UAT and review available
+CI/CD timings for safe cost/iteration improvements. Existing discussion and
+verification policies already capture those defaults. AGENTS now makes the
+verification policy discoverable during planning/implementation and explicitly
+keeps internal stage dispatch with the autonomous assistant.
+
+Three bounded read-only reviews covered resume/authority correctness,
+verification defaults and workflow toil. They converge: reuse the completed
+control-remedy review; no further research, new policy layer, dependency, CI lane
+or generic role fanout is justified. The source patch remains unapplied and
+untested. Its prefreeze plan must exercise both persisted newline forms through
+the actual checker, measure the receipt controls under the unchanged15second
+cap, and preserve fixture closure and every rejection. A non-Windows local run
+cannot claim Windows execution; the Intel timeout's exact substep remains unknown.
+The reduced Git work is a candidate improvement, not a proven hosted speedup.
+
+The adversarial synthesis found a concrete handoff defect: STATE's later sections
+still described unused D44 allowances and a live executor after its required CI
+failed. Current action and continuity now agree with the terminal result and
+point to the halted resume. Historical approval is labeled spent. The selected
+workstream STATE is authoritative; deleted root STATE is not recreated.
+
+**Discussion disposition:** complete. **Owner choice:** pending. The assistant
+asked directly for approval of the reviewed two control fixes and one separate
+fresh route under the exact proposed limits/stops, with all internal stages
+handled autonomously. This workflow preference alone does not renew D44 or grant
+D45. On fresh-context entry, present the saved decision without repeating review.
+After explicit approval, record its exact new scope and proceed through internal
+discussion/context update, planning and execution without per-step acknowledgments.
+No project test, campaign, gate, source repair or remote mutation was run for this
+workflow-default follow-up; no new acceptance evidence is claimed.
+
+## D45 approval and autonomous continuation — 2026-11-10T22:42:57.998241+00:00
+
+The owner answered “yes i approve” to the exact scoped fresh-route question.
+This grants the complete scope and limits in
+[the reviewed proposal](28-CONTROL-REMEDY-REVIEW.md#exact-proposed-authority):
+two control fixes, minimal receipt/driver route bookkeeping and necessary
+documentation/evidence; exact failed product head as base; exclusively named
+D45 candidate/transport/output paths; bounded noncampaign prefreeze checks;
+one freeze, one full local qualification with configured campaign, one candidate
+required CI, one resulting-main required CI, then successful release gates only.
+Four local workers, child1500/observer1700/outer1800seconds,30minute workflow
+ceiling and every stricter cap including15second receipt controls remain.
+Any actual gate failure, interruption or timeout ends D45 without repair, retry,
+refreeze or another candidate. No emulator/API/build/workflow/registration/ROM/
+baseline/provenance changes. D44 and all historical stops, MMC2 and dirty
+workstream migration remain preserved.
+
+The completed bounded discussion/review is reused; no unresolved scope decision
+remains. The assistant acts next: update context, plan and verify successors,
+then execute sequentially under the installed isolation adapter. No additional
+owner acknowledgment is needed.
+
+## D45 handoff failure follow-up — completed read-only review
+
+The full local workflow passed, then the single handoff failed at missing
+release-checklist narrative before negative-control creation. Assistant
+preparation omitted the append used in D44. Original failed bytes/hashes
+preserved. Technical/evidence and authority/workflow reviewers support the
+[prepared exact evidence-only exception](28-D45-HANDOFF-RECOVERY-REVIEW.md),
+subject to new explicit owner approval. No source change, checker/test/gate
+replay, ledger reset or hosted operation occurred. Checklist patch unapplied.
+Bounded adversarial comparison favors unchanged-source reuse over another
+candidate/full workflow; preserve the failure rather than erase or recast it.
+Static narrative/path preflight is complete, exact-call recheck remains.
+Discussion complete; owner decision pending. Do not repeat fanout.
+Durable generated-narrative preflight lesson appended to original verification
+policy; it authorizes no failed gate retry.

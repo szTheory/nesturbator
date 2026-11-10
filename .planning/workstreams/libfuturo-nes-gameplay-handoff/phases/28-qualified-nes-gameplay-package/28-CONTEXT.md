@@ -314,3 +314,25 @@ Preserve baseline/result/ROM/provenance bytes and all old routes/campaign/captur
 stops. This does not authorize MMC2 retry, emulator/build/workflow changes or
 other profiling/capture/campaign work. Continue the authorized current workflow
 without per-step acknowledgements.
+
+## D45 approval and autonomous continuation — 2026-11-10T22:42:57.998241+00:00
+
+The owner answered “yes i approve” to the exact scoped fresh-route question.
+This grants the complete scope and limits in
+[the reviewed proposal](28-CONTROL-REMEDY-REVIEW.md#exact-proposed-authority):
+two control fixes, minimal receipt/driver route bookkeeping and necessary
+documentation/evidence; exact failed product head as base; exclusively named
+D45 candidate/transport/output paths; bounded noncampaign prefreeze checks;
+one freeze, one full local qualification with configured campaign, one candidate
+required CI, one resulting-main required CI, then successful release gates only.
+Four local workers, child1500/observer1700/outer1800seconds,30minute workflow
+ceiling and every stricter cap including15second receipt controls remain.
+Any actual gate failure, interruption or timeout ends D45 without repair, retry,
+refreeze or another candidate. No emulator/API/build/workflow/registration/ROM/
+baseline/provenance changes. D44 and all historical stops, MMC2 and dirty
+workstream migration remain preserved.
+
+The completed bounded discussion/review is reused; no unresolved scope decision
+remains. The assistant acts next: update context, plan and verify successors,
+then execute sequentially under the installed isolation adapter. No additional
+owner acknowledgment is needed.
