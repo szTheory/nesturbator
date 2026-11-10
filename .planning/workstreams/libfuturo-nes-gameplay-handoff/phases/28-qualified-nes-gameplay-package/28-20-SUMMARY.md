@@ -16,7 +16,7 @@ The NTSC-only profile agrees with source and a real relocated-package report. It
 
 ## Changes
 
-Task 1 commit `1d263d9` ports the committed donor profile/checker and registers the existing profile checks. The profile records ABI 1, behavior 9 and state format 3, ordinary `nesturbator_load_cartridge`, no runtime region query/preference, NES2 timing byte 12 zero and iNES reserved bytes 8–15 zero. Source checks read unchanged base loader/arithmetic/header; they do not alter it. The guide digest binds plan 19's fresh observations.
+Task 1 commit `29aa08b` ports the committed donor profile/checker and registers the existing profile checks. The profile records ABI 1, behavior 9 and state format 3, ordinary `nesturbator_load_cartridge`, no runtime region query/preference, NES2 timing byte 12 zero and iNES reserved bytes 8–15 zero. Source checks read unchanged base loader/arithmetic/header; they do not alter it. The guide digest binds plan 19's fresh observations.
 
 Task 2 adds named negative runtime-report controls for route, behavior/state identity, rates, sample counts and removed progress, plus scoped API/testing/reproduction documentation. Existing strict types, recipe arrays/masks, predicate and qualification-limit controls remain. Borrowed regional fields and donor compatibility 18/7 are rejected. Synthetic reports test contract rejection only, never game or publication success.
 
@@ -36,3 +36,5 @@ Task 2 adds named negative runtime-report controls for route, behavior/state ide
 ## Next step and limits
 
 Continue 28-21 rights/receipt controls in the same single owned checkout. No source freeze, full local workflow, candidate/main hosted run or publication has started. All three acceptance allowances remain unused. No hardware, LibFuturo installed consumer/host/gameplay or Playstead acceptance is claimed; D-39 remains terminal.
+
+Preparation history was replayed before freeze to satisfy the unchanged base clang-format 18 policy in every outgoing consumer blob. The replay changed only consumer formatting; exact final reviewed product bytes were checked afterward. The original-to-replayed identity map is retained in ignored orchestration evidence. No acceptance stage was consumed.
