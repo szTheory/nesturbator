@@ -9,7 +9,27 @@ downloaded ZIPs. For behavior tied to a particular release, read this guide
 from the matching source tag or commit, for example
 `https://github.com/szTheory/nesturbator/blob/<tag>/docs/releases.md`.
 
-## Package-only reset identity
+## D-44 package handoff route
+
+The current D-44 route keeps the historical AccuracyCoin identity
+d4802809ff41 explicitly marked dirty. Its pinned 56-path historical input map
+is separate from the current receipt-checker hashes; reconstructing that map
+does not independently authenticate the historical dirty tree. No identity
+here proves hardware behavior. The compatibility profile remains ABI 1,
+behavior revision 9, state format 3 and ordinary-loader NTSC.
+
+Local acceptance, the actual AccuracyCoin campaign and package publication
+remain pending. This maintenance revision does not claim a release exists.
+The source-bound one-shot instructions and their evidence rules are kept in
+the D-44 workstream planning records, not in this consumer guide. The ignored
+route driver is private to its prepared worktree and is neither shipped nor
+available in a fresh checkout. Consumers should use the public CMake package
+checks below and, when published, the package receipt.
+
+## Historical D-42 package-only reset identity
+
+The following D-42 material preserves its original route, base and commands.
+Do not replay its one-shot commands for D-44.
 
 This route starts from the approved NTSC source without emulator-source or
 build-flag changes. The receipt enumerates the actual complete tracked input
@@ -191,7 +211,10 @@ force. Release pull requests and ordinary CI events keep their validation.
 Nightly continues to run on the main push, including the generated release
 merge commit.
 
-## Hosted release evidence
+## Historical D-42 hosted release evidence
+
+The D-42 commands below preserve the prior route and its recorded base. They
+are not commands for the current D-44 handoff.
 
 The package qualification receipt checker can read current GitHub evidence
 without starting a workflow. Run it against the clean source checkout with a
@@ -263,7 +286,10 @@ To verify a downloaded release asset against the repository's attestation:
 gh attestation verify FILE --repo szTheory/nesturbator
 ```
 
-## Published provider receipt
+## Historical D-42 published provider receipt
+
+The following D-42 command is retained as historical evidence; use the D-44
+route above for a new package handoff.
 
 The provider profile stays candidate-only until the normal shipping step checks
 the exact public release. Run the receipt driver from a clean checkout at the
