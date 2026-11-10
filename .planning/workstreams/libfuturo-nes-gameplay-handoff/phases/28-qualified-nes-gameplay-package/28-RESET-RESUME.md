@@ -1,21 +1,61 @@
-# Resume the D-42 package-only provider reset
+## Owner approval — 2026-11-10
 
-The completed discussion authorized the reset; six executable plans now exist, 28-19 through 28-24. Planning created no candidate and ran no tests, builds, workflows, CI, push, merge or publication. Do not reopen discussion or request the same authority again.
+The owner selected **“Approve the scoped remedy and fresh route”** in response
+to the saved complete proposal and its approval question. D-44 authorizes that
+exact proposal: narrow historical/current input binding and checker controls,
+minimal successor receipt plumbing, one fresh candidate from
+`2e0f2057304f60bab9a06a085a3e9477f1da022b`, the named fresh checkout/output
+roots, bounded pre-freeze controls, one local full workflow with its configured
+fresh campaign (four workers, 1500-second child/1800-second outer limits), one
+exact-candidate required CI and one resulting-main required CI, then only the
+normal successful release/publication/artifact gates. Stop on a failed actual
+gate, interruption or timeout without retry, refreeze or second candidate.
+Preserve baseline/result/ROM/provenance bytes and all old routes/campaign/capture
+stops. This does not authorize MMC2 retry, emulator/build/workflow changes or
+other profiling/capture/campaign work. Continue the authorized current workflow
+without per-step acknowledgements.
 
-Next command: `$gsd-execute-phase 28 --ws libfuturo-nes-gameplay-handoff`.
+# Resume after terminal D-42 local failure
 
-Read workstream STATE, 28-CONTEXT D-40 through D-42, 28-RESET-RESEARCH, 28-RESET-SOURCE-AUDIT and 28-19-PLAN first. Existing discussion log's final authorization confirms the scope; D-42 is the operative decision. The old research is historical where the reset addendum differs.
+## Autonomous follow-up handled — 2026-11-10
 
-Before executor dispatch compare the live workstream phase index with STATE/ROADMAP. Expected: 21 active records, fifteen historical outcomes, six incomplete plans 19–24 in computed waves 1–6, only 19 ready, 06/14/15 excluded as superseded. Never turn a halted 18 summary into success or use --wave to hide the old blocker. The reset chain has a genuinely independent exact-base dependency root; old wave labels remain historical.
+Entry: `$gsd-autonomous --ws libfuturo-nes-gameplay-handoff --from 28`.
+**Pending discussion: no. Pending owner decision: no — D-44 approves the saved scoped remedy and fresh route.** Read selected STATE,
+[the completed decision review](28-EVIDENCE-MAINTENANCE-REVIEW.md), and
+[the read-only check record](28-EVIDENCE-BINDING-CHECK.json). Do not repeat the
+fanout or invoke execution. The discussion used three relevant read-only
+reviews, an adversarial pass and an independent Git-blob/artifact probe.
 
-The root checkout is dirty with independent MMC2 and the workstream migration; preserve every unrelated byte, do not stash/reset/clean/stage/commit that migration. The executor must run in one manifest-owned clean phase checkout starting exactly at b25146c6efaac41c58f60555f59f0fe79a90ca68. Follow installed negotiated worktree.create/dispatch-isolation/cwd safety; current project selects sequential execution, so explicitly bind it to the prepared checkout. No fake Codex harness flag and no automatic merge-back into dirty root. Copy only necessary administrative workstream/context instructions without staging them as product inputs.
+Recommend keeping historical baseline bytes intact and adding a narrow separate
+current-input binding with independently tested verifier changes. The exact
+prospective source/root/change scope and one fresh local/candidate/main allowance,
+including the configured full-workflow campaign and existing release gates, are
+reviewable in the proposal. Nothing in that proposal is approved by this entry.
+The owner must decide because existing D-42 authority forbids new source/checker
+repair, baseline changes, another candidate or run after its failed gate.
 
-The base public identity is source version 0.1.12, ABI 1, behavior 9, state format 3. It has load_cartridge/get_info/peek/frame/input but no region API, and runner lacks --info/--region. Donor committed evidence at 7a004f2a4f8833a23b820fbb834f295911561636 must be selectively ported, not merged or copied from dirty files. Profile/receipt/consumer ports and their CTest registration are concrete work, not already-successful evidence.
+The owner acts next on that saved question. No automatic continuation while
+unanswered. After concrete approval, record its exact scope, plan Phase 28 using
+`$gsd-plan-phase 28 --ws libfuturo-nes-gameplay-handoff`, then continue authorized
+work. The discussion prerequisite is satisfied. Context may be cleared first;
+STATE/resume preserve the result so the question is not researched again.
 
-Allowed scope: truthful NTSC-only profile, pinned DABG source-map/scenario/rights/verbatim notice, Nesturbator installed-consumer tests and necessary docs, release identities/records. No src, production runner/libretro, public API/compatibility, build flags, workflow/comparator/protected campaign/AccuracyCoin baseline edits. One candidate only; no APU/Cachegrind/capture work, second candidate, PAL/Dendy claim or historical-campaign restart.
+## Preserved execution outcome
 
-Execute 19 consumer → 20 profile → 21 rights/receipt/one-shot controls → 22 one frozen local acceptance → 23 one candidate CI and one resulting-main CI plus normal release gates → 24 actual assets/native replay/receipt/handoff. MODE=local itself launches the sole full `cmake --workflow --preset ci`; do not run it separately. Preserve 1500-second workflow child, 1800-second outer limit, four workers and existing stricter caps. Every failed gate/timeout/interruption is terminal with no retry; retain the durable stage record and logs. Configured release-PR/reusable-source gates remain distinct and required.
+D-42 is spent. Do not run execute-phase, MODE=local/reset-preflight/reset-admit/hosted, any campaign, push, new candidate or publication under its authority. Preserve its failed local ledger and all source/diagnostic/capture stops.
 
-D-39 and 28-18 stay terminal, capture-1/2/3 spent, capture-4 untouched/candidate-only and the APU table retired. Old 28-06 is explicitly superseded, not satisfied. PKG-01/PROF-01 close only after a real live receipt verifies downloaded library/runner/libretro archives, source/subject attestations and native relocated gameplay/rights. LibFuturo owns its separate installed consumer, native host and gameplay acceptance; provider publication alone does not unblock it or qualify Playstead.
+Read workstream STATE, 28-RESET-FAILURE.md, 28-RESET-IDENTITY.json, 28-22-SUMMARY.md and the current context before doing anything. The sole frozen source is 2e0f2057304f60bab9a06a085a3e9477f1da022b; later commits contain disposition evidence only and are not another candidate. Plans 19–21 succeeded; 22 is terminally halted; 23/24 never started.
 
-Context may be cleared before execution. No user action is needed within the recorded scope; the executing orchestrator acts next. Stop at a real failed gate or required step/phase boundary and report concrete result, blocker/consequence and next actor.
+The local workflow configured/built, then failed accuracycoin.input_fingerprint and accuracycoin.activation. Independent read-only hashing reproduces both hashes and proves tests/CMakeLists.txt is the only changed path in the protected 56-input closure. Four approved CTest registrations trigger the identity mismatch. Baseline/ROM/result rows remain unchanged. The primary CTest was stopped after observed failures; no processes remain in the owned workflow group. No successful full inventory or packaging is claimed. No failed checker or workflow was rerun.
+
+The ignored orchestration manifest/status/logs are under build/phase28-d42-orchestrator in the original checkout. The manifest owns build/phase28-d42-candidate on agent-phase28-d42-package, and its build/phase28-d42/route.json permanently records failed local attempt 1. The same-source build/phase28-d42-transport checkout passed the unchanged normal hooks and is unpushed; it must not be mistaken for a second candidate or permission to proceed. Preserve the dirty MMC2/migration and historical worktrees.
+
+Recommendation: discuss a bounded AccuracyCoin evidence-maintenance scope with preserved protected outcomes and provenance. A baseline identity change/new attempt requires new explicit scope and limits; neither is inferred from autonomy or this discussion. MMC2 is also stopped at its separate full-CI blocker, so switching workstreams cannot silently retry it. RM-015 remains conditional without a new confirmed core fault.
+
+Next command: `$gsd-autonomous --ws libfuturo-nes-gameplay-handoff --from 28`. The owner acts next on the saved proposal; context may be cleared first. Re-entry presents that decision without repeating discussion or renewing authority. Existing execution stops remain intact; no tests or remote work continue while approval is pending. No action is needed to preserve the stop.
+
+## Discussion result superseding the earlier recommendation
+
+The follow-up above is handled. The recommendation paragraph in the preserved execution history is historical; the current concrete choice is [the dual-identity proposal](28-EVIDENCE-MAINTENANCE-REVIEW.md), not another open-ended discussion. No source/baseline change or acceptance allowance was granted.
+
+**Current next action:** The orchestrator plans fresh successors under D-44, then prepares the exact approved isolated checkout and continues execution. Earlier pending-question text above is historical. No new acceptance attempt has started yet.
