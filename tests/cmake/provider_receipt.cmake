@@ -2205,8 +2205,10 @@ function(pr_local_manifest_selector_control work)
     src/core.c runner/main.c libretro/libretro.c host/host.c include/nesturbator.h
     cmake/packaging.cmake tests/CMakeLists.txt tests/consumer/main.c
     tests/cmake/provider_receipt.cmake tests/roms/test.nes
-    .github/workflows/ci.yml scripts/check.sh CMakeLists.txt CMakePresets.json
+    .github/workflows/ci.yml .github/rulesets/main.json .githooks/pre-commit
+    tools/palgen/palgen.c tools/vecconv/CMakeLists.txt scripts/check.sh CMakeLists.txt CMakePresets.json
     README.md LICENSE THIRD-PARTY-NOTICES.md version.txt .release-please-manifest.json
+    release-please-config.json .clang-format .gitattributes .gitignore
     docs/provider-ntsc.json docs/provider-ntsc.md docs/nrom-gameplay.md
     docs/releases.md docs/testing.md docs/api.md docs/reproduction.md)
   list(SORT expected_paths)
@@ -2650,9 +2652,9 @@ function(pr_local_manifest source_dir out_paths out_manifest out_sha out_error)
        path STREQUAL "tests/perf/test_phase28_act_capture.py")
       continue()
     endif()
-    if(path MATCHES "^(src|runner|libretro|host|include|cmake|tests)/" OR
-       path MATCHES "^\.github/workflows/" OR path MATCHES "^scripts/" OR
-       path MATCHES "^(CMakeLists\.txt|CMakePresets\.json|README\.md|LICENSE|THIRD-PARTY-NOTICES\.md|version\.txt|\.release-please-manifest\.json)$" OR
+    if(path MATCHES "^(src|runner|libretro|host|include|cmake|tests|tools)/" OR
+       path MATCHES "^\.(github|githooks)/" OR path MATCHES "^scripts/" OR
+       path MATCHES "^(CMakeLists\.txt|CMakePresets\.json|README\.md|LICENSE|THIRD-PARTY-NOTICES\.md|version\.txt|\.release-please-manifest\.json|release-please-config\.json|\.clang-format|\.gitattributes|\.gitignore)$" OR
        path STREQUAL "docs/provider-ntsc.json" OR path STREQUAL "docs/provider-ntsc.md" OR
        path STREQUAL "docs/nrom-gameplay.md" OR path STREQUAL "docs/releases.md" OR
        path STREQUAL "docs/testing.md" OR path STREQUAL "docs/api.md" OR
@@ -2696,9 +2698,9 @@ function(pr_local_status source_dir input_paths out_status out_dirty_inputs out_
       string(REGEX REPLACE "^.* -> " "" path "${path}")
     endif()
     list(FIND input_paths "${path}" input_index)
-    if(NOT input_index LESS 0 OR path MATCHES "^(src|runner|libretro|host|include|cmake|tests|scripts)/" OR
-       path MATCHES "^\.github/workflows/" OR
-       path MATCHES "^(CMakeLists\.txt|CMakePresets\.json|README\.md|LICENSE|THIRD-PARTY-NOTICES\.md|version\.txt|\.release-please-manifest\.json)$" OR
+    if(NOT input_index LESS 0 OR path MATCHES "^(src|runner|libretro|host|include|cmake|tests|scripts|tools)/" OR
+       path MATCHES "^\.(github|githooks)/" OR
+       path MATCHES "^(CMakeLists\.txt|CMakePresets\.json|README\.md|LICENSE|THIRD-PARTY-NOTICES\.md|version\.txt|\.release-please-manifest\.json|release-please-config\.json|\.clang-format|\.gitattributes|\.gitignore)$" OR
        path MATCHES "^docs/(provider-ntsc\.json|provider-ntsc\.md|nrom-gameplay\.md|releases\.md|testing\.md|api\.md|reproduction\.md)$")
       list(APPEND dirty_inputs "${path}")
     endif()
