@@ -2418,3 +2418,13 @@ add_test(NAME provider.profile.controls
     "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/provider/profile-controls"
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/provider_profile.cmake)
 set_tests_properties(provider.profile provider.profile.controls PROPERTIES TIMEOUT 15)
+
+# Offline receipt controls use owned scratch and synthetic records only.
+add_test(NAME provider.receipt.controls
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
+    -DMODE=selftest
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/provider_receipt.cmake)
+set_tests_properties(provider.receipt.controls PROPERTIES TIMEOUT 15)
