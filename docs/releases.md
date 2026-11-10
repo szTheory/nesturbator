@@ -377,3 +377,23 @@ install route and the package checks answer separate questions.
 
 Pull-request rules are in [CONTRIBUTING.md](../CONTRIBUTING.md); security
 reports go through [SECURITY.md](../SECURITY.md).
+
+## Separate control-fix qualification route
+
+D-44 remains failed at its candidate CI gate; its successful local results are
+bound to that earlier source. D-45 starts separately from that exact candidate
+and permits only the two test-control fixes, minimum route bookkeeping and
+necessary README/testing/release documentation before freezing. Its fixed
+`d45-controls-v1` discriminator, base, branch, output and evidence paths cannot
+reuse D-44's ledger or attempts. The historical AccuracyCoin binding remains
+unchanged; a fresh complete provider manifest binds the new control bytes.
+
+After reviewed prefreeze success, D-45 permits one freeze, one local full
+qualification with its configured campaign, one exact-candidate required CI
+and one resulting-main required CI, followed by successful normal release,
+downloaded native-package and rights gates. Four local workers and the
+1500-second workflow child, 1700-second observer and 1800-second outer limits
+remain, as do all stricter test limits including receipt controls at15seconds.
+Any actual gate failure, interruption or timeout stops that route without
+repair, retry, refreeze or another candidate. Local control success is neither
+publication proof nor downstream LibFuturo host acceptance.

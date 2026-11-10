@@ -2461,3 +2461,12 @@ hardware behavior. The profile remains ABI 1, behavior revision 9, state
 format 3 and ordinary-loader NTSC only. Local acceptance, the actual
 AccuracyCoin campaign and package publication remain pending; no release is
 claimed by this maintenance change.
+
+## Package control maintenance
+
+The input-fingerprint controls hash the persisted LF and CRLF fixture bytes
+before checking the unchanged historical manifest rejection. Receipt controls
+retain every protected-path rejection while combining fixture restorations into
+one final commit. The separate D-45 qualification route preserves the failed
+D-44 result and all one-shot limits. These test-control changes leave emulator
+behavior and the public API unchanged; publication remains pending.

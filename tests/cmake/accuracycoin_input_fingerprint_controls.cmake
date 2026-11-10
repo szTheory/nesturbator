@@ -129,15 +129,22 @@ configure_file("${SOURCE_DIR}/tests/cmake/accuracycoin_input_fingerprint.cmake"
 
 file(READ "${binding_fixture}/tests/accuracy/input-binding-v1.json" binding)
 set(changed_cmake "cmake_minimum_required(VERSION 3.25)\n# synthetic maintenance identity mutation\n")
-string(SHA256 changed_cmake_hash "${changed_cmake}")
-string(REPLACE "93de8a1181f3aca9fd7450b83c85f065e379abb63cc4c54a53fb47fda00ce67e"
-  "${changed_cmake_hash}" altered_history "${binding}")
-if(altered_history STREQUAL binding)
-  message(FATAL_ERROR "historical path/hash mutation control did not alter its fixture")
-endif()
-file(WRITE "${binding_fixture}/CMakeLists.txt" "${changed_cmake}")
-file(WRITE "${binding_fixture}/tests/accuracy/input-binding-v1.json" "${altered_history}")
-binding_expect_rejection("historical manifest hash" "historical manifest differs from its pinned 56-input identity")
+# Hash the persisted fixture bytes, including its requested line endings.
+# Both formats must reach the pinned aggregate guard on every host.
+foreach(newline_style IN ITEMS LF CRLF)
+  file(CONFIGURE OUTPUT "${binding_fixture}/CMakeLists.txt"
+    CONTENT "${changed_cmake}" @ONLY NEWLINE_STYLE "${newline_style}")
+  file(SHA256 "${binding_fixture}/CMakeLists.txt" changed_cmake_hash)
+  string(REPLACE "93de8a1181f3aca9fd7450b83c85f065e379abb63cc4c54a53fb47fda00ce67e"
+    "${changed_cmake_hash}" altered_history "${binding}")
+  if(altered_history STREQUAL binding)
+    message(FATAL_ERROR "historical path/hash mutation control did not alter its fixture")
+  endif()
+  file(WRITE "${binding_fixture}/tests/accuracy/input-binding-v1.json" "${altered_history}")
+  binding_expect_rejection("historical manifest hash ${newline_style}"
+    "historical manifest differs from its pinned 56-input identity")
+endforeach()
+configure_file("${SOURCE_DIR}/CMakeLists.txt" "${binding_fixture}/CMakeLists.txt" COPYONLY)
 configure_file("${SOURCE_DIR}/tests/accuracy/input-binding-v1.json"
   "${binding_fixture}/tests/accuracy/input-binding-v1.json" COPYONLY)
 

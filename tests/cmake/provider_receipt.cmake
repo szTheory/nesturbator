@@ -8,7 +8,8 @@ endforeach()
 
 get_filename_component(SOURCE_DIR "${SOURCE_DIR}" REALPATH)
 
-if(DEFINED RESET_KIND AND NOT RESET_KIND STREQUAL "" AND NOT RESET_KIND STREQUAL "d44-evidence-v1")
+if(DEFINED RESET_KIND AND NOT RESET_KIND STREQUAL "" AND
+   NOT RESET_KIND MATCHES "^(d44-evidence-v1|d45-controls-v1)$")
   message(FATAL_ERROR "reset-kind: unsupported discriminator ${RESET_KIND}")
 endif()
 if(DEFINED ACCEPTANCE_MARKDOWN AND NOT ACCEPTANCE_MARKDOWN STREQUAL "")
@@ -43,6 +44,25 @@ set(D44_ACCEPTANCE_MARKDOWN_RELATIVE ".planning/workstreams/libfuturo-nes-gamepl
 set(D44_OUTPUT_RELATIVE "build/phase28-d43")
 set(D44_FREEZE_COMMAND "cmake -DSOURCE_DIR=. -DMODE=reset-preflight -DRESET_KIND=d44-evidence-v1 -DRESET_BASE=2e0f2057304f60bab9a06a085a3e9477f1da022b -DRESET_ROUTE=build/phase28-d43/route.json -P tests/cmake/provider_receipt.cmake")
 set(D44_PUBLISHED_COMMAND "cmake -DSOURCE_DIR=. -DMODE=published -DACCEPTANCE=build/phase28-d43/release/identity.json -DRELEASE_EVIDENCE=build/phase28-d43/release/release-evidence.json -DTAG=<observed-tag> -DWORK=build/phase28-d43/published -P tests/cmake/provider_receipt.cmake")
+
+set(D45_BASE "d8155bee6ea7dfd59aa3ff2ad61e60d1ed26dfa3")
+set(D45_BRANCH "agent-phase28-d45-controls")
+set(D45_IDENTITY_RELATIVE ".planning/workstreams/libfuturo-nes-gameplay-handoff/phases/28-qualified-nes-gameplay-package/28-D45-IDENTITY.json")
+set(D45_ACCEPTANCE_MARKDOWN_RELATIVE ".planning/workstreams/libfuturo-nes-gameplay-handoff/phases/28-qualified-nes-gameplay-package/28-D45-ACCEPTANCE.md")
+set(D45_OUTPUT_RELATIVE "build/phase28-d45")
+
+# The checked D-44 receipt helpers own the schema and terminal stages. Select
+# their immutable route metadata only when the explicit D-45 discriminator is
+# present; D-44 and default D-42 inputs keep their original values.
+if(RESET_KIND STREQUAL "d45-controls-v1")
+  set(D44_BASE "${D45_BASE}")
+  set(D44_BRANCH "${D45_BRANCH}")
+  set(D44_IDENTITY_RELATIVE "${D45_IDENTITY_RELATIVE}")
+  set(D44_ACCEPTANCE_MARKDOWN_RELATIVE "${D45_ACCEPTANCE_MARKDOWN_RELATIVE}")
+  set(D44_OUTPUT_RELATIVE "${D45_OUTPUT_RELATIVE}")
+  set(D44_FREEZE_COMMAND "cmake -DSOURCE_DIR=. -DMODE=reset-preflight -DRESET_KIND=d45-controls-v1 -DRESET_BASE=${D45_BASE} -DRESET_ROUTE=build/phase28-d45/route.json -DACCEPTANCE=${D45_IDENTITY_RELATIVE} -DACCEPTANCE_MARKDOWN=${D45_ACCEPTANCE_MARKDOWN_RELATIVE} -P tests/cmake/provider_receipt.cmake")
+  set(D44_PUBLISHED_COMMAND "cmake -DSOURCE_DIR=. -DMODE=published -DACCEPTANCE=build/phase28-d45/release/identity.json -DRELEASE_EVIDENCE=build/phase28-d45/release/release-evidence.json -DTAG=<observed-tag> -DWORK=build/phase28-d45/published -P tests/cmake/provider_receipt.cmake")
+endif()
 
 function(pr_json_set json path value out_json)
   string(REPLACE "." ";" path_parts "${path}")
@@ -1143,7 +1163,7 @@ function(pr_json_get_required json path out_value out_error reason)
 endfunction()
 
 function(pr_hosted_stage stage)
-  if(DEFINED RESET_KIND AND RESET_KIND STREQUAL "d44-evidence-v1" AND
+  if(DEFINED RESET_KIND AND RESET_KIND MATCHES "^(d44-evidence-v1|d45-controls-v1)$" AND
      stage MATCHES "^(candidate|main)$")
     foreach(required IN ITEMS RESET_BASE RESET_ROUTE ACCEPTANCE ACCEPTANCE_MARKDOWN)
       if(NOT DEFINED ${required} OR "${${required}}" STREQUAL "")
@@ -2832,9 +2852,19 @@ function(pr_local_manifest source_dir out_paths out_manifest out_sha out_error)
 endfunction()
 
 function(pr_d44_require_manifest_inputs paths out_error)
-  foreach(required_path IN ITEMS tests/accuracy/input-binding-v1.json tests/cmake/accuracycoin_input_fingerprint_controls.cmake)
+  if(RESET_KIND STREQUAL "d45-controls-v1")
+    set(required_paths README.md docs/testing.md docs/releases.md
+      tests/cmake/accuracycoin_input_fingerprint_controls.cmake
+      tests/cmake/provider_receipt.cmake)
+    set(route_label D-45)
+  else()
+    set(required_paths tests/accuracy/input-binding-v1.json
+      tests/cmake/accuracycoin_input_fingerprint_controls.cmake)
+    set(route_label D-44)
+  endif()
+  foreach(required_path IN LISTS required_paths)
     if(NOT required_path IN_LIST paths)
-      set(${out_error} "required D-44 receipt input is absent from the tracked manifest: ${required_path}" PARENT_SCOPE)
+      set(${out_error} "required ${route_label} receipt input is absent from the tracked manifest: ${required_path}" PARENT_SCOPE)
       return()
     endif()
   endforeach()
@@ -2917,7 +2947,7 @@ function(pr_local_acceptance)
     message(FATAL_ERROR "provider_receipt MODE=local requires a configured BINARY_DIR with CMakeCache.txt")
   endif()
   get_filename_component(ACCEPTANCE "${ACCEPTANCE}" ABSOLUTE BASE_DIR "${SOURCE_DIR}")
-  if(DEFINED RESET_KIND AND RESET_KIND STREQUAL "d44-evidence-v1")
+  if(DEFINED RESET_KIND AND RESET_KIND MATCHES "^(d44-evidence-v1|d45-controls-v1)$")
     foreach(required IN ITEMS RESET_BASE RESET_ROUTE ACCEPTANCE_MARKDOWN)
       if(NOT DEFINED ${required} OR "${${required}}" STREQUAL "")
         message(FATAL_ERROR "D-44 local acceptance requires ${required}")
@@ -3372,8 +3402,13 @@ function(pr_local_acceptance)
   set(acceptance_text "# Phase 28 Local Acceptance\n\n")
   string(APPEND acceptance_text "This record binds the local package and moved-prefix gameplay evidence to source commit `${candidate_commit}` (tree `${candidate_tree}`) on branch `${candidate_branch}`. The implementation SHA-256 manifest is `${manifest_sha}`; it includes the receipt checker, all tracked source, package/configuration inputs, tests and admitted ROMs, plus the provider profile and gameplay recipe. Generated logs, package archives, this acceptance record, and the future published-receipt overlay are evidence outputs and are excluded from the implementation fingerprint.\n\n")
   string(APPEND acceptance_text "## Local verification\n\n- Bounded workflow: `cmake --workflow --preset ci` — passed (exit `${workflow_result}`, ${workflow_duration}s, ${workflow_started} to ${workflow_finished}; 1500-second timeout). Configure, build, test and package stages passed.\n- Build/runtime identity: ${compiler_id} ${compiler_version} (`${compiler_name}`), ${cxx_compiler_id} ${cxx_compiler_version} (`${cxx_compiler_name}`), CMake `${cmake_version}`, CTest `${ctest_version}`, host `${host_os}/${host_arch}`, target `${system_name}/${system_processor}`, Release/Ninja, CTest preset `ci` with ${ctest_jobs} jobs, warning-as-error enabled, full AccuracyCoin campaign enabled.\n- Required CTest results: ${required_statuses}. `provider.receipt.controls` took ${receipt_controls_seconds}s in this full workflow, read from its exact CTest log. The full registered selection and fixture metadata are captured in `${work_relative}/ctest-discovery.json`; raw run output is `${work_relative}/LastTest.log`. The current full workflow includes its configured AccuracyCoin fixture; no separate older interrupted collector was invoked.\n- Installed gameplay report: `${gameplay_report_relative}` (`${gameplay_sha}`). The installed runtime profile check and three current package archive inventory checks passed. Archive names, sizes and SHA-256 values are in the identity.\n- Provider profile `${profile_sha}`, gameplay guide `${guide_sha}`, admitted ROM `${scenario_rom_sha}`; ABI ${abi}, behavior revision ${behaviour}, state format ${state_format}.\n- Evidence root: `${work_relative}`. Input manifest: `${work_relative}/inputs.sha256`. Working-tree status at freeze is preserved in the identity and `${work_relative}/working-tree-status.porcelain`; unrelated user-owned planning/coordination changes were excluded from the source fingerprint and left untouched.\n\n")
-  if(DEFINED RESET_KIND AND RESET_KIND STREQUAL "d44-evidence-v1")
-    string(APPEND acceptance_text "## D-44 reset route\n\n- Frozen base: `${D44_BASE}`; evidence root: `${D44_OUTPUT_RELATIVE}`; ledger: `${D44_OUTPUT_RELATIVE}/route.json`.\n- Local identity: `${D44_IDENTITY_RELATIVE}`; acceptance narrative: `${D44_ACCEPTANCE_MARKDOWN_RELATIVE}`.\n- Freeze command: `${D44_FREEZE_COMMAND}`\n- Published replay command on the immutable exact-tag release-source checkout, after transferring the D-44 identity and release evidence: `${D44_PUBLISHED_COMMAND}`\n\n")
+  if(DEFINED RESET_KIND AND RESET_KIND MATCHES "^(d44-evidence-v1|d45-controls-v1)$")
+    if(RESET_KIND STREQUAL "d45-controls-v1")
+      set(reset_route_heading D-45)
+    else()
+      set(reset_route_heading D-44)
+    endif()
+    string(APPEND acceptance_text "## ${reset_route_heading} reset route\n\n- Frozen base: `${D44_BASE}`; evidence root: `${D44_OUTPUT_RELATIVE}`; ledger: `${D44_OUTPUT_RELATIVE}/route.json`.\n- Local identity: `${D44_IDENTITY_RELATIVE}`; acceptance narrative: `${D44_ACCEPTANCE_MARKDOWN_RELATIVE}`.\n- Freeze command: `${D44_FREEZE_COMMAND}`\n- Published replay command on the immutable exact-tag release-source checkout, after transferring the selected identity and release evidence: `${D44_PUBLISHED_COMMAND}`\n\n")
   endif()
   string(APPEND acceptance_text "## Separate release gates\n\n- Local acceptance: **passed** for the exact source identity above.\n- Exact-candidate hosted CI: **pending**; no hosted result is claimed.\n- Resulting main CI: **pending**; no hosted result is claimed.\n- Published receipt and PKG-01: **pending**; local archives do not satisfy publication acceptance.\n\nThe evidence-only acceptance commit is not part of the source package identity. Under this one-shot package reset, a change to code, profile, scenario, package or qualification inputs after freeze ends the route; no refreeze or repeated acceptance is authorized.\n")
   file(WRITE "${acceptance_markdown}" "${acceptance_text}")
@@ -3411,7 +3446,18 @@ function(pr_d44_handoff_control_start source_commit manifest_sha checker_sha com
   endif()
   string(TIMESTAMP started_at "%Y-%m-%dT%H:%M:%SZ" UTC)
   set(record "{\"schema_version\":1}")
-  pr_json_set("${record}" reset_kind "\"d44-evidence-v1\"" record)
+  if(RESET_KIND STREQUAL "d45-controls-v1")
+    set(handoff_reset_kind d45-controls-v1)
+  else()
+    set(handoff_reset_kind d44-evidence-v1)
+  endif()
+  pr_json_set("${record}" reset_kind "\"${handoff_reset_kind}\"" record)
+  if(RESET_KIND STREQUAL "d45-controls-v1")
+    pr_json_set("${record}" base "\"${D45_BASE}\"" record)
+    pr_json_set("${record}" source_branch "\"${D45_BRANCH}\"" record)
+    pr_json_set("${record}" acceptance_path "\"${ACCEPTANCE}\"" record)
+    pr_json_set("${record}" acceptance_markdown_path "\"${ACCEPTANCE_MARKDOWN}\"" record)
+  endif()
   pr_json_set("${record}" status "\"running\"" record)
   pr_json_set("${record}" source_root "\"${SOURCE_DIR}\"" record)
   pr_json_set("${record}" route_path "\"${SOURCE_DIR}/${D44_OUTPUT_RELATIVE}/route.json\"" record)
@@ -3520,7 +3566,7 @@ function(pr_handoff_acceptance)
     message(FATAL_ERROR "handoff acceptance identity is missing: ${ACCEPTANCE}")
   endif()
   file(READ "${ACCEPTANCE}" identity)
-  if(DEFINED RESET_KIND AND RESET_KIND STREQUAL "d44-evidence-v1")
+  if(DEFINED RESET_KIND AND RESET_KIND MATCHES "^(d44-evidence-v1|d45-controls-v1)$")
     set(output_root "${SOURCE_DIR}/${D44_OUTPUT_RELATIVE}")
     set(route_path "${output_root}/route.json")
     pr_d44_validate_values("${D44_BASE}" "${D44_BRANCH}" "${SOURCE_DIR}"
@@ -3577,7 +3623,7 @@ function(pr_handoff_acceptance)
   if(NOT ancestry_result STREQUAL "0")
     message(FATAL_ERROR "handoff candidate commit is not an ancestor of the current evidence head: ${ancestry_error}${ancestry_out}")
   endif()
-  if(DEFINED RESET_KIND AND RESET_KIND STREQUAL "d44-evidence-v1")
+  if(DEFINED RESET_KIND AND RESET_KIND MATCHES "^(d44-evidence-v1|d45-controls-v1)$")
     if(NOT DEFINED ACCEPTANCE_MARKDOWN OR "${ACCEPTANCE_MARKDOWN}" STREQUAL "")
       message(FATAL_ERROR "provider_receipt MODE=handoff requires ACCEPTANCE_MARKDOWN for D-44")
     endif()
@@ -3590,7 +3636,7 @@ function(pr_handoff_acceptance)
     message(FATAL_ERROR "handoff acceptance narrative is missing: ${acceptance_markdown}")
   endif()
   file(READ "${acceptance_markdown}" acceptance_text)
-  if(DEFINED RESET_KIND AND RESET_KIND STREQUAL "d44-evidence-v1")
+  if(DEFINED RESET_KIND AND RESET_KIND MATCHES "^(d44-evidence-v1|d45-controls-v1)$")
     set(route_required_texts "${D44_FREEZE_COMMAND}" "${D44_PUBLISHED_COMMAND}"
       "${D44_IDENTITY_RELATIVE}" "${D44_ACCEPTANCE_MARKDOWN_RELATIVE}" "${D44_OUTPUT_RELATIVE}/route.json")
   else()
@@ -3617,10 +3663,15 @@ function(pr_handoff_acceptance)
   endif()
   set(missing_command "${CMAKE_COMMAND}" "-DSOURCE_DIR=${SOURCE_DIR}" -DMODE=published
       "-DACCEPTANCE=${missing_acceptance}" -DTAG=v0.0.0
-      "-DWORK=${SOURCE_DIR}/build/phase28-missing-publication-work"
-      -P "${SOURCE_DIR}/tests/cmake/provider_receipt.cmake")
+      "-DWORK=${SOURCE_DIR}/build/phase28-missing-publication-work")
+  if(RESET_KIND STREQUAL "d45-controls-v1")
+    list(APPEND missing_command "-DRESET_KIND=${RESET_KIND}" "-DRESET_BASE=${D45_BASE}"
+      "-DRESET_ROUTE=${D45_OUTPUT_RELATIVE}/route.json"
+      "-DACCEPTANCE_MARKDOWN=${ACCEPTANCE_MARKDOWN}")
+  endif()
+  list(APPEND missing_command -P "${SOURCE_DIR}/tests/cmake/provider_receipt.cmake")
   set(handoff_record "")
-  if(DEFINED RESET_KIND AND RESET_KIND STREQUAL "d44-evidence-v1")
+  if(DEFINED RESET_KIND AND RESET_KIND MATCHES "^(d44-evidence-v1|d45-controls-v1)$")
     file(SHA256 "${SOURCE_DIR}/tests/cmake/provider_receipt.cmake" handoff_checker_sha)
     set(handoff_command_json "[]")
     foreach(argument IN LISTS missing_command)
@@ -3789,15 +3840,18 @@ function(pr_reset_controls work)
        NOT error STREQUAL "reset-scope: protected or out-of-scope delta: ${path}")
       message(FATAL_ERROR "reset protected ${path} control reached '${error}'")
     endif()
+    # The next case's add/commit stages this restoration together with its
+    # own mutation, so the compared HEAD still contains only that one case.
     file(WRITE "${repo}/${path}" "owned base fixture\n")
-    execute_process(COMMAND git -C "${repo}" add -- . RESULT_VARIABLE add_result TIMEOUT 5)
-    execute_process(COMMAND git -C "${repo}" -c user.name=Nesturbator-Tests
-      -c user.email=0+tests@users.noreply.github.com commit --quiet -m restored
-      RESULT_VARIABLE commit_result TIMEOUT 5)
-    if(NOT add_result STREQUAL "0" OR NOT commit_result STREQUAL "0")
-      message(FATAL_ERROR "reset synthetic restoration failed")
-    endif()
   endforeach()
+  # Commit the final restoration once before the registration controls.
+  execute_process(COMMAND git -C "${repo}" add -- . RESULT_VARIABLE add_result TIMEOUT 5)
+  execute_process(COMMAND git -C "${repo}" -c user.name=Nesturbator-Tests
+    -c user.email=0+tests@users.noreply.github.com commit --quiet -m restored
+    RESULT_VARIABLE commit_result TIMEOUT 5)
+  if(NOT add_result STREQUAL "0" OR NOT commit_result STREQUAL "0")
+    message(FATAL_ERROR "reset synthetic restoration failed")
+  endif()
   foreach(mutation IN ITEMS
       "set_tests_properties(accuracycoin.campaign PROPERTIES DISABLED TRUE)"
       "set_property(TEST accuracycoin.campaign PROPERTY TIMEOUT 9999)"
@@ -4105,23 +4159,158 @@ function(pr_reset_controls work)
   if(NOT handoff_error MATCHES "preserving existing D-44 handoff evidence")
     message(FATAL_ERROR "D-44 handoff duplicate observation control reached '${handoff_error}'")
   endif()
+
+  # D-45 selects the same schema and stage helpers with its separate fixed
+  # base, five-path delta, and evidence root. These controls use disposable
+  # values and never create the candidate's route.json.
+  set(RESET_KIND d45-controls-v1)
+  set(D44_BASE "${D45_BASE}")
+  set(D44_BRANCH "${D45_BRANCH}")
+  set(D44_IDENTITY_RELATIVE "${D45_IDENTITY_RELATIVE}")
+  set(D44_ACCEPTANCE_MARKDOWN_RELATIVE "${D45_ACCEPTANCE_MARKDOWN_RELATIVE}")
+  set(D44_OUTPUT_RELATIVE "${D45_OUTPUT_RELATIVE}")
+  set(d45_paths README.md docs/releases.md docs/testing.md
+    tests/cmake/accuracycoin_input_fingerprint_controls.cmake
+    tests/cmake/provider_receipt.cmake)
+  pr_d44_validate_paths("${d45_paths}" d45_scope_error)
+  if(d45_scope_error)
+    message(FATAL_ERROR "D-45 five-path allowlist control failed: ${d45_scope_error}")
+  endif()
+  set(d45_wrong_paths "${d45_paths}")
+  list(APPEND d45_wrong_paths docs/api.md)
+  pr_d44_validate_paths("${d45_wrong_paths}" d45_scope_error)
+  if(NOT d45_scope_error MATCHES "D-45 delta must be exactly the 5 reviewed paths")
+    message(FATAL_ERROR "D-45 out-of-scope path control reached '${d45_scope_error}'")
+  endif()
+
+  set(d45_source_root "${work}/d45-approved-source")
+  set(d45_output_root "${d45_source_root}/${D45_OUTPUT_RELATIVE}")
+  set(d45_route_path "${d45_output_root}/route.json")
+  set(d45_acceptance "${d45_source_root}/${D45_IDENTITY_RELATIVE}")
+  set(d45_acceptance_markdown "${d45_source_root}/${D45_ACCEPTANCE_MARKDOWN_RELATIVE}")
+  pr_d44_validate_values("${D45_BASE}" "${D45_BRANCH}" "${d45_source_root}"
+    "${d45_output_root}" "${d45_route_path}" "${d45_acceptance}"
+    "${d45_acceptance_markdown}" d45_identity_error)
+  if(d45_identity_error)
+    message(FATAL_ERROR "D-45 route identity positive control failed: ${d45_identity_error}")
+  endif()
+  pr_d44_validate_values("2e0f2057304f60bab9a06a085a3e9477f1da022b" "${D45_BRANCH}" "${d45_source_root}"
+    "${d45_output_root}" "${d45_route_path}" "${d45_acceptance}"
+    "${d45_acceptance_markdown}" d45_identity_error)
+  if(NOT d45_identity_error MATCHES "^reset-base:")
+    message(FATAL_ERROR "D-45 wrong-base control reached '${d45_identity_error}'")
+  endif()
+  pr_d44_validate_values("${D45_BASE}" "${D45_BRANCH}" "${d45_source_root}"
+    "${d45_source_root}/build/phase28-d43" "${d45_route_path}" "${d45_acceptance}"
+    "${d45_acceptance_markdown}" d45_identity_error)
+  if(NOT d45_identity_error MATCHES "^reset-route:")
+    message(FATAL_ERROR "D-45 wrong-root control reached '${d45_identity_error}'")
+  endif()
+
+  set(d45_route "${d44_route}")
+  foreach(pair IN ITEMS
+      "base|${D45_BASE}"
+      "source_root|${d45_source_root}"
+      "reset_kind|d45-controls-v1"
+      "source_branch|${D45_BRANCH}"
+      "output_root|${d45_output_root}"
+      "acceptance_path|${d45_acceptance}"
+      "acceptance_markdown_path|${d45_acceptance_markdown}")
+    string(REPLACE "|" ";" fields "${pair}")
+    list(GET fields 0 field)
+    list(GET fields 1 value)
+    pr_json_quote("${value}" quoted)
+    pr_json_set("${d45_route}" "${field}" "${quoted}" d45_route)
+  endforeach()
+  pr_d44_validate_route_fields("${d45_route}" "${d45_source_root}" "${D45_BRANCH}"
+    "${d45_output_root}" "${d45_acceptance}" "${d45_acceptance_markdown}" d45_route_error)
+  if(d45_route_error)
+    message(FATAL_ERROR "D-45 selected-ledger positive control failed: ${d45_route_error}")
+  endif()
+  string(JSON d44_ledger SET "${d45_route}" reset_kind "\"d44-evidence-v1\"")
+  pr_d44_validate_route_fields("${d44_ledger}" "${d45_source_root}" "${D45_BRANCH}"
+    "${d45_output_root}" "${d45_acceptance}" "${d45_acceptance_markdown}" d45_route_error)
+  if(NOT d45_route_error MATCHES "^reset-route:")
+    message(FATAL_ERROR "D-45 old-ledger discriminator control reached '${d45_route_error}'")
+  endif()
+  set(d45_stage_ledger "${work}/d45-stage-control.json")
+  file(WRITE "${d45_stage_ledger}" "{\"stages\":{}}\n")
+  pr_reset_reserve("${d45_stage_ledger}" local d45_stage_error)
+  if(d45_stage_error)
+    message(FATAL_ERROR "D-45 local stage reservation failed: ${d45_stage_error}")
+  endif()
+  pr_reset_finish("${d45_stage_ledger}" local failed "synthetic D-45 failure" "")
+  pr_reset_reserve("${d45_stage_ledger}" local d45_stage_error)
+  if(NOT d45_stage_error MATCHES "duplicate or interrupted")
+    message(FATAL_ERROR "D-45 spent stage was reusable: ${d45_stage_error}")
+  endif()
+
+  set(SOURCE_DIR "${work}/d45-handoff-source")
+  set(OUTPUT_RECEIPT "${SOURCE_DIR}/docs/provider-ntsc-release.json")
+  set(ACCEPTANCE "${SOURCE_DIR}/${D45_IDENTITY_RELATIVE}")
+  set(ACCEPTANCE_MARKDOWN "${SOURCE_DIR}/${D45_ACCEPTANCE_MARKDOWN_RELATIVE}")
+  file(MAKE_DIRECTORY "${SOURCE_DIR}/${D45_OUTPUT_RELATIVE}" "${SOURCE_DIR}/docs")
+  set(d45_handoff_command_json "[]")
+  foreach(argument IN ITEMS "${CMAKE_COMMAND}" "-DRESET_KIND=${RESET_KIND}"
+      "-DRESET_BASE=${D45_BASE}" "-DRESET_ROUTE=${D45_OUTPUT_RELATIVE}/route.json"
+      "-DACCEPTANCE=${D45_IDENTITY_RELATIVE}"
+      "-DACCEPTANCE_MARKDOWN=${D45_ACCEPTANCE_MARKDOWN_RELATIVE}")
+    string(JSON command_length LENGTH "${d45_handoff_command_json}")
+    pr_json_quote("${argument}" quoted_argument)
+    string(JSON d45_handoff_command_json SET "${d45_handoff_command_json}"
+      ${command_length} "${quoted_argument}")
+  endforeach()
+  pr_d44_handoff_control_start("${handoff_expected_source_commit}" "${handoff_expected_manifest_sha}"
+    "${handoff_checker_sha}" "${d45_handoff_command_json}" d45_handoff_record d45_handoff_error)
+  if(d45_handoff_error)
+    message(FATAL_ERROR "D-45 handoff metadata forwarding control failed: ${d45_handoff_error}")
+  endif()
+  pr_d44_handoff_control_finish("${d45_handoff_record}" "1"
+    "published receipt missing: acceptance, profile, guide or ROM manifest is absent\n"
+    "synthetic D-45 stderr\n" d45_handoff_error)
+  if(d45_handoff_error)
+    message(FATAL_ERROR "D-45 handoff finalization control failed: ${d45_handoff_error}")
+  endif()
+  file(READ "${d45_handoff_record}" d45_handoff_json)
+  foreach(pair IN ITEMS "reset_kind|d45-controls-v1" "base|${D45_BASE}"
+      "source_branch|${D45_BRANCH}" "output_root|${SOURCE_DIR}/${D45_OUTPUT_RELATIVE}"
+      "route_path|${SOURCE_DIR}/${D45_OUTPUT_RELATIVE}/route.json"
+      "acceptance_path|${ACCEPTANCE}" "acceptance_markdown_path|${ACCEPTANCE_MARKDOWN}")
+    string(REPLACE "|" ";" fields "${pair}")
+    list(GET fields 0 field)
+    list(GET fields 1 expected_value)
+    string(JSON actual_value ERROR_VARIABLE field_error GET "${d45_handoff_json}" "${field}")
+    if(field_error OR NOT actual_value STREQUAL expected_value)
+      message(FATAL_ERROR "D-45 handoff record ${field} was not forwarded: ${field_error}${actual_value}")
+    endif()
+  endforeach()
 endfunction()
 
 
 function(pr_d44_validate_paths changed_paths out_error)
-  set(expected_paths
-    README.md docs/releases.md docs/testing.md
-    tests/accuracy/input-binding-v1.json
-    tests/cmake/accuracycoin_activation.cmake
-    tests/cmake/accuracycoin_input_fingerprint.cmake
-    tests/cmake/accuracycoin_input_fingerprint_controls.cmake
-    tests/cmake/provider_receipt.cmake)
+  if(RESET_KIND STREQUAL "d45-controls-v1")
+    set(expected_paths README.md docs/releases.md docs/testing.md
+      tests/cmake/accuracycoin_input_fingerprint_controls.cmake
+      tests/cmake/provider_receipt.cmake)
+    set(route_label D-45)
+    set(expected_count 5)
+  else()
+    set(expected_paths
+      README.md docs/releases.md docs/testing.md
+      tests/accuracy/input-binding-v1.json
+      tests/cmake/accuracycoin_activation.cmake
+      tests/cmake/accuracycoin_input_fingerprint.cmake
+      tests/cmake/accuracycoin_input_fingerprint_controls.cmake
+      tests/cmake/provider_receipt.cmake)
+    set(route_label D-44)
+    set(expected_count eight)
+  endif()
   set(raw_paths "${changed_paths}")
   list(LENGTH raw_paths raw_count)
   list(REMOVE_DUPLICATES raw_paths)
   list(LENGTH raw_paths unique_count)
   if(NOT raw_count EQUAL unique_count)
-    set(${out_error} "reset-scope: D-44 allowlist contains a duplicate path" PARENT_SCOPE)
+    set(${out_error} "reset-scope: ${route_label} allowlist contains a duplicate path" PARENT_SCOPE)
     return()
   endif()
   set(actual_paths "${raw_paths}")
@@ -4130,7 +4319,7 @@ function(pr_d44_validate_paths changed_paths out_error)
   list(SORT actual_paths)
   list(SORT expected_paths)
   if(NOT "${actual_paths}" STREQUAL "${expected_paths}")
-    set(${out_error} "reset-scope: D-44 delta must be exactly the eight reviewed paths" PARENT_SCOPE)
+    set(${out_error} "reset-scope: ${route_label} delta must be exactly the ${expected_count} reviewed paths" PARENT_SCOPE)
     return()
   endif()
   set(${out_error} "" PARENT_SCOPE)
@@ -4138,16 +4327,21 @@ endfunction()
 
 function(pr_d44_validate_values base branch source_root output_root route_path acceptance acceptance_markdown out_error)
   set(${out_error} "" PARENT_SCOPE)
+  if(RESET_KIND STREQUAL "d45-controls-v1")
+    set(route_label D-45)
+  else()
+    set(route_label D-44)
+  endif()
   if(NOT "${base}" STREQUAL D44_BASE)
-    set(${out_error} "reset-base: D-44 requires its exact frozen base" PARENT_SCOPE)
+    set(${out_error} "reset-base: ${route_label} requires its exact frozen base" PARENT_SCOPE)
     return()
   endif()
   if(NOT "${branch}" STREQUAL D44_BRANCH)
-    set(${out_error} "reset-checkout: D-44 requires its approved candidate branch" PARENT_SCOPE)
+    set(${out_error} "reset-checkout: ${route_label} requires its approved candidate branch" PARENT_SCOPE)
     return()
   endif()
   if(NOT IS_ABSOLUTE "${source_root}")
-    set(${out_error} "reset-checkout: D-44 source root must be absolute" PARENT_SCOPE)
+    set(${out_error} "reset-checkout: ${route_label} source root must be absolute" PARENT_SCOPE)
     return()
   endif()
   set(expected_output_root "${source_root}/${D44_OUTPUT_RELATIVE}")
@@ -4156,12 +4350,12 @@ function(pr_d44_validate_values base branch source_root output_root route_path a
   set(expected_markdown "${source_root}/${D44_ACCEPTANCE_MARKDOWN_RELATIVE}")
   if(NOT "${output_root}" STREQUAL expected_output_root OR
      NOT "${route_path}" STREQUAL expected_route_path)
-    set(${out_error} "reset-route: D-44 route and output root must stay under build/phase28-d43" PARENT_SCOPE)
+    set(${out_error} "reset-route: ${route_label} route and output root must stay under ${D44_OUTPUT_RELATIVE}" PARENT_SCOPE)
     return()
   endif()
   if(NOT "${acceptance}" STREQUAL expected_acceptance OR
      NOT "${acceptance_markdown}" STREQUAL expected_markdown)
-    set(${out_error} "reset-evidence: D-44 identity and acceptance paths must use the selected workstream record" PARENT_SCOPE)
+    set(${out_error} "reset-evidence: ${route_label} identity and acceptance paths must use the selected workstream record" PARENT_SCOPE)
     return()
   endif()
 endfunction()
@@ -4203,6 +4397,13 @@ function(pr_d44_validate_checkout source_dir base route_path acceptance acceptan
 endfunction()
 
 function(pr_d44_validate_route_fields route source_root branch output_root acceptance acceptance_markdown out_error)
+  if(RESET_KIND STREQUAL "d45-controls-v1")
+    set(expected_reset_kind d45-controls-v1)
+    set(route_label D-45)
+  else()
+    set(expected_reset_kind d44-evidence-v1)
+    set(route_label D-44)
+  endif()
   set(expected_route_fields schema_version stages base source_root source_commit source_tree
     manifest_sha256 donor_commit profile_sha256 guide_sha256 notice_sha256 reset_kind
     source_branch output_root acceptance_path acceptance_markdown_path)
@@ -4252,7 +4453,7 @@ function(pr_d44_validate_route_fields route source_root branch output_root accep
     endif()
   endforeach()
   foreach(pair IN ITEMS
-      "reset_kind|d44-evidence-v1"
+      "reset_kind|${expected_reset_kind}"
       "source_root|${source_root}"
       "source_branch|${branch}"
       "output_root|${output_root}"
@@ -4294,9 +4495,14 @@ endfunction()
 function(pr_reset_scope source_dir base out_error)
   set(${out_error} "" PARENT_SCOPE)
 
-  if(DEFINED RESET_KIND AND RESET_KIND STREQUAL "d44-evidence-v1")
+  if(DEFINED RESET_KIND AND RESET_KIND MATCHES "^(d44-evidence-v1|d45-controls-v1)$")
     if(NOT "${base}" STREQUAL D44_BASE)
-      set(${out_error} "reset-base: D-44 permits only its exact 2e0f205 frozen base" PARENT_SCOPE)
+      if(RESET_KIND STREQUAL "d45-controls-v1")
+        set(route_label D-45)
+      else()
+        set(route_label D-44)
+      endif()
+      set(${out_error} "reset-base: ${route_label} permits only its exact frozen base" PARENT_SCOPE)
       return()
     endif()
     execute_process(COMMAND git -C "${source_dir}" diff --name-only "${base}" HEAD
@@ -4411,7 +4617,7 @@ function(pr_reset_load out_route)
       message(FATAL_ERROR "reset identity requires ${required}")
     endif()
   endforeach()
-  if(DEFINED RESET_KIND AND RESET_KIND STREQUAL "d44-evidence-v1")
+  if(DEFINED RESET_KIND AND RESET_KIND MATCHES "^(d44-evidence-v1|d45-controls-v1)$")
     foreach(required IN ITEMS ACCEPTANCE ACCEPTANCE_MARKDOWN)
       if(NOT DEFINED ${required} OR "${${required}}" STREQUAL "")
         message(FATAL_ERROR "D-44 reset identity requires ${required}")
@@ -4440,7 +4646,7 @@ function(pr_reset_load out_route)
     message(FATAL_ERROR "reset-route: parent escapes owned build directory")
   endif()
   file(READ "${route_path}" route)
-  if(DEFINED RESET_KIND AND RESET_KIND STREQUAL "d44-evidence-v1")
+  if(DEFINED RESET_KIND AND RESET_KIND MATCHES "^(d44-evidence-v1|d45-controls-v1)$")
     set(output_root "${SOURCE_DIR}/${D44_OUTPUT_RELATIVE}")
     pr_d44_validate_route_fields("${route}" "${SOURCE_DIR}" "${D44_BRANCH}"
       "${output_root}" "${ACCEPTANCE}" "${ACCEPTANCE_MARKDOWN}" error)
@@ -4467,7 +4673,7 @@ function(pr_reset_load out_route)
   endif()
   pr_local_manifest("${SOURCE_DIR}" paths manifest manifest_sha error)
   set(required_error "")
-  if(DEFINED RESET_KIND AND RESET_KIND STREQUAL "d44-evidence-v1")
+  if(DEFINED RESET_KIND AND RESET_KIND MATCHES "^(d44-evidence-v1|d45-controls-v1)$")
     pr_d44_require_manifest_inputs("${paths}" required_error)
   endif()
   pr_local_status("${SOURCE_DIR}" "${paths}" status dirty status_error)
@@ -4493,7 +4699,7 @@ function(pr_reset_preflight)
       message(FATAL_ERROR "reset preflight requires ${required}")
     endif()
   endforeach()
-  if(DEFINED RESET_KIND AND RESET_KIND STREQUAL "d44-evidence-v1")
+  if(DEFINED RESET_KIND AND RESET_KIND MATCHES "^(d44-evidence-v1|d45-controls-v1)$")
     if(NOT DEFINED ACCEPTANCE OR "${ACCEPTANCE}" STREQUAL "")
       set(ACCEPTANCE "${SOURCE_DIR}/${D44_IDENTITY_RELATIVE}")
     endif()
@@ -4522,7 +4728,7 @@ function(pr_reset_preflight)
   pr_reset_scope("${SOURCE_DIR}" "${RESET_BASE}" scope_error)
   pr_local_manifest("${SOURCE_DIR}" paths manifest manifest_sha error)
   set(required_error "")
-  if(DEFINED RESET_KIND AND RESET_KIND STREQUAL "d44-evidence-v1")
+  if(DEFINED RESET_KIND AND RESET_KIND MATCHES "^(d44-evidence-v1|d45-controls-v1)$")
     pr_d44_require_manifest_inputs("${paths}" required_error)
   endif()
   pr_local_status("${SOURCE_DIR}" "${paths}" status dirty status_error)
@@ -4584,9 +4790,9 @@ function(pr_reset_preflight)
     pr_json_set("${route}" "${key}_sha256" "\"${digest}\"" route)
   endforeach()
 
-  if(DEFINED RESET_KIND AND RESET_KIND STREQUAL "d44-evidence-v1")
+  if(DEFINED RESET_KIND AND RESET_KIND MATCHES "^(d44-evidence-v1|d45-controls-v1)$")
     set(output_root "${SOURCE_DIR}/${D44_OUTPUT_RELATIVE}")
-    foreach(pair IN ITEMS "reset_kind;d44-evidence-v1"
+    foreach(pair IN ITEMS "reset_kind;${RESET_KIND}"
         "source_branch;${D44_BRANCH}" "output_root;${output_root}"
         "acceptance_path;${ACCEPTANCE}"
         "acceptance_markdown_path;${ACCEPTANCE_MARKDOWN}")

@@ -40,3 +40,25 @@ operation at 1800 seconds including cleanup and evidence persistence. Local
 acceptance also retains its 1500-second workflow and 1700-second observer caps.
 A failed one-shot stage remains spent; inspect its saved evidence instead of
 rerunning it.
+
+## Persisted-byte and receipt control checks
+
+Historical-manifest mutation controls write explicit LF and CRLF fixtures, hash
+the bytes on disk with `file(SHA256)`, and require the same pinned historical
+aggregate rejection for each. They do not normalize the production fingerprint
+or change the binding, baseline, result or registration bytes.
+
+Receipt fixtures keep all seven protected-path rejection commits. Restored
+files are staged with the next mutation, with one final restoration commit
+before the registration checks. This removes 12 Git add/commit launches and
+six synthetic commits without removing an assertion or raising the 15-second
+receipt-control cap. A local macOS arm64 prefreeze comparison measured receipt
+controls at 4.50 seconds before and 3.12 seconds after this fix. These local
+measurements do not establish hosted Intel Mac performance.
+
+D-45 uses a separate prepared checkout and ignored driver. Prefreeze controls
+keep the full AccuracyCoin campaign off. Its single later local qualification
+includes the configured campaign; saved-evidence inspection never reruns it.
+The driver enforces the 15-second receipt-control subprocess cap, 180-second
+synthetic cap, 60-second inspection cap and the existing qualification limits.
+No ignored driver is shipped or available from a fresh clone.
