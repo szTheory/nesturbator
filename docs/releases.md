@@ -195,13 +195,23 @@ merge commit.
 
 The package qualification receipt checker can read current GitHub evidence
 without starting a workflow. Run it against the clean source checkout with a
-tracked release evidence record:
+tracked release evidence record. The reset source must already be frozen and
+its local stage passed. Before the first candidate push/PR trigger, reserve
+`MODE=reset-admit STAGE=candidate`; before protected merge, reserve
+`MODE=reset-admit STAGE=main`, with the same RESET_BASE/RESET_ROUTE and the
+source-bound ACCEPTANCE and RELEASE_EVIDENCE paths. Admission records intent
+before a remote trigger; the following hosted commands observe the completed
+run and finalize that intent. They do not launch or retry CI:
 
 ```sh
 cmake -DSOURCE_DIR=. -DMODE=hosted -DSTAGE=candidate \
+  -DRESET_BASE=b25146c6efaac41c58f60555f59f0fe79a90ca68 \
+  -DRESET_ROUTE=build/phase28-d42/route.json \
   -DRELEASE_EVIDENCE=.planning/workstreams/libfuturo-nes-gameplay-handoff/phases/28-qualified-nes-gameplay-package/28-RESET-RELEASE-EVIDENCE.json \
   -P tests/cmake/provider_receipt.cmake
 cmake -DSOURCE_DIR=. -DMODE=hosted -DSTAGE=main \
+  -DRESET_BASE=b25146c6efaac41c58f60555f59f0fe79a90ca68 \
+  -DRESET_ROUTE=build/phase28-d42/route.json \
   -DRELEASE_EVIDENCE=.planning/workstreams/libfuturo-nes-gameplay-handoff/phases/28-qualified-nes-gameplay-package/28-RESET-RELEASE-EVIDENCE.json \
   -P tests/cmake/provider_receipt.cmake
 cmake -DSOURCE_DIR=. -DMODE=hosted -DSTAGE=release \
