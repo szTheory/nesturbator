@@ -2403,3 +2403,19 @@ add_test(NAME perf.roms_render
     -DSOURCE_DIR=${PROJECT_SOURCE_DIR} -DWORK=${CMAKE_CURRENT_BINARY_DIR}/perf_roms_render
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/perf_roms_render.cmake)
 set_tests_properties(perf.roms_render PROPERTIES LABELS perf TIMEOUT 60)
+
+# Provider-side NTSC API/profile facts and offline drift controls.
+add_test(NAME provider.profile
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    -DMODE=contract
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/provider_profile.cmake)
+add_test(NAME provider.profile.controls
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
+    -DMODE=selftest
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/provider/profile-controls"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/provider_profile.cmake)
+set_tests_properties(provider.profile provider.profile.controls PROPERTIES TIMEOUT 15)
+
