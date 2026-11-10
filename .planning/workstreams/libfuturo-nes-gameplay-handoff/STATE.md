@@ -4,19 +4,19 @@ milestone: v9
 milestone_name: LibFuturo NES gameplay handoff
 current_phase: 28
 current_phase_name: Qualified NES gameplay package
-current_plan: 26
+current_plan: 27
 status: executing
-stopped_at: Plan 28-25 complete and reviewed; continuing automatically to sole Plan26 local qualification
-last_updated: "2026-11-10T20:27:05.690033+00:00"
+stopped_at: Plan26 local qualification complete; Plan27 pretrigger evidence review in progress; no hosted attempt yet
+last_updated: "2026-11-10T21:09:55.801212+00:00"
 last_activity: 2026-11-10
-last_activity_desc: Scoped remedy and source-bound non-full controls complete; independent review clear; next Plan26.
+last_activity_desc: Sole local full workflow and handoff passed; preparing exact candidate CI with release lookup preflight.
 state_head: 7a004f2a4f8833a23b820fbb834f295911561636
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 23
-  completed_plans: 20
-  percent: 86
+  completed_plans: 21
+  percent: 91
 ---
 
 # Project State
@@ -31,9 +31,11 @@ See [PROJECT.md](PROJECT.md), updated during the v9 opening on 2026-11-03, and A
 
 Terminal disposition evidence is committed on the isolated branch at `96f74ff5542fffed3b5b8a9fb127aaa7c5a74f12`; the failed frozen source identity remains unchanged. STATE and ROADMAP record the actual blocked outcome after that summary commit.
 
-**Current route: approved D-44 controls and maintenance complete; continuing automatically to Plan26.** Plan25 has a successful source-bound summary and independent complete-delta review with no blocker. Exact8 approved product files are committed; final5 driver synthetic and focused FULL=OFF tests pass with unchanged bytes and no campaign fixture. The active index has23 records:20 outcomes and3 incomplete successors; only26 is ready. No freeze/live ledger/local full workflow/new campaign/hosted trigger/publication or new requirement completion exists yet. See [summary25](phases/28-qualified-nes-gameplay-package/28-25-SUMMARY.md), [review](phases/28-qualified-nes-gameplay-package/28-D44-REVIEW.md) and [resume](phases/28-qualified-nes-gameplay-package/28-D44-EXECUTION-RESUME.md).
+**Current route: approved D-44 local qualification complete; Plan27 pretrigger checks in progress.** Plans25/26 have successful summaries. The sole frozen source is ce80b9e20b55d2eea65b2ed82952416b9619296e; current435 manifest83cafa1e8b12736bbba5ab5da728766fccf011296c98b51f4e7235e2f524127e and independent/current56 identity81c99389a68a8994f030c5d1c88cfefbe9667fbb048730a4056e60e51eee3795 remain unchanged and separate from historical78822adf identity. One full local workflow passed in434seconds, all700 test results, fresh campaign, installed gameplay/runtime and3 local archives. One handoff negative control and saved-result inspection passed. Active index23 records:21 outcomes,2 incomplete successors; only27 is ready. No hosted trigger, push/PR, publication or new requirement completion exists. No local/full/campaign/handoff command may be repeated.
 
-Next authorized operation is Plan26's complete configured selection/fixture preflight, one source freeze and one bounded full local workflow through the ignored driver. Continue with unfiltered `$gsd-execute-phase --ws libfuturo-nes-gameplay-handoff 28` if a fresh session is required; context may be cleared after reading the linked resume. No owner action is currently needed. Original MMC2/migration and historical stopped routes remain preserved.
+Current remote main remains approved b25146c6efaac41c58f60555f59f0fe79a90ca68 with squash-only/CI-required active ruleset and no bypass. Related PR64/63/51 are preserved with no auto-merge. Qualification inputs in current/historical worktrees are clean; current untracked files are copied administrative context/evidence. Original root MMC2/migration remains separately owned and preserved. Independent review confirmed the existing explicit metadata path covers the optional automatic release-PR title lookup mismatch: capture the actual open Release Please PR number/head/tested merge from its single-PR response before the sole hosted-main observer; later release validation rechecks all identities/CI. The orchestrator is applying that path. No source correction or remote admission has occurred; continue after the evidence commit. No owner action is currently needed.
+
+Resume with unfiltered `$gsd-execute-phase --ws libfuturo-nes-gameplay-handoff 28` if a fresh session is required; read [current resume](phases/28-qualified-nes-gameplay-package/28-D44-EXECUTION-RESUME.md), [local summary](phases/28-qualified-nes-gameplay-package/28-26-SUMMARY.md) and [review](phases/28-qualified-nes-gameplay-package/28-D44-REVIEW.md). Context may be cleared after the recorded running checks are reconciled.
 
 Plans19–21 have successful summaries;22 froze source `2e0f2057304f60bab9a06a085a3e9477f1da022b` and failed its sole local workflow. That frozen source, failed identity, ledger, logs and later disposition commits remain unchanged. D44 begins from that exact product source in the approved separate checkout; no historical failed prerequisite is treated as success. See [failure and read-only attribution](phases/28-qualified-nes-gameplay-package/28-RESET-FAILURE.md), [failed identity](phases/28-qualified-nes-gameplay-package/28-RESET-IDENTITY.json) and [halted summary](phases/28-qualified-nes-gameplay-package/28-22-SUMMARY.md).
 
