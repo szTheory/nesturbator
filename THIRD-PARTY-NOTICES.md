@@ -168,3 +168,25 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## DABG
+
+`tests/roms/dabg.nes` is the DABG test image from
+[NovaSquirrel/DABG](https://github.com/NovaSquirrel/DABG), commit
+`5ecc60b6af3f726851bfeb1c2555388c5953e0c0`. Its SHA-256 is
+`eca79b9d0b546e96c1bc73099e239539fb9c7773ff10a431bb3a9cd6763208ca`.
+
+The upstream declares the [Zlib License](https://github.com/NovaSquirrel/DABG/blob/5ecc60b6af3f726851bfeb1c2555388c5953e0c0/LICENSE.txt).
+The exact license text is preserved in
+[`tests/roms/licenses/DABG-ZLIB-LICENSE.txt`](tests/roms/licenses/DABG-ZLIB-LICENSE.txt)
+(SHA-256 `06fa223afb2949c20e030910d7010af2100a9e42ffa3d3f3c1c0307ec2903fdc`).
+It permits use for any purpose, including commercial use, and permits alteration
+and redistribution subject to its restrictions: do not misrepresent the
+software's origin, clearly mark altered source versions, and do not remove or
+alter the notice in source distributions. Product-documentation acknowledgment
+is appreciated by the license but is not required.
+
+The ROM and this notice are excluded from the published component archives and
+installed package. If a downstream distribution includes the DABG ROM, this
+project requires that it carry the same notice. This repository has not edited
+or otherwise changed any downstream distribution.

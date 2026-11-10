@@ -1,0 +1,30 @@
+{
+  "method": "independent read-only Git-blob and retained-artifact hashing; no project checker/test/build executed",
+  "protected_input_count": [
+    56,
+    56
+  ],
+  "base_fingerprint_matches_record": true,
+  "candidate_fingerprint_matches_record": true,
+  "changed_protected_inputs": [
+    "tests/CMakeLists.txt"
+  ],
+  "production_or_build_workflow_paths_changed": [],
+  "protected_baseline_and_checker_paths_changed": [],
+  "retained_artifact_digest_matches": {
+    "plan22-local-once.log": true,
+    "plan22-freeze.log": true,
+    "fingerprint-diagnosis.json": true,
+    "stopped-LastTest.log": true,
+    "failed-gate-stop.json": true,
+    "after-stop-processes.json": true
+  },
+  "schema_version": 1,
+  "recorded_date": "2026-11-10",
+  "scope": "discussion-only; no acceptance authority consumed or renewed",
+  "base": "b25146c6efaac41c58f60555f59f0fe79a90ca68",
+  "failed_candidate": "2e0f2057304f60bab9a06a085a3e9477f1da022b",
+  "base_fingerprint": "78822adfa35ac2b0e2f562cfb0067ae08db7e76c3e6e4027fa63d7bcca400de2",
+  "failed_candidate_fingerprint": "2aae2cc51782afe61780f61dc869aedcbd6c7dce605682e9bc3a2a7fe6b21a17",
+  "acceptance_status": "D-42 remains terminally failed; this check is source attribution only"
+}

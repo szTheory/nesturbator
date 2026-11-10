@@ -2438,3 +2438,26 @@ MIT. See [LICENSE](LICENSE).
 nesturbator is not affiliated with or endorsed by Nintendo. The names "Nintendo
 Entertainment System", "NES" and "Famicom" are used here only to say what the
 core emulates.
+
+## Qualified NTSC installed consumer
+
+The [DABG gameplay guide](docs/nrom-gameplay.md) records a fixed, licensed
+NROM scenario exercised through the public C API after moving the installed
+package. The package-only route uses the ordinary NTSC loader on source
+version 0.1.12, ABI 1, behavior revision 9 and state format 3. `install.gameplay`
+checks source-mapped player progress, visible native pixels, non-silent PCM,
+refused-load continuation and installed-package provenance. This evidence
+does not qualify a published package, another region, LibFuturo's consumer or
+host, hardware behavior, or Playstead. Battery game memory and machine
+snapshots remain separate contracts.
+
+## D-44 package handoff evidence
+
+The current source binding preserves the historical AccuracyCoin identity
+d4802809ff41 as explicitly dirty and checks its pinned historical input map
+separately from current checker bytes. The reconstructed map does not
+independently authenticate that dirty tree, and neither identity proves
+hardware behavior. The profile remains ABI 1, behavior revision 9, state
+format 3 and ordinary-loader NTSC only. Local acceptance, the actual
+AccuracyCoin campaign and package publication remain pending; no release is
+claimed by this maintenance change.

@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "provider": "Nesturbator",
+  "qualification": {
+    "status": "candidate-only",
+    "published_receipt": "docs/provider-ntsc-release.json",
+    "release_binding": "pending"
+  },
+  "compatibility": {
+    "abi": 1,
+    "behaviour_revision": 9,
+    "state_format": 3
+  },
+  "region": {
+    "route": "ntsc-only-base-api",
+    "loader": "nesturbator_load_cartridge",
+    "runtime_region_query": false,
+    "runtime_region_preference": false,
+    "nes20_timing_byte12": 0,
+    "ines_reserved_bytes_first": 8,
+    "ines_reserved_bytes_last": 15,
+    "ines_reserved_bytes_value": 0
+  },
+  "timing": {
+    "fps_num": 39375000,
+    "fps_den": 655171
+  },
+  "clock": {
+    "nominal_ticks_per_ntsc_frame": 714732,
+    "tick_unit": "half-master-clock periods",
+    "ticks_are_cumulative": true,
+    "includes_soft_reset_cycles": true,
+    "instruction_and_dma_overshoot_is_preserved": true
+  },
+  "video": {
+    "width": 256,
+    "height": 240,
+    "format": "caller-owned uint16_t native pixels",
+    "minimum_pitch_pixels": 256,
+    "palette_index_mask": 63,
+    "emphasis_mask": 448,
+    "reserved_mask": 65024,
+    "display_palette_entries": 512,
+    "display_palette_format": "XRGB8888"
+  },
+  "audio": {
+    "channels": 1,
+    "format": "signed int16 PCM",
+    "sample_rate_num": 48000,
+    "sample_rate_den": 1,
+    "samples_per_tick_num": 352,
+    "samples_per_tick_den": 315000,
+    "samples_per_ntsc_frame_num": 10482736,
+    "samples_per_ntsc_frame_den": 13125,
+    "minimum_samples_per_ntsc_frame": 798,
+    "maximum_samples_per_ntsc_frame": 799,
+    "minimum_capacity_samples": 799,
+    "initial_remainder": 0,
+    "remainder_is_carried_between_calls": true,
+    "consume_audio_count_only_after_ok": true
+  },
+  "input": {
+    "logical_ports": 2,
+    "port_zero_address": "0x4016",
+    "port_one_address": "0x4017",
+    "button_bits": {
+      "a": 1,
+      "b": 2,
+      "select": 4,
+      "start": 8,
+      "up": 16,
+      "down": 32,
+      "left": 64,
+      "right": 128
+    },
+    "sampling": "latest masks sampled at the start of each successful frame call",
+    "physical_device_mapping": "host-owned"
+  },
+  "scenario": {
+    "game": "DABG",
+    "guide": "docs/nrom-gameplay.md",
+    "guide_sha256": "edf72c31bf318600f9e5d4d5a0c3515e19a96b65be8953eebd79aa37d929c436",
+    "rom": "tests/roms/dabg.nes",
+    "rom_sha256": "eca79b9d0b546e96c1bc73099e239539fb9c7773ff10a431bb3a9cd6763208ca",
+    "positive_frames": 110,
+    "refused_load_continuation_frames": 30,
+    "audio_window_first_frame": 61,
+    "audio_window_last_frame": 76,
+    "audio_window_samples": 12779,
+    "input_recipe": {
+      "one_based_frames": true,
+      "a_mask": 1,
+      "a_pulse_frames": [
+        3,
+        57,
+        3
+      ],
+      "right_mask": 128,
+      "right_frames": [
+        80,
+        110
+      ],
+      "neutral_frames": [
+        58,
+        79
+      ],
+      "port_one_mask": 0
+    },
+    "positive_predicates": [
+      "source-mapped game state",
+      "input-caused progress",
+      "visible native pixel response",
+      "non-silent gameplay PCM"
+    ]
+  },
+  "qualification_limits": {
+    "no_content": "test pattern and zero-valued silence, with NTSC timing",
+    "refused_load": "active cartridge and session remain unchanged",
+    "jam": "latched stop; frame output fields are not written and native buffers are not results",
+    "save_ram": "core-owned span; persistence and content identity are host-owned",
+    "save_states": "whole-machine snapshots; host owns storage; not qualified by this game scenario",
+    "unqualified": [
+      "published package identity",
+      "LibFuturo consumer integration or host playback",
+      "PAL route",
+      "physical device pacing",
+      "browser or Playstead behavior",
+      "battery restart",
+      "machine snapshot interoperability",
+      "hardware correctness",
+      "general title or mapper compatibility"
+    ]
+  }
+}

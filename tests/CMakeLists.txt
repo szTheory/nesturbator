@@ -2302,6 +2302,22 @@ add_test(NAME install.consumer
     --test-command consumer)
 set_tests_properties(install.consumer PROPERTIES FIXTURES_REQUIRED staged)
 
+# A candidate gameplay scenario must be a real, moved-prefix public consumer.
+# The integration driver owns its install tree and does not use install.stage.
+add_test(NAME install.gameplay
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DBINARY_DIR=${PROJECT_BINARY_DIR}"
+    "-DGENERATOR=${CMAKE_GENERATOR}"
+    "-DC_COMPILER=${CMAKE_C_COMPILER}"
+    "-DBUILD_TYPE=${CMAKE_BUILD_TYPE}"
+    "-DC_FLAGS=${CMAKE_C_FLAGS}"
+    "-DLINK_FLAGS=${CMAKE_EXE_LINKER_FLAGS}"
+    "-DCONFIG=$<CONFIG>"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/qualified_consumer.cmake")
+set_tests_properties(install.gameplay PROPERTIES TIMEOUT 60)
+
+
 # A C-only project embeds the source tree with add_subdirectory, gets only the
 # library and its listed nesturbator_ helpers, and runs one frame with it.
 add_test(NAME embed.subdirectory
@@ -2387,3 +2403,28 @@ add_test(NAME perf.roms_render
     -DSOURCE_DIR=${PROJECT_SOURCE_DIR} -DWORK=${CMAKE_CURRENT_BINARY_DIR}/perf_roms_render
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/perf_roms_render.cmake)
 set_tests_properties(perf.roms_render PROPERTIES LABELS perf TIMEOUT 60)
+
+# Provider-side NTSC API/profile facts and offline drift controls.
+add_test(NAME provider.profile
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    -DMODE=contract
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/provider_profile.cmake)
+add_test(NAME provider.profile.controls
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
+    -DMODE=selftest
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/provider/profile-controls"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/provider_profile.cmake)
+set_tests_properties(provider.profile provider.profile.controls PROPERTIES TIMEOUT 15)
+
+# Offline receipt controls use owned scratch and synthetic records only.
+add_test(NAME provider.receipt.controls
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
+    -DMODE=selftest
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/provider_receipt.cmake)
+set_tests_properties(provider.receipt.controls PROPERTIES TIMEOUT 15)

@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "record_kind": "D44-independent-freeze-binding",
+  "source_commit": "ce80b9e20b55d2eea65b2ed82952416b9619296e",
+  "source_tree": "78155bf26d7360526c93138918494303237c783f",
+  "frozen_base": "2e0f2057304f60bab9a06a085a3e9477f1da022b",
+  "provider_input_count": 435,
+  "provider_manifest_sha256": "83cafa1e8b12736bbba5ab5da728766fccf011296c98b51f4e7235e2f524127e",
+  "historical_input_count": 56,
+  "historical_input_sha256": "78822adfa35ac2b0e2f562cfb0067ae08db7e76c3e6e4027fa63d7bcca400de2",
+  "current_input_count": 56,
+  "current_input_sha256": "81c99389a68a8994f030c5d1c88cfefbe9667fbb048730a4056e60e51eee3795",
+  "baseline_metadata_sha256": "e48e15e7203c0eef96281cb545f0f487f9b716168570918a5ba8d80209c0e65b",
+  "historical_source_revision": "d4802809ff41",
+  "historical_source_dirty": 1,
+  "historical_source_dirty_reason": "Quick task 261029-sdj measured after explicit CI configuration at d4802809ff41 with a dirty working tree. CI inventory/hash reuse and paired public-header comments are present; the campaign retains 119 PASS and 27 FAIL with unchanged report digest. Earlier hosted acceptance keeps its original source identity.",
+  "historical_attribution_limit": "Pinned map reconstruction does not independently authenticate the historical dirty tree or establish hardware correctness.",
+  "original_tests_cmake_sha256": "c656956571e96aedbb75ffec6fa47a1035faa5a45767734f1c89888919ab06e7",
+  "current_tests_cmake_sha256": "a4179a215765f1b783e7a408f55d2eb9f9264c0cb315215c9da09e0336624ea2",
+  "checker_binding_control_driver_sha256": {
+    "tests/cmake/accuracycoin_activation.cmake": "559f02a8367c3d1220cdf93a0152c098f118cc3b12745e47a27cb5890a595e1a",
+    "tests/cmake/accuracycoin_input_fingerprint.cmake": "c755dbbb72744c1e5ce79eee00e84ecfa76222004804b85ca3bbe6cd3ed5c6c3",
+    "tests/accuracy/input-binding-v1.json": "14c2bcce9406a80420791a17ce278b6028077650e093695f1a0e2d050feb8310",
+    "tests/cmake/accuracycoin_input_fingerprint_controls.cmake": "81f8d6b3f6d6a11710186fa4c5e5020128a78da56fd9f6d9b0e7e7ff138e4835",
+    "tests/cmake/provider_receipt.cmake": "cc7cc482c883a96a16720130fd6cc613d82f1410e87909a34a482420f12ad478",
+    "build/phase28-d43/run.py": "ebe30fa9c4fc9f4377a6e7479986557c8b30c552be4245d60fa5fe0159c89b45"
+  },
+  "freeze_record": {
+    "argv": [
+      "cmake",
+      "-DSOURCE_DIR=.",
+      "-DMODE=reset-preflight",
+      "-DRESET_KIND=d44-evidence-v1",
+      "-DRESET_BASE=2e0f2057304f60bab9a06a085a3e9477f1da022b",
+      "-DRESET_ROUTE=build/phase28-d43/route.json",
+      "-P",
+      "tests/cmake/provider_receipt.cmake"
+    ],
+    "duration_seconds": 0.182,
+    "exit_code": 0,
+    "finished_at": "2026-11-10T20:46:43.060882+00:00",
+    "started_at": "2026-11-10T20:46:42.878150+00:00",
+    "status": "passed",
+    "stderr_path": "build/phase28-d43/freeze.stderr.txt",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_path": "build/phase28-d43/freeze.stdout.txt",
+    "stdout_sha256": "741329db46a087ddc65a544340a28c499c905ec7d14c39ca995d69900639e496",
+    "timeout_seconds": 1800
+  },
+  "evidence_paths": {
+    "full_manifest": "build/phase28-d43/route.json.inputs.sha256",
+    "independent_current_map": "build/phase28-d43/parent-final-input-check/current-inputs.tsv",
+    "production_current_fingerprint": "build/phase28-d43/parent-final-input-check/production.stderr.txt",
+    "full_inventory": "build/phase28-d43/plan26-preflight/ctest-show-only.json",
+    "route_snapshot": "build/phase28-d43/route-at-freeze-binding-capture.json"
+  },
+  "qualification_claimed": false,
+  "route_record_sha256_at_capture": "ba85e3670d6e79907ccd547a684af65c0066e167171e36b753bb30fb60c50595",
+  "route_snapshot_stages_at_capture": {
+    "local": "running"
+  },
+  "captured_at": "2026-11-10T20:52:16.561253+00:00"
+}
