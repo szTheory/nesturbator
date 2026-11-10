@@ -4,19 +4,19 @@ milestone: v9
 milestone_name: LibFuturo NES gameplay handoff
 current_phase: 28
 current_phase_name: Qualified NES gameplay package
-current_plan: 25
-status: planning
-stopped_at: D-44 successor plans written; independent plan check and exact fresh checkout preparation next
-last_updated: "2026-11-10T17:30:58.213664+00:00"
+current_plan: 26
+status: executing
+stopped_at: Plan 28-25 complete and reviewed; continuing automatically to sole Plan26 local qualification
+last_updated: "2026-11-10T20:27:05.690033+00:00"
 last_activity: 2026-11-10
-last_activity_desc: Four fresh D-44 plans written; old unstarted successors superseded for scheduling only; no acceptance started.
+last_activity_desc: Scoped remedy and source-bound non-full controls complete; independent review clear; next Plan26.
 state_head: 7a004f2a4f8833a23b820fbb834f295911561636
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 23
-  completed_plans: 19
-  percent: 82
+  completed_plans: 20
+  percent: 86
 ---
 
 # Project State
@@ -31,7 +31,9 @@ See [PROJECT.md](PROJECT.md), updated during the v9 opening on 2026-11-03, and A
 
 Terminal disposition evidence is committed on the isolated branch at `96f74ff5542fffed3b5b8a9fb127aaa7c5a74f12`; the failed frozen source identity remains unchanged. STATE and ROADMAP record the actual blocked outcome after that summary commit.
 
-**Current route: approved D-44 fresh evidence-maintenance successor, planning only so far.** Four canonical plans 28-25 through 28-28 cover controls/receipt maintenance, one local freeze/full workflow, exact hosted release gates and published-byte receipt/handoff. Only 28-25 is ready; later plans require successful predecessor summaries. The active index has23 records:19 outcomes (9 successful,10 halted) and4 unstarted successors. Physical plans28;5 superseded (06/14/15/23/24). Plans23/24 remain historical unstarted/blocked and are superseded only for future scheduling. Plan22 stays terminally halted. No new requirement completion or acceptance attempt is claimed. See [source audit and execution map](phases/28-qualified-nes-gameplay-package/28-D44-SOURCE-AUDIT.md).
+**Current route: approved D-44 controls and maintenance complete; continuing automatically to Plan26.** Plan25 has a successful source-bound summary and independent complete-delta review with no blocker. Exact8 approved product files are committed; final5 driver synthetic and focused FULL=OFF tests pass with unchanged bytes and no campaign fixture. The active index has23 records:20 outcomes and3 incomplete successors; only26 is ready. No freeze/live ledger/local full workflow/new campaign/hosted trigger/publication or new requirement completion exists yet. See [summary25](phases/28-qualified-nes-gameplay-package/28-25-SUMMARY.md), [review](phases/28-qualified-nes-gameplay-package/28-D44-REVIEW.md) and [resume](phases/28-qualified-nes-gameplay-package/28-D44-EXECUTION-RESUME.md).
+
+Next authorized operation is Plan26's complete configured selection/fixture preflight, one source freeze and one bounded full local workflow through the ignored driver. Continue with unfiltered `$gsd-execute-phase --ws libfuturo-nes-gameplay-handoff 28` if a fresh session is required; context may be cleared after reading the linked resume. No owner action is currently needed. Original MMC2/migration and historical stopped routes remain preserved.
 
 Plans19–21 have successful summaries;22 froze source `2e0f2057304f60bab9a06a085a3e9477f1da022b` and failed its sole local workflow. That frozen source, failed identity, ledger, logs and later disposition commits remain unchanged. D44 begins from that exact product source in the approved separate checkout; no historical failed prerequisite is treated as success. See [failure and read-only attribution](phases/28-qualified-nes-gameplay-package/28-RESET-FAILURE.md), [failed identity](phases/28-qualified-nes-gameplay-package/28-RESET-IDENTITY.json) and [halted summary](phases/28-qualified-nes-gameplay-package/28-22-SUMMARY.md).
 
@@ -253,3 +255,11 @@ Preserve baseline/result/ROM/provenance bytes and all old routes/campaign/captur
 stops. This does not authorize MMC2 retry, emulator/build/workflow changes or
 other profiling/capture/campaign work. Continue the authorized current workflow
 without per-step acknowledgements.
+
+## Current execution — D-44
+
+Plan 28-25 is running sequentially in the manifest-owned approved checkout `build/phase28-d43-candidate` on `agent-phase28-d43-evidence`. Planning passed independent review and was committed there with normal hooks. Product source remains unfrozen; no live local/candidate/main allowance has been consumed. The executor owns the scoped code/controls and ignored driver; the orchestrator owns Git/shared state and acts next without user input.
+
+Current implementation continuity: [current execution continuity](phases/28-qualified-nes-gameplay-package/28-D44-EXECUTION-RESUME.md). The orchestrator and live executor continue; no user action is needed.
+
+Plan28-25 Task1 is verified and committed in the approved checkout; Task2 driver/docs and final independent review continue. Full/candidate/main allowances remain unused.

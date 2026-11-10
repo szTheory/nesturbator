@@ -106,3 +106,19 @@ Plan25 controls are deliberately non-full/synthetic. Plan26 local-once is the on
 
 All four fresh plans passed frontmatter and XML structure validation; all44 trackable decisions are covered. Live index confirms23 active,19 outcomes/10 halted, incomplete25–28 and ready25 only. Plan27's one-way warning is already settled explicitly by D44 and standing release authority; no additional checkpoint is required. Files end with closing output tags. No additional source item is missing. This audit does not claim any new project controls or gates has run, nor that any requirement has newly completed.
 
+
+## Native executor write routing — observed during prefreeze setup
+
+The native patch tool resolves relative paths against the shared original root,
+even when command tools use the approved candidate cwd. A first control-only
+hunk was misrouted before any test/build/live gate. The orchestrator interrupted
+the worker, matched the entire accidental delta to that hunk, preserved it in
+ignored output, and restored only that worker change. The original file again
+matches its pre-task HEAD; no unrelated edit was reverted and no candidate
+product edit or acceptance occurred.
+
+For this sequential executor, prohibit the patch tool. Use command-based writes
+with the literal approved workdir and parent root pin; resolve every destination
+inside that checkout before writing. Inspect original-root changed paths after
+the first candidate edit. This is a routing correction, not renewed acceptance
+authority or a change to any source/run cap.

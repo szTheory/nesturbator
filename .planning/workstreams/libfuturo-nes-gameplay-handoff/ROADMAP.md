@@ -36,7 +36,7 @@ The owner approved the four [requirements](REQUIREMENTS.md) and single-phase roa
   2. A clean C consumer can configure, build and run using only a relocated install prefix, load permitted content, advance frames with input, and receive video and audio; a refused replacement load leaves the active game usable. Its result does not depend on headers or libraries from the source or build tree.
   3. The manifest-permitted DABG NTSC NROM follows a bounded, reproducible input recipe from boot to a declared gameplay transition with visible response and non-silent audio. Its source-mapped progress predicate establishes interactive progress; a title picture, input activity, audio or a frame hash alone cannot satisfy it.
   4. An integrator can use the version-bound profile to determine the tested package/source, selected NTSC content and region limits, load/refusal policy, controller sampling, pixel interpretation, audio format/cadence/buffer bounds and lifecycle. Battery-backed game memory and machine snapshots are described separately, and capabilities without current consumer proof remain explicitly unqualified.
-**Plans**:23 active records:19 outcomes (9 successful,10 halted) and4 unstarted D44 successors. Only25 is ready;26/27/28 require successful predecessor summaries. Physical canonical plans28;06/14/15/23/24 are superseded. D42 remains spent and22 halted;23/24 retain historical blocked/unstarted disposition. No new acceptance or requirement completion resulted from planning.
+**Plans**:23 active records:20 outcomes (10 successful,10 halted) and3 incomplete D44 successors. Plan25 maintenance is complete with source-bound non-full controls and independent review; only26 is ready.27/28 require successful predecessor summaries. Physical canonical plans28;06/14/15/23/24 are superseded. D42 remains spent and22 halted;23/24 retain historical blocked/unstarted disposition. No new acceptance or requirement completion resulted from planning.
 
 Plans:
 **Wave 1**
@@ -90,7 +90,7 @@ Plans:
 - 28-24-PLAN.md — Unstarted/blocked; future scheduling superseded by28-28
 
 **D44 wave 1 — ready after independent plan check/checkout preparation**
-- [ ] 28-25-PLAN.md — Exact historical/current binding, mutation controls and minimum fresh receipt/driver support
+- [x] 28-25-PLAN.md — Exact historical/current binding, mutation controls and minimum fresh receipt/driver support
 
 **D44 wave 2 — depends on successful25**
 - [ ] 28-26-PLAN.md — One clean source freeze and sole bounded local full workflow
