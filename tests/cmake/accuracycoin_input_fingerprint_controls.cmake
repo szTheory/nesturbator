@@ -61,9 +61,19 @@ foreach(row IN LISTS fingerprint_rows)
     set(expected_count "${CMAKE_MATCH_1}")
   endif()
 endforeach()
-if(NOT expected_hash STREQUAL current_hash OR NOT expected_count STREQUAL current_count)
+if(NOT expected_hash STREQUAL "78822adfa35ac2b0e2f562cfb0067ae08db7e76c3e6e4027fa63d7bcca400de2" OR
+   NOT expected_count STREQUAL current_count)
   message(FATAL_ERROR
-    "baseline input identity is stale: ${expected_hash}/${expected_count}, current ${current_hash}/${current_count}")
+    "historical baseline identity is not pinned: ${expected_hash}/${expected_count}, current path count ${current_count}")
+endif()
+
+if(NOT COMMAND accuracycoin_validate_input_binding)
+  message(FATAL_ERROR
+    "historical/current binding acceptance assertion failed: validator is not defined")
+endif()
+accuracycoin_validate_input_binding("${SOURCE_DIR}" binding_error)
+if(binding_error)
+  message(FATAL_ERROR "historical/current binding acceptance assertion failed: ${binding_error}")
 endif()
 
 message(STATUS "AccuracyCoin input fingerprint controls passed")

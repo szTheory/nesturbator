@@ -3575,6 +3575,58 @@ function(pr_reset_controls work)
      NOT "untracked-extra.txt" IN_LIST dirty)
     message(FATAL_ERROR "reset arbitrary untracked input control failed: ${status_error}${dirty}")
   endif()
+
+  # D-44 must accept only its eight approved maintenance paths from the
+  # frozen package source, while the default D-42 scope remains unchanged.
+  set(d44_repo "${work}/d44-scope-fixture")
+  set(d44_paths
+    tests/cmake/accuracycoin_activation.cmake
+    tests/cmake/accuracycoin_input_fingerprint_controls.cmake
+    tests/cmake/accuracycoin_input_fingerprint.cmake
+    tests/accuracy/input-binding-v1.json
+    tests/cmake/provider_receipt.cmake
+    README.md docs/testing.md docs/releases.md)
+  file(MAKE_DIRECTORY "${d44_repo}/tests/cmake" "${d44_repo}/tests/accuracy"
+    "${d44_repo}/docs" "${d44_repo}/src")
+  file(WRITE "${d44_repo}/tests/CMakeLists.txt" "# frozen D-44 registrations\n")
+  file(WRITE "${d44_repo}/src/core.c" "frozen protected input\n")
+  foreach(path IN LISTS d44_paths)
+    get_filename_component(parent "${d44_repo}/${path}" DIRECTORY)
+    file(MAKE_DIRECTORY "${parent}")
+    file(WRITE "${d44_repo}/${path}" "frozen ${path}\n")
+  endforeach()
+  foreach(command IN ITEMS init add commit)
+    if(command STREQUAL "init")
+      set(args init --quiet)
+    elseif(command STREQUAL "add")
+      set(args add -- .)
+    else()
+      set(args -c user.name=Nesturbator-Tests -c user.email=0+tests@users.noreply.github.com commit --quiet -m d44-base)
+    endif()
+    execute_process(COMMAND git -C "${d44_repo}" ${args}
+      RESULT_VARIABLE d44_result OUTPUT_VARIABLE d44_output ERROR_VARIABLE d44_error TIMEOUT 5)
+    if(NOT d44_result STREQUAL "0")
+      message(FATAL_ERROR "D-44 scope fixture ${command} failed: ${d44_output}${d44_error}")
+    endif()
+  endforeach()
+  execute_process(COMMAND git -C "${d44_repo}" rev-parse HEAD
+    RESULT_VARIABLE d44_base_result OUTPUT_VARIABLE d44_base ERROR_VARIABLE d44_error TIMEOUT 5)
+  string(STRIP "${d44_base}" d44_base)
+  foreach(path IN LISTS d44_paths)
+    file(WRITE "${d44_repo}/${path}" "approved ${path}\n")
+  endforeach()
+  execute_process(COMMAND git -C "${d44_repo}" add -- .
+    RESULT_VARIABLE d44_add_result OUTPUT_VARIABLE d44_add_output ERROR_VARIABLE d44_add_error TIMEOUT 5)
+  execute_process(COMMAND git -C "${d44_repo}" -c user.name=Nesturbator-Tests
+      -c user.email=0+tests@users.noreply.github.com commit --quiet -m d44-maintenance
+    RESULT_VARIABLE d44_commit_result OUTPUT_VARIABLE d44_commit_output ERROR_VARIABLE d44_commit_error TIMEOUT 5)
+  set(RESET_KIND d44-evidence-v1)
+  pr_reset_scope("${d44_repo}" "${d44_base}" d44_scope_error)
+  if(NOT d44_base_result STREQUAL "0" OR NOT d44_add_result STREQUAL "0" OR
+     NOT d44_commit_result STREQUAL "0" OR d44_scope_error)
+    message(FATAL_ERROR
+      "D-44 exact maintenance allowlist acceptance assertion failed: ${d44_scope_error}${d44_add_error}${d44_commit_error}")
+  endif()
 endfunction()
 
 function(pr_reset_artifacts route_path stage out_error)
