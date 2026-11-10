@@ -2418,4 +2418,3 @@ add_test(NAME provider.profile.controls
     "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/provider/profile-controls"
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/provider_profile.cmake)
 set_tests_properties(provider.profile provider.profile.controls PROPERTIES TIMEOUT 15)
-

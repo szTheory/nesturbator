@@ -824,6 +824,7 @@ function(provider_validate source_dir profile_path runtime_report out_error)
 endfunction()
 
 function(provider_profile_selftest source_dir profile_path work)
+  set(profile_file "${profile_path}")
   if(NOT EXISTS "${profile_path}")
     message(FATAL_ERROR "provider profile self-test requires ${profile_path}")
   endif()
@@ -995,6 +996,65 @@ function(provider_profile_selftest source_dir profile_path work)
     provider_validate("${source_dir}" "${unsupported_path}" "" unsupported_error)
     if(NOT unsupported_error STREQUAL "region.${field}: unsupported field for the base API")
       message(FATAL_ERROR "borrowed region-field control reached '${unsupported_error}'")
+    endif()
+  endforeach()
+
+  # Synthetic reports exercise only the report contract; install.gameplay
+  # separately proves these predicates through the actual moved package.
+  file(READ "${source_dir}/include/nesturbator.h" runtime_header)
+  foreach(pair IN ITEMS "MAJOR;version_major" "MINOR;version_minor" "PATCH;version_patch")
+    list(GET pair 0 component)
+    list(GET pair 1 variable)
+    provider_get_define("${runtime_header}" "NESTURBATOR_VERSION_${component}" ${variable} macro_error)
+    if(macro_error)
+      message(FATAL_ERROR "runtime control version source: ${macro_error}")
+    endif()
+  endforeach()
+  set(runtime_fixture [=[{
+    "game":"DABG", "candidate_status":"unpublished", "scenario":"positive",
+    "route":"ntsc-only-base-api", "video":{"width":256,"height":240},
+    "header_version":{"major":@version_major@,"minor":@version_minor@,"patch":@version_patch@,
+      "abi":1,"behaviour_revision":9,"state_format":3},
+    "library_version":{"major":@version_major@,"minor":@version_minor@,"patch":@version_patch@,
+      "abi":1,"behaviour_revision":9},
+    "rates":{"fps_num":39375000,"fps_den":655171,"sample_rate_num":48000,"sample_rate_den":1},
+    "completed_frames":110, "pcm":{"first_frame":61,"last_frame":76,
+      "audio_count_min":798,"audio_count_max":799,"samples":12779},
+    "failure_mask":0,"passed":true,
+    "predicates":{"game_state":true,"input_caused_progress":true,
+      "visible_native_response":true,"non_silent_gameplay_pcm":true},
+    "integrity_checks":{"refused_load_status":7,"continuation_frames":30,
+      "executed":true,"refusal_preserved":true,"continuation_equal":true,
+      "buffer_edges_passed":true,"all_positive_checks_passed":true},
+    "input_recipe":{"one_based_frames":true,"port0_a_mask":1,"a_pulse_frames":[3,57,3],
+      "port0_right_mask":128,"right_frames":[80,110],"neutral_frames":[58,79],"port1_mask":0}
+  }]=])
+  string(CONFIGURE "${runtime_fixture}" runtime_fixture @ONLY)
+  set(runtime_path "${control_work}/runtime-fixture.json")
+  file(WRITE "${runtime_path}" "${runtime_fixture}\n")
+  provider_validate("${source_dir}" "${profile_file}" "${runtime_path}" runtime_error)
+  if(runtime_error)
+    message(FATAL_ERROR "runtime contract positive control failed: ${runtime_error}")
+  endif()
+  foreach(case IN ITEMS
+      "route|\"borrowed-region-query\"|runtime.route:"
+      "header_version.behaviour_revision|18|runtime.header_version.behaviour_revision:"
+      "header_version.state_format|7|runtime.header_version.state_format:"
+      "rates.fps_num|1|runtime.rates.fps_num:"
+      "pcm.audio_count_max|800|runtime.pcm.audio_count_max:"
+      "predicates.input_caused_progress|false|runtime.predicates.input_caused_progress:")
+    string(REPLACE "|" ";" parts "${case}")
+    list(GET parts 0 field)
+    list(GET parts 1 replacement)
+    list(GET parts 2 expected_error)
+    string(REPLACE "." ";" field_path "${field}")
+    string(JSON invalid_runtime SET "${runtime_fixture}" ${field_path} "${replacement}")
+    set(invalid_path "${control_work}/runtime-${field}.json")
+    file(WRITE "${invalid_path}" "${invalid_runtime}\n")
+    provider_validate("${source_dir}" "${profile_file}" "${invalid_path}" invalid_error)
+    string(FIND "${invalid_error}" "${expected_error}" reason_index)
+    if(NOT reason_index EQUAL 0)
+      message(FATAL_ERROR "runtime ${field} control reached '${invalid_error}', expected '${expected_error}'")
     endif()
   endforeach()
 
