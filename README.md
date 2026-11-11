@@ -2500,3 +2500,30 @@ claimed until those gates pass. Each actual failure, interruption or timeout
 stops this route without retry or refreeze. Historical campaigns and ledgers
 are never restarted. Local preparation establishes no hosted runtime margin or
 consumer/host acceptance.
+
+## D-51 receipt qualification
+
+D-51 starts from the D-50 candidate source that failed its candidate CI receipt
+control. It uses a separate `d51-receipt-v1` tuple: base
+`4cf3d9483d36eaa0c4d50835c52e7c4f84078341`, branch
+`phase/28-d51-receipt-validation`, and `build/phase28-d51` for its route and
+qualification evidence. Its local identity, acceptance narrative and release
+evidence are `28-D51-IDENTITY.json`, `28-D51-ACCEPTANCE.md` and
+`28-D51-RELEASE-EVIDENCE.json` in the phase evidence folder. D-44, D-45 and
+D-46 keep their own source bindings and evidence.
+
+The receipt checker reads already-validated asset, archive and checksum
+collections as subtrees and reuses each validated checksum name/digest pair
+when matching archive entries. The lookup key encodes the original name's bytes
+so CMake list delimiters cannot separate a name from its digest. Existing
+failure reasons, test registration, the 15-second receipt-control limit,
+package profile and public behavior remain fixed. Three added controls cover
+reversed checksum order with distinct digests, swapped digests, and a
+separator-plus-duplicate name case.
+
+This paragraph records the implementation-time snapshot: D-51 qualification
+and release proof were pending when the optimized source was prepared. D-50's
+candidate CI failure remains historical evidence. Later D-51 gate outcomes are
+recorded in the dated phase acceptance and release evidence; they supersede
+this snapshot. The source change by itself makes no release or consumer
+acceptance claim.

@@ -128,3 +128,33 @@ claimed until those gates pass. Each actual failure, interruption or timeout
 stops this route without retry or refreeze. Historical campaigns and ledgers
 are never restarted. Local preparation establishes no hosted runtime margin or
 consumer/host acceptance.
+
+## D-51 optimized receipt validation
+
+D-51 preserves the registered `provider.receipt.controls` test and its
+15-second timeout. In `pr_validate_structure`, checksum name/digest entries
+are validated once and retained as paired values. A nonempty prefix plus the
+name's hexadecimal bytes forms a CMake list-safe lookup key, preserving the
+original name, including malformed names and delimiters. Archive matching
+then uses the paired digest without rereading the full receipt document inside
+the archive loop. Asset, checksum and archive collection subtrees are read
+after their existing type and count checks. No lookup survives the current
+validation call.
+
+The existing validator's explicit reason prefixes and diagnostic context,
+validation order and rejection order are preserved. CMake-generated low-level
+JSON error text may contain shorter paths because the validator now reads
+extracted collection subtrees. Three additional controls require reversed
+checksum order with 18 distinct name-bound digests to pass, swapped digests to
+fail with `checksum-disagreement`, and a delimiter-plus-duplicate name
+mutation to fail with `checksum-missing`. The route selftest checks the exact
+D-51 base, branch, four-file source delta, evidence paths and route
+discriminator against the shared receipt helpers; it does not launch a hosted
+operation.
+
+Implementation-time snapshot: the earlier candidate CI run had timed out this
+test at its unchanged 15-second cap, and the optimization's runtime margin had
+not yet been measured. That approved preparation scope allowed up to three
+focused prefreeze validations and a separate full qualification. Later D-51
+results are recorded in the dated phase evidence and supersede this snapshot;
+the D-50 source, failed run and spent route remain historical and unchanged.
