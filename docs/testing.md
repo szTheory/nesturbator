@@ -62,3 +62,69 @@ includes the configured campaign; saved-evidence inspection never reruns it.
 The driver enforces the 15-second receipt-control subprocess cap, 180-second
 synthetic cap, 60-second inspection cap and the existing qualification limits.
 No ignored driver is shipped or available from a fresh clone.
+
+## Offline harness work and diagnostics
+
+`ci.session_inventory` asks real CTest discovery for the existing session-name
+prefix, then checks the exact full/short registration and real label exclusion.
+It retains the prefix filter for automatically included fixture tests and
+handles an empty selection. Unrelated test names need not be parsed.
+
+Each offline Phase20/Phase21 control invocation reads its unchanged runner/ROM
+inventory once. Every rejection case still rebuilds its fixture, rereads the
+scoreboard and recomputes source/evidence digests. Inventory is not reused
+across invocations or contracts. Changing the runner or ROM within an
+invocation would require a fresh inventory; validator results are never cached.
+
+Receipt selftests print timestamped section markers to locate selector, reset,
+scratch, ancestry, receipt/rights, hosted-control and final-usage costs in saved
+verbose output. These are wall timestamps, affected by `SOURCE_DATE_EPOCH`,
+not timeout enforcement. Test caps, live receipt modes and rejection predicates
+remain unchanged. Focused offline results do not qualify a release or restart
+a stopped acceptance/campaign run.
+
+## Provider observer preflight
+
+The provider receipt observer queries workflow runs with `ci.yml` or
+`release.yml`. Returned records must still match the exact
+`.github/workflows/ci.yml` or `.github/workflows/release.yml` path, expected
+head, event, workflow name, attempt and required jobs. Selecting by filename
+does not relax those identity checks.
+
+The existing receipt selftest checks synthetic record validation; it does not
+exercise the live query constructor. The local repair uses a disposable probe
+that loads the exact source function definitions and calls the real helper
+through the owned fake GitHub executable. A filename-only route table and an
+isolated command path prevent real GitHub access and reject unknown requests.
+This one-time probe adds no production loading mode, target or registration.
+
+Before any new acceptance route, check every reader and writer against its
+concrete draft evidence. Release-evidence JSON and the final published receipt
+are separate artifacts. Initialize all intermediate objects with the right
+types, including `candidate`, `main`, `release` and `linked_ci` for hosted
+evidence, and check setters on disposable copies without changing unrelated
+values. Mark drafts as synthetic and keep every real acceptance gate pending.
+Check the complete case-sensitive narrative and exact route-command strings
+before calling a handoff gate; a static preflight must not call the gate itself.
+
+Offline checks neither qualify a release nor establish hosted runtime margin.
+A repaired source needs its own separately approved qualification identity and
+route; historical hardcoded routes and spent ledgers cannot be reused.
+
+## Separate repaired-source qualification route
+
+The D46 qualification route starts at the repaired observer source and uses
+`d46-observer-v1` with its own exact base, branch, four-file metadata/documentation
+delta and `build/phase28-d46` evidence. D44/D45 retain their original tuples and
+terminal history. Registration, baseline, profile, scenario and public behavior
+remain unchanged. The ignored local supervisor is not shipped.
+
+Prefreeze uses one bounded offline session, full campaign OFF, the existing
+receipt control once under its unchanged15second cap and disposable route
+controls. A separate single source freeze/full local qualification includes its
+fresh configured campaign. Exact candidate/main checks and normal new-head
+release lineage precede actual published-byte/native/rights proof; no result is
+claimed until those gates pass. Each actual failure, interruption or timeout
+stops this route without retry or refreeze. Historical campaigns and ledgers
+are never restarted. Local preparation establishes no hosted runtime margin or
+consumer/host acceptance.

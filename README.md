@@ -164,6 +164,18 @@ complete local CI lane, configure with `-DNESTURBATOR_ACCURACYCOIN_FULL=ON`
 before `cmake --workflow --preset ci`. Restore the ordinary local setting with
 `cmake --preset ci -DNESTURBATOR_ACCURACYCOIN_FULL=OFF` afterward.
 
+Offline harness checks keep their existing assertions and timeouts while
+limiting session discovery to its name prefix and reading unchanged fixture
+inventory once per hosted-control invocation. Receipt selftests include section
+timestamps in verbose output; see [testing details](docs/testing.md#offline-harness-work-and-diagnostics).
+These changes do not qualify a release or restart a stopped acceptance run.
+
+The provider receipt observer selects GitHub workflow runs by filename and
+checks the returned full workflow path, event and source identity separately.
+Generated release evidence needs every writer parent object and the complete
+pending-release checklist prepared before any acceptance call; see the
+[offline preflight limits](docs/testing.md#provider-observer-preflight).
+
 CI also runs the inventory decoder against owned mutations of the pinned ROM.
 These controls cover page boundaries, row fields, duplicate decoded identities,
 the shared DRAW sentinel, exact expansion capacity and both retained pin
@@ -2470,3 +2482,21 @@ retain every protected-path rejection while combining fixture restorations into
 one final commit. The separate D-45 qualification route preserves the failed
 D-44 result and all one-shot limits. These test-control changes leave emulator
 behavior and the public API unchanged; publication remains pending.
+
+## Separate repaired-source qualification route
+
+The D46 qualification route starts at the repaired observer source and uses
+`d46-observer-v1` with its own exact base, branch, four-file metadata/documentation
+delta and `build/phase28-d46` evidence. D44/D45 retain their original tuples and
+terminal history. Registration, baseline, profile, scenario and public behavior
+remain unchanged. The ignored local supervisor is not shipped.
+
+Prefreeze uses one bounded offline session, full campaign OFF, the existing
+receipt control once under its unchanged15second cap and disposable route
+controls. A separate single source freeze/full local qualification includes its
+fresh configured campaign. Exact candidate/main checks and normal new-head
+release lineage precede actual published-byte/native/rights proof; no result is
+claimed until those gates pass. Each actual failure, interruption or timeout
+stops this route without retry or refreeze. Historical campaigns and ledgers
+are never restarted. Local preparation establishes no hosted runtime margin or
+consumer/host acceptance.

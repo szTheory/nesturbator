@@ -1,0 +1,68 @@
+{
+  "status": "local-and-handoff-passed",
+  "source_commit": "573af752cda36b56e78cc0305602bdedbefa47f3",
+  "source_tree": "54257c35da2f91458c6d8ec3a00d779030a84a31",
+  "manifest_sha256": "68e08e40f3aeb12d27cc33c57a1e3d38383f553871da19a65d06c1f5704c4a18",
+  "workflow_exit_code": 0,
+  "workflow_summary": "100% tests passed out of 700",
+  "workflow_duration_seconds": 654,
+  "workflow_child_cap_seconds": 1500,
+  "outer_cap_seconds": 1800,
+  "max_workers": 4,
+  "tests_passed": 700,
+  "receipt_control_seconds": 6.15,
+  "receipt_control_cap_seconds": 15,
+  "full_campaign_passed": true,
+  "required_regex_pass_reasons_retained": true,
+  "installed_runtime_profile_exit_code": "0",
+  "local_archive_check_exit_code": "0",
+  "local_result_sha256": "b9f47276fbed86a570d2ced1782819f846d760e348e6c1d81a19a0b8a54093db",
+  "handoff_result_sha256": "eb9b158294a3feb78284a9f2347b4ae25dbfa5ee72f8061f8de70eae3b833e80",
+  "handoff_inspection_tool_exit_code": 0,
+  "handoff_inspection_read_only": true,
+  "pending_published_draft_sha256": "c77077dace3507ee1d8c9ecc181181d0d20d97243da9f7758b324cb3fa13602c",
+  "summed_test_wall_seconds": 1105.66,
+  "longest_tests": [
+    {
+      "test": "retroarch.session.controls",
+      "seconds": 307.18,
+      "passed": true
+    },
+    {
+      "test": "libretro.runahead",
+      "seconds": 58.4,
+      "passed": true
+    },
+    {
+      "test": "core.state_runahead",
+      "seconds": 53.02,
+      "passed": true
+    },
+    {
+      "test": "core.state_fork.stress",
+      "seconds": 52.43,
+      "passed": true
+    },
+    {
+      "test": "phase20.hosted_evidence.controls",
+      "seconds": 43.95,
+      "passed": true
+    },
+    {
+      "test": "phase21.hosted_evidence.controls",
+      "seconds": 37.16,
+      "passed": true
+    },
+    {
+      "test": "runner.write_hashes",
+      "seconds": 29.07,
+      "passed": true
+    },
+    {
+      "test": "vectors.registration_policy",
+      "seconds": 25.71,
+      "passed": true
+    }
+  ],
+  "hosted_or_published_claim": false
+}
