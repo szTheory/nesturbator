@@ -214,6 +214,13 @@ merge commit.
 
 ## PR title checks in the normal release path
 
+Title evidence selects the unique newest run by GitHub's workflow-local
+`run_number`, then matches its exact check suite, job and retained live-title
+log. Repeated metadata events may leave several checks on one head, even in
+the same second. A pending, failed or stale newest title run blocks the merge;
+older green checks cannot substitute. Full source CI still rejects duplicate
+exact-head runs.
+
 The separate `PR title` workflow validates the live title on every open,
 synchronize, reopen and edit event. Full CI remains tied to source events, so
 editing a title does not start or cancel the six-platform CI run. `main` still
