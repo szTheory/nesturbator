@@ -8,6 +8,10 @@ foreach(required IN ITEMS SOURCE_DIR RUNNER CONFORMANCE NEW_ROM OLD_ROM SCOREBOA
 endforeach()
 
 include("${CMAKE_CURRENT_LIST_DIR}/accuracycoin_input_fingerprint.cmake")
+accuracycoin_validate_input_binding("${SOURCE_DIR}" binding_error)
+if(binding_error)
+  message(FATAL_ERROR "AccuracyCoin historical/current binding failed: ${binding_error}")
+endif()
 accuracycoin_compute_input_fingerprint("${SOURCE_DIR}" current_inputs_sha256 current_inputs_count)
 
 function(read_meta name out)
@@ -136,8 +140,8 @@ foreach(pair IN ITEMS
     "execution_frame_budget|1800"
     "total_frame_budget|41503"
     "behaviour_revision|9"
-    "build_inputs_sha256|${current_inputs_sha256}"
-    "build_inputs_count|${current_inputs_count}")
+    "build_inputs_sha256|78822adfa35ac2b0e2f562cfb0067ae08db7e76c3e6e4027fa63d7bcca400de2"
+    "build_inputs_count|56")
   string(REPLACE "|" ";" fields "${pair}")
   list(GET fields 0 name)
   list(GET fields 1 expected)
