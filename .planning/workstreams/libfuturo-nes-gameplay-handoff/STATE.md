@@ -314,3 +314,13 @@ No hosted admission yet. Assistant continues automatically.
 Plan30 halted after actual handoff failure. Earlier running/next-freeze notes
 are superseded. No operation remains active. Assistant completes read-only
 remedy review; runtime, hosted and publication remain stopped.
+
+## Approved recovery actual result
+
+The checklist-only recovery handoff and saved read-only inspection passed.
+See [recovery summary](phases/28-qualified-nes-gameplay-package/28-30-RECOVERY-SUMMARY.md).
+Original30 summary and failed call remain unchanged; no local workflow rerun.
+31 now depends on completed29 plus this explicit successful recovery prerequisite;
+this avoids treating halted30 as successful. Only31 is ready;32 waits for31.
+Assistant continues remote/base/source preflight automatically; no user action.
+All unused stage allowances, exact limits and terminal stops remain unchanged.

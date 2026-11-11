@@ -77,3 +77,16 @@ Owner answers the concrete exception in chat; assistant then records that exact
 answer and continues automatically within it, without per-step confirmations.
 Fresh-context entry: `$gsd-autonomous --ws libfuturo-nes-gameplay-handoff --from 28`.
 Context may be cleared. Reuse these completed reviews; do not repeat fanout.
+
+## Approved checklist-only recovery — 2026-11-11T00:01:41.994150+00:00
+
+Owner explicitly answered: “Approve the exact checklist-only recovery and continuation”.
+This approves exactly the saved 28-D45-HANDOFF-RECOVERY-REVIEW.md exception:
+prepared narrative-only append, one additional handoff call capped180seconds
+with unchanged15second child cap and exclusively new recovery-1 outer files,
+then saved read-only inspection capped60seconds. Only successful gates enable
+the unused candidate/main and normal release/publication/native/rights stages.
+No refreeze, source/driver/input change, full workflow/campaign rerun, second
+candidate or ledger reset. Every older/MMC2/capture stop remains. Any new actual
+gate failure, interruption or timeout terminalizes this exception without retry.
+Assistant acts next automatically; no further routine acknowledgment required.

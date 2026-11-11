@@ -1,0 +1,77 @@
+{
+  "status": "passed",
+  "original_call_status": "failed",
+  "approved_exception": "checklist-only recovery and continuation",
+  "source_commit": "adbb84b79bc5bb70385db51f6acb0b3a424c0609",
+  "manifest_sha256": "65646381173d785de235efc66684f27e887a68d58fa5f1802d1dc3b11964f84d",
+  "driver_sha256": "1303d50bbdf4526c7dfe565f1be19ad79d996792362af36c1c53db8c8d1efd4f",
+  "preflight": {
+    "approved_exception": "checklist-only recovery and continuation",
+    "driver_sha256": "1303d50bbdf4526c7dfe565f1be19ad79d996792362af36c1c53db8c8d1efd4f",
+    "fixed_paths_absent": true,
+    "local_inspection": {
+      "manifest_sha256": "65646381173d785de235efc66684f27e887a68d58fa5f1802d1dc3b11964f84d",
+      "source_commit": "adbb84b79bc5bb70385db51f6acb0b3a424c0609",
+      "stage": "local",
+      "status": "passed"
+    },
+    "manifest_sha256": "65646381173d785de235efc66684f27e887a68d58fa5f1802d1dc3b11964f84d",
+    "narrative_after_sha256": "49e454168f5857015f3415f3886abb13fb22501473ab3b970e6cbf1623a68005",
+    "narrative_before_sha256": "d66e690da363869271f94c605baec71a28031d812db0e62cea08e0c7c127bba7",
+    "original_failure_sha256": "034433f4d0a42ed541d4693851a4c794e2253728d98447d76a17f9e9fd3ec876",
+    "patch_sha256": "3f67cd7e8a7df54c9b19d0211efb4c48901b9e2246635684f3683fc8bb875ef7",
+    "status": "passed"
+  },
+  "handoff": {
+    "child_timeout_seconds": 15,
+    "command": [
+      "cmake",
+      "-DSOURCE_DIR=.",
+      "-DMODE=handoff",
+      "-DRESET_KIND=d45-controls-v1",
+      "-DRESET_BASE=d8155bee6ea7dfd59aa3ff2ad61e60d1ed26dfa3",
+      "-DRESET_ROUTE=build/phase28-d45/route.json",
+      "-DACCEPTANCE=.planning/workstreams/libfuturo-nes-gameplay-handoff/phases/28-qualified-nes-gameplay-package/28-D45-IDENTITY.json",
+      "-DACCEPTANCE_MARKDOWN=.planning/workstreams/libfuturo-nes-gameplay-handoff/phases/28-qualified-nes-gameplay-package/28-D45-ACCEPTANCE.md",
+      "-P",
+      "tests/cmake/provider_receipt.cmake"
+    ],
+    "duration_seconds": 0.12247845903038979,
+    "finished_at": "2026-11-11T00:02:47.033158+00:00",
+    "original_failed_call_preserved": true,
+    "returncode": 0,
+    "started_at": "2026-11-11T00:02:46.910484+00:00",
+    "status": "passed",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_sha256": "7d9707b34b5af947c4c9be5ad4cecb26f6eb5abbe38b3e06b29b134ed2f5f108",
+    "timeout_seconds": 180
+  },
+  "inspection": {
+    "command": [
+      "python3",
+      "build/phase28-d45/run.py",
+      "inspect",
+      "--stage=handoff"
+    ],
+    "duration_seconds": 0.211162083,
+    "finished_at": "2026-11-11T00:02:58.140541+00:00",
+    "returncode": 0,
+    "started_at": "2026-11-11T00:02:57.929103+00:00",
+    "status": "passed",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_sha256": "1551fa11d766fa2ad6f3d033adeb763fbea7e593e19a72990cbb0e3b49ce461d",
+    "timeout_seconds": 60
+  },
+  "retained_files_sha256": {
+    "build/phase28-d45/handoff-recovery-1.inspect.json": "c86856b6cdf4e58c7fe06a8a3e79b754b0d42c1c855947524a1114c2565fe7e3",
+    "build/phase28-d45/handoff-recovery-1.inspect.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/phase28-d45/handoff-recovery-1.inspect.stdout.txt": "1551fa11d766fa2ad6f3d033adeb763fbea7e593e19a72990cbb0e3b49ce461d",
+    "build/phase28-d45/handoff-recovery-1.preflight.json": "3bb8e8294c7aa650b0e40437167621cfe3438e2769dbfc56196048f812c6a41d",
+    "build/phase28-d45/handoff-recovery-1.result.json": "80f9c179fc29eeb29b897825b71d15a4558cd6d5d68efed4aa8435adda9775d8",
+    "build/phase28-d45/handoff-recovery-1.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/phase28-d45/handoff-recovery-1.stdout.txt": "7d9707b34b5af947c4c9be5ad4cecb26f6eb5abbe38b3e06b29b134ed2f5f108"
+  },
+  "candidate_attempts": 0,
+  "main_attempts": 0,
+  "published_attempts": 0
+}

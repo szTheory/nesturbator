@@ -160,3 +160,13 @@ and complete local workflow passed, then its sole handoff call failed missing
 required narrative checklist text.30 is halted,31/32 blocked. No hosted
 admission/publication/new requirement completion. No actual gate was retried.
 Read-only review supports the [exact prepared evidence-only exception](phases/28-qualified-nes-gameplay-package/28-D45-HANDOFF-RECOVERY-REVIEW.md), pending explicit owner approval; no new candidate/full workflow proposed.
+
+## Approved recovery actual result
+
+The checklist-only recovery handoff and saved read-only inspection passed.
+See [recovery summary](phases/28-qualified-nes-gameplay-package/28-30-RECOVERY-SUMMARY.md).
+Original30 summary and failed call remain unchanged; no local workflow rerun.
+31 now depends on completed29 plus this explicit successful recovery prerequisite;
+this avoids treating halted30 as successful. Only31 is ready;32 waits for31.
+Assistant continues remote/base/source preflight automatically; no user action.
+All unused stage allowances, exact limits and terminal stops remain unchanged.
