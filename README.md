@@ -164,6 +164,12 @@ complete local CI lane, configure with `-DNESTURBATOR_ACCURACYCOIN_FULL=ON`
 before `cmake --workflow --preset ci`. Restore the ordinary local setting with
 `cmake --preset ci -DNESTURBATOR_ACCURACYCOIN_FULL=OFF` afterward.
 
+Offline harness checks keep their existing assertions and timeouts while
+limiting session discovery to its name prefix and reading unchanged fixture
+inventory once per hosted-control invocation. Receipt selftests include section
+timestamps in verbose output; see [testing details](docs/testing.md#offline-harness-work-and-diagnostics).
+These changes do not qualify a release or restart a stopped acceptance run.
+
 CI also runs the inventory decoder against owned mutations of the pinned ROM.
 These controls cover page boundaries, row fields, duplicate decoded identities,
 the shared DRAW sentinel, exact expansion capacity and both retained pin

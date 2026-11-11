@@ -2429,9 +2429,19 @@ function(pr_local_manifest_selector_control work)
   endforeach()
 endfunction()
 
+function(pr_selftest_mark section)
+  # Diagnostic wall timestamps only; SOURCE_DATE_EPOCH may make them constant.
+  # The enclosing test/driver remains responsible for every timeout.
+  string(TIMESTAMP section_time "%s.%f" UTC)
+  message(STATUS "provider receipt selftest: ${section} at ${section_time}")
+endfunction()
+
 function(pr_receipt_controls work)
+  pr_selftest_mark("selector begin")
   pr_local_manifest_selector_control("${work}")
+  pr_selftest_mark("reset begin")
   pr_reset_controls("${work}")
+  pr_selftest_mark("scratch ownership begin")
   set(caller_owned "${work}/caller-owned")
   file(MAKE_DIRECTORY "${caller_owned}")
   set(caller_marker "${caller_owned}/.provider-receipt-owned")
@@ -2456,6 +2466,7 @@ function(pr_receipt_controls work)
     message(FATAL_ERROR "marked caller-owned WORK contents did not survive child cleanup")
   endif()
 
+  pr_selftest_mark("ancestry begin")
   set(ancestry_repo "${work}/candidate-ancestry")
   if(EXISTS "${ancestry_repo}" OR IS_SYMLINK "${ancestry_repo}")
     message(FATAL_ERROR "preserving existing candidate ancestry control path ${ancestry_repo}")
@@ -2523,6 +2534,7 @@ function(pr_receipt_controls work)
     endif()
   endforeach()
 
+  pr_selftest_mark("receipt and rights begin")
   set(candidate_sha "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
   pr_synthetic_fixture(fixture)
   string(JSON expected_missing_attestation_name GET "${fixture}" archives 0 name)
@@ -2762,7 +2774,9 @@ function(pr_receipt_controls work)
     message(FATAL_ERROR
       "separate implementation-main and Release/push source identities were rejected: ${split_identity_error}")
   endif()
+  pr_selftest_mark("hosted controls begin")
   pr_hosted_controls()
+  pr_selftest_mark("final identity and usage begin")
 
   string(JSON mismatched_ci_fixture SET "${live_fixture}" linked_ci main head_sha
     "\"ffffffffffffffffffffffffffffffffffffffff\"")
@@ -2803,6 +2817,7 @@ function(pr_receipt_controls work)
 
   pr_mode_usage_control(local "provider_receipt MODE=local requires ACCEPTANCE")
   pr_mode_usage_control(handoff "provider_receipt MODE=handoff requires ACCEPTANCE")
+  pr_selftest_mark("complete")
 endfunction()
 
 function(pr_local_manifest source_dir out_paths out_manifest out_sha out_error)

@@ -62,3 +62,23 @@ includes the configured campaign; saved-evidence inspection never reruns it.
 The driver enforces the 15-second receipt-control subprocess cap, 180-second
 synthetic cap, 60-second inspection cap and the existing qualification limits.
 No ignored driver is shipped or available from a fresh clone.
+
+## Offline harness work and diagnostics
+
+`ci.session_inventory` asks real CTest discovery for the existing session-name
+prefix, then checks the exact full/short registration and real label exclusion.
+It retains the prefix filter for automatically included fixture tests and
+handles an empty selection. Unrelated test names need not be parsed.
+
+Each offline Phase20/Phase21 control invocation reads its unchanged runner/ROM
+inventory once. Every rejection case still rebuilds its fixture, rereads the
+scoreboard and recomputes source/evidence digests. Inventory is not reused
+across invocations or contracts. Changing the runner or ROM within an
+invocation would require a fresh inventory; validator results are never cached.
+
+Receipt selftests print timestamped section markers to locate selector, reset,
+scratch, ancestry, receipt/rights, hosted-control and final-usage costs in saved
+verbose output. These are wall timestamps, affected by `SOURCE_DATE_EPOCH`,
+not timeout enforcement. Test caps, live receipt modes and rejection predicates
+remain unchanged. Focused offline results do not qualify a release or restart
+a stopped acceptance/campaign run.
