@@ -17,6 +17,7 @@ jobs:
   pr-title:
     name: PR title
     runs-on: ubuntu-24.04
+    # 5-minute network floor (ENGINEERING section 5); twice the only successful sample (4 s in run 43103712252) is 8 s, below that floor.
     timeout-minutes: 5
     permissions:
       pull-requests: read
