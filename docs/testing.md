@@ -110,3 +110,21 @@ before calling a handoff gate; a static preflight must not call the gate itself.
 Offline checks neither qualify a release nor establish hosted runtime margin.
 A repaired source needs its own separately approved qualification identity and
 route; historical hardcoded routes and spent ledgers cannot be reused.
+
+## Separate repaired-source qualification route
+
+The D46 qualification route starts at the repaired observer source and uses
+`d46-observer-v1` with its own exact base, branch, four-file metadata/documentation
+delta and `build/phase28-d46` evidence. D44/D45 retain their original tuples and
+terminal history. Registration, baseline, profile, scenario and public behavior
+remain unchanged. The ignored local supervisor is not shipped.
+
+Prefreeze uses one bounded offline session, full campaign OFF, the existing
+receipt control once under its unchanged15second cap and disposable route
+controls. A separate single source freeze/full local qualification includes its
+fresh configured campaign. Exact candidate/main checks and normal new-head
+release lineage precede actual published-byte/native/rights proof; no result is
+claimed until those gates pass. Each actual failure, interruption or timeout
+stops this route without retry or refreeze. Historical campaigns and ledgers
+are never restarted. Local preparation establishes no hosted runtime margin or
+consumer/host acceptance.
