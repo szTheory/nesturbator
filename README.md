@@ -170,6 +170,12 @@ inventory once per hosted-control invocation. Receipt selftests include section
 timestamps in verbose output; see [testing details](docs/testing.md#offline-harness-work-and-diagnostics).
 These changes do not qualify a release or restart a stopped acceptance run.
 
+The provider receipt observer selects GitHub workflow runs by filename and
+checks the returned full workflow path, event and source identity separately.
+Generated release evidence needs every writer parent object and the complete
+pending-release checklist prepared before any acceptance call; see the
+[offline preflight limits](docs/testing.md#provider-observer-preflight).
+
 CI also runs the inventory decoder against owned mutations of the pinned ROM.
 These controls cover page boundaries, row fields, duplicate decoded identities,
 the shared DRAW sentinel, exact expansion capacity and both retained pin

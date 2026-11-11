@@ -82,3 +82,31 @@ verbose output. These are wall timestamps, affected by `SOURCE_DATE_EPOCH`,
 not timeout enforcement. Test caps, live receipt modes and rejection predicates
 remain unchanged. Focused offline results do not qualify a release or restart
 a stopped acceptance/campaign run.
+
+## Provider observer preflight
+
+The provider receipt observer queries workflow runs with `ci.yml` or
+`release.yml`. Returned records must still match the exact
+`.github/workflows/ci.yml` or `.github/workflows/release.yml` path, expected
+head, event, workflow name, attempt and required jobs. Selecting by filename
+does not relax those identity checks.
+
+The existing receipt selftest checks synthetic record validation; it does not
+exercise the live query constructor. The local repair uses a disposable probe
+that loads the exact source function definitions and calls the real helper
+through the owned fake GitHub executable. A filename-only route table and an
+isolated command path prevent real GitHub access and reject unknown requests.
+This one-time probe adds no production loading mode, target or registration.
+
+Before any new acceptance route, check every reader and writer against its
+concrete draft evidence. Release-evidence JSON and the final published receipt
+are separate artifacts. Initialize all intermediate objects with the right
+types, including `candidate`, `main`, `release` and `linked_ci` for hosted
+evidence, and check setters on disposable copies without changing unrelated
+values. Mark drafts as synthetic and keep every real acceptance gate pending.
+Check the complete case-sensitive narrative and exact route-command strings
+before calling a handoff gate; a static preflight must not call the gate itself.
+
+Offline checks neither qualify a release nor establish hosted runtime margin.
+A repaired source needs its own separately approved qualification identity and
+route; historical hardcoded routes and spent ledgers cannot be reused.

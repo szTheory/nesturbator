@@ -1022,7 +1022,8 @@ endfunction()
 
 function(pr_live_run_record workflow_file workflow_name event head_sha tested_checkout pr_number
     required_contexts out_record out_error)
-  pr_gh_api("repos/${REPOSITORY}/actions/workflows/${workflow_file}/runs?head_sha=${head_sha}&event=${event}&per_page=100" response api_error)
+  get_filename_component(workflow_id "${workflow_file}" NAME)
+  pr_gh_api("repos/${REPOSITORY}/actions/workflows/${workflow_id}/runs?head_sha=${head_sha}&event=${event}&per_page=100" response api_error)
   if(api_error)
     set(${out_error} "ci-evidence-missing: cannot query ${workflow_name}/${event} on ${head_sha}: ${api_error}" PARENT_SCOPE)
     return()
