@@ -946,14 +946,17 @@ cmake -DBUILD=build/ci -DOUT=hashes.txt \
 ```
 
 The `hygiene` job runs the `hygiene` lane, `asan` runs `asan` with Clang 18,
-and `nofp` runs `nofp` with GCC 14 on Linux x64 and arm64. `title` requires
-the pull-request title to be a Conventional Commit. `hash-equality` requires
+and `nofp` runs `nofp` with GCC 14 on Linux x64 and arm64. A separate read-only
+`PR title` workflow requires a Conventional Commit title and runs on PR edits
+without restarting source builds. `hash-equality` requires
 the six `hashes.txt` files to be byte-identical, so a platform that computes
 a different frame, or a different state, fails the run. It also requires six nonempty artifacts with
 the exact 114-key inventory, state pins included, from `tests/cmake/hash_keys.cmake`, checking the key
 set of every artifact, and rejecting duplicates, missing keys, extra keys and
-malformed hashes. The branch rules require one check,
-`CI required`, which passes only when every required job succeeded. Every
+malformed hashes. The normal release path requires both `CI required`, which
+passes only when every required source job succeeded, and the separate
+`PR title` check. The title context is activated after its first matching
+check succeeds, before the workflow repair PR is merged. Every
 action is pinned to a commit SHA, and Dependabot proposes updates weekly.
 Each build lane clears its native hash file before testing, then uploads the
 same `tests/hashes.txt` that CTest generated and checked against the pin. It
@@ -2521,9 +2524,30 @@ package profile and public behavior remain fixed. Three added controls cover
 reversed checksum order with distinct digests, swapped digests, and a
 separator-plus-duplicate name case.
 
-This paragraph records the implementation-time snapshot: D-51 qualification
-and release proof were pending when the optimized source was prepared. D-50's
-candidate CI failure remains historical evidence. Later D-51 gate outcomes are
-recorded in the dated phase acceptance and release evidence; they supersede
-this snapshot. The source change by itself makes no release or consumer
-acceptance claim.
+This is the implementation-time snapshot: D-51 qualification and release
+proof were pending when the optimized source was prepared. Later D-51 evidence
+records its release-CI duplicate-run stop; that route remains stopped and no
+D-51 release was published. The dated phase acceptance and release evidence
+hold the full history. This D-51 source change alone made no release or
+consumer-acceptance claim.
+
+## D-52 normal hosted title evidence
+
+D-52 adds a separate, small PR-title workflow. Editing a title starts that
+metadata check without starting or cancelling the six-platform source CI. The
+main branch still requires the title check. Before either protected PR merge,
+the source observer binds the live title digest and exact PR head to the
+current required title check, its workflow suite, successful job and retained
+job log. It preserves that at-merge proof after the PR closes; later title
+metadata changes cannot replace it. Published-package creation and
+verification require both candidate and release-PR proof when invoked with
+`REQUIRE_TITLE_PROOF=ON`; historical receipts remain readable without that
+opt-in.
+
+The observer follows the current required check's suite instead of choosing a
+workflow run by its timestamp or numeric ID. Cancelled sibling title runs do
+not mask the surviving required check. A pending, failed, duplicate or
+unmatched current check fails closed. D-52 changes no emulator behavior,
+public API, provider profile, ROM baseline or archive layout. Its dated
+qualification and release evidence identifies the tested source and outcome;
+this source description alone establishes no release or consumer acceptance.

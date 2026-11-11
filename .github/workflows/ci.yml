@@ -1,14 +1,14 @@
 # Continuous integration (ENGINEERING section 5). Every job runs the same
 # `cmake --workflow --preset <lane>` command as a local build. The ruleset
-# requires one check, `CI required`, which passes only when every other job
-# succeeded. The generated Release Please merge commit skips ordinary CI
+# requires `CI required` plus the separate `PR title` check. The full-CI
+# rollup requires every remaining job. The generated Release Please merge commit skips ordinary CI
 # runner allocation because Release calls this workflow on the exact commit;
 # the Release caller remains eligible and owns its validation and artifacts.
 name: CI
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, edited]
+    types: [opened, synchronize, reopened]
   push:
     branches: [main]
   workflow_dispatch:
@@ -25,8 +25,8 @@ on:
 permissions:
   contents: read
 
-# Only a pull request's runs supersede each other. A title edit also starts a
-# run and cancels the one in progress.
+# Only full pull-request validation runs supersede one another.
+# Metadata edits use pr-title.yml without restarting these expensive jobs.
 # The workflow name is part of the group because a call from release.yml sees
 # the caller's context: its run must not queue behind, or be replaced by, the
 # push run on the same commit.
@@ -54,38 +54,6 @@ jobs:
           persist-credentials: false
       # clang-format 18.1.3 is on the image.
       - run: cmake --workflow --preset hygiene
-
-  title:
-    if: >-
-      github.event_name != 'push' ||
-      github.ref != 'refs/heads/main' ||
-      github.workflow != 'CI' ||
-      !startsWith(github.event.head_commit.message, 'chore(main): release ')
-    runs-on: ubuntu-24.04
-    # 5-minute floor for a network-bound job, ENGINEERING section 5; twice the slowest of 37 sampled successful runs (8 s in run 38345355652) is 1 minutes.
-    timeout-minutes: 5
-    permissions:
-      pull-requests: read
-    steps:
-      # The live title, so a re-run after an edit sees the new one. The job
-      # has no checkout, so gh is given the repository.
-      - name: Pull-request title is a Conventional Commit
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EVENT: ${{ github.event_name }}
-          NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          if [ "$EVENT" != "pull_request" ]; then
-            echo "not a pull request"
-            exit 0
-          fi
-          title=$(gh pr view "$NUMBER" --repo "$GITHUB_REPOSITORY" --json title -q .title)
-          printf 'title: %s\n' "$title"
-          re='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._-]+\))?!?: .+'
-          if ! printf '%s\n' "$title" | grep -Eq "$re"; then
-            echo "::error::the title must match $re"
-            exit 1
-          fi
 
   build:
     if: >-
@@ -605,7 +573,7 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
-  # The one required check. GitHub reports a skipped job as success and skips
+  # The required full-CI check. GitHub reports a skipped job as success and skips
   # a job whose dependency failed, so this runs always and requires every
   # result to be success. The exception is perf, which runs only on pull
   # requests and control dispatches: a push, or a release.yml workflow_call
@@ -620,7 +588,7 @@ jobs:
       github.ref != 'refs/heads/main' ||
       github.workflow != 'CI' ||
       !startsWith(github.event.head_commit.message, 'chore(main): release '))
-    needs: [hygiene, title, vector-inventory, session-controls, build, asan, nofp, hash-equality, retroarch-e2e, perf]
+    needs: [hygiene, vector-inventory, session-controls, build, asan, nofp, hash-equality, retroarch-e2e, perf]
     runs-on: ubuntu-24.04
     # 5-minute floor for a network-bound job, ENGINEERING section 5; twice the slowest of 23 sampled successful runs (4 s in run 38359109704) is 1 minutes.
     timeout-minutes: 5

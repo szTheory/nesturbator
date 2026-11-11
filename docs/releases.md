@@ -9,17 +9,18 @@ downloaded ZIPs. For behavior tied to a particular release, read this guide
 from the matching source tag or commit, for example
 `https://github.com/szTheory/nesturbator/blob/<tag>/docs/releases.md`.
 
-## D-44 package handoff route
+## Historical D-44 package handoff route
 
-The current D-44 route keeps the historical AccuracyCoin identity
+The D-44 route kept the historical AccuracyCoin identity
 d4802809ff41 explicitly marked dirty. Its pinned 56-path historical input map
 is separate from the current receipt-checker hashes; reconstructing that map
 does not independently authenticate the historical dirty tree. No identity
 here proves hardware behavior. The compatibility profile remains ABI 1,
 behavior revision 9, state format 3 and ordinary-loader NTSC.
 
-Local acceptance, the actual AccuracyCoin campaign and package publication
-remain pending. This maintenance revision does not claim a release exists.
+At that maintenance snapshot, local acceptance, the configured AccuracyCoin
+campaign and publication were pending. Later source-bound outcomes are retained
+in their dated phase records; that snapshot did not establish a release.
 The source-bound one-shot instructions and their evidence rules are kept in
 the D-44 workstream planning records, not in this consumer guide. The ignored
 route driver is private to its prepared worktree and is neither shipped nor
@@ -210,6 +211,31 @@ hash artifacts; its existing CI dependency and publication checks remain in
 force. Release pull requests and ordinary CI events keep their validation.
 Nightly continues to run on the main push, including the generated release
 merge commit.
+
+## PR title checks in the normal release path
+
+The separate `PR title` workflow validates the live title on every open,
+synchronize, reopen and edit event. Full CI remains tied to source events, so
+editing a title does not start or cancel the six-platform CI run. `main` still
+requires the title check.
+
+Before the candidate PR and Release Please PR merge, the source observer binds
+the live title digest to the exact PR head and the current required title
+check. It finds the matching workflow by that check's suite ID and records the
+successful workflow attempt, job, check run and raw job log. A cancelled
+sibling workflow without the current required check does not supersede the
+selected run; missing, multiple, pending or failed current checks block the
+proof. After merge, hosted and published checks validate the saved proof and
+its retained log. They do not replace the title that was recorded at merge if
+someone edits closed-PR metadata later.
+
+The new normal published-package flow passes
+`-DREQUIRE_TITLE_PROOF=ON` to both `MODE=published` and
+`MODE=verify-published`. That opt-in requires candidate and release-PR title
+proofs in hosted release evidence and in the published receipt. It preserves
+the old receipt structure for historical evidence and legacy callers that do
+not opt in. The title proof does not change emulator behavior, compatibility
+metadata, archive contents or the six-platform source CI requirements.
 
 ## Historical D-42 hosted release evidence
 
@@ -431,9 +457,55 @@ Earlier D-44/D-45/D-46 identities and the D-50 failure remain separate history.
 Implementation-time snapshot: D-51 had not yet passed a fresh qualification or
 release gate when this source was prepared. Up to three focused receipt-control
 runs were authorized before freeze, each under the existing 15-second test
-limit; the full local workflow, candidate/main CI, publication, downloaded
-package, native replay and rights checks were pending at that point. Later
-outcomes belong to the dated phase acceptance and release evidence and
-supersede this snapshot. Local control success alone cannot qualify a release
-or LibFuturo acceptance. A failure after the new source is frozen ends this
-route without retry or refreeze.
+limit. Later D-51 evidence records the fresh source route and its terminal
+duplicate-run stop during release CI; it was not retried, and no D-51 release
+was published. The dated phase acceptance and release evidence retain that
+history. Local control success alone cannot qualify a release or LibFuturo
+acceptance. D-52 is a separate normal workflow path and does not restart the
+stopped D-51 route.
+
+## Normal bounded verification and title rollout
+
+Full CI runs on PR source events and main pushes; metadata edits use the
+separate `PR title` workflow. Every former full-CI assertion remains except
+that title validation now has its own required context. Keep `CI required`
+and every other main protection rule. Add `PR title` from the Actions app only
+after its actual matching check passes, and hold merges throughout rollout.
+A draft repair PR can receive checks before becoming eligible to merge.
+
+Before a candidate or Release Please merge, acquire fresh title evidence with
+`MODE=title`, the real `PR_NUMBER` and a new build-path `OUT`. The parent also
+checks the current PR head/base, required checks, reviews and squash eligibility
+immediately before merging. Store the accepted title proof and raw job log;
+a later edit to a closed PR cannot change the proof observed at merge.
+
+The owner-approved normal path uses existing checked-in CMake local, hosted,
+published and final-observation bodies. A local supervisor explicitly enters
+local/candidate/main with `RESET_OBSERVE_CHILD=ON` and no reset tuple. The flag
+alone is insufficient: the supervisor must replace dynamic premerge intent,
+exact source/tree/input binding, owned snapshots, process-group cleanup, actual
+exits and finite attempt accounting. That local orchestration is not shipped
+in the ZIPs and is not required by a library consumer.
+
+This continuation permits three focused controls, two full local workflows,
+and at most two expensive CI attempts at each candidate/main/release-PR/
+release-source stage. One failed attempt must be diagnosed before a permitted
+retry. An unchanged head reuses its admitted run ID at the next attempt; a
+new corrected head needs fresh affected proof within the same counters.
+Distinct full-CI runs for the same head remain ambiguous, independent of API
+order. Preserve all preceding failures, source/job/artifact provenance and
+immutable evidence copies; never fall back to an older green result.
+
+Every workflow remains bounded to 30 minutes including queue time, with four
+local jobs, a 1500-second local workflow child and the registered 15-second
+receipt test. Keep all stricter observer, fixture, download, attestation and
+native limits. Metadata observations may use their approved diagnosed retry
+without replaying unchanged successful CI. Published native/rights proof and
+the final observation each remain one attempt. The old D-51 and other stopped
+routes are never restarted by this policy. Publication still follows the normal
+protected Release Please path; no manual tag, version or asset substitutes.
+
+Implementation-time snapshot: verification was pending when this change was
+prepared. The dated phase records identify the actual tested source, published
+version and outcome; this description alone establishes no qualification,
+release or consumer acceptance.
