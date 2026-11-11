@@ -1,0 +1,35 @@
+{
+  "candidate": {
+    "head_sha": "fb5c93eb1c301d8d64b28c3ee1e9340f49c233bb",
+    "pr_number": 0,
+    "tested_merge_sha": ""
+  },
+  "linked_ci": {
+    "exact_candidate": {},
+    "main": {},
+    "release_pr": {},
+    "release_source": {}
+  },
+  "local_candidate": {
+    "commit": "fb5c93eb1c301d8d64b28c3ee1e9340f49c233bb",
+    "input_manifest_sha256": "22f3e4eba7cea5c9a6f4230c9a3b970efbfd08f3b96ed8ced5686034504daf7c",
+    "tree_sha": "96eb120ac7ccbe136e85bd373d978522583c1cc3"
+  },
+  "main": {
+    "head_sha": ""
+  },
+  "release": {
+    "implementation_main_commit": "",
+    "is_draft": true,
+    "published_at": "",
+    "release_pr_head_sha": "",
+    "release_pr_number": 0,
+    "release_pr_tested_merge_sha": "",
+    "source_commit": "",
+    "tag": "",
+    "url": "",
+    "version": "",
+    "version_delta_files": []
+  },
+  "schema_version": 1
+}

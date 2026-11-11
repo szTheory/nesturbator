@@ -1,0 +1,50 @@
+{
+  "status": "local-and-handoff-passed",
+  "source_commit": "fb5c93eb1c301d8d64b28c3ee1e9340f49c233bb",
+  "source_tree": "96eb120ac7ccbe136e85bd373d978522583c1cc3",
+  "manifest_sha256": "22f3e4eba7cea5c9a6f4230c9a3b970efbfd08f3b96ed8ced5686034504daf7c",
+  "workflow_exit_code": 0,
+  "workflow_duration_seconds": 458,
+  "workflow_summary": "100% tests passed out of700",
+  "full_campaign_passed": true,
+  "required_tests": [
+    "accuracycoin.campaign=passed",
+    "provider.profile=passed",
+    "provider.profile.controls=passed",
+    "install.gameplay=passed",
+    "provider.receipt.controls=passed"
+  ],
+  "receipt_control_seconds": 3.09,
+  "receipt_control_cap_seconds": 15,
+  "local_outer_seconds": 467.858,
+  "workflow_child_cap_seconds": 1500,
+  "outer_cap_seconds": 1800,
+  "max_workers": 4,
+  "installed_runtime_profile_exit_code": "0",
+  "local_archive_check_exit_code": "0",
+  "local_archives": [
+    {
+      "name": "nesturbator-0.1.12-library-macos-arm64.zip",
+      "sha256": "04282bf123fae46328460365956059a243d4bbb108d98e05ddd16b5018ae9dc0",
+      "size": 108188
+    },
+    {
+      "name": "nesturbator-0.1.12-libretro-macos-arm64.zip",
+      "sha256": "c53da04008f4f7a5e0b1dd1af9d75bd277af79498d008779d4a16f324428f8d1",
+      "size": 86400
+    },
+    {
+      "name": "nesturbator-0.1.12-runner-macos-arm64.zip",
+      "sha256": "bc5539701bd90baca09cf5fcde447a120f1986f38d857dfd555bd28d7c90b95b",
+      "size": 120725
+    }
+  ],
+  "local_result_sha256": "b33834892db3f4e43e78a7cdb6381261397f61da3f6ffca52ea2830f22a7f1e7",
+  "handoff_result_sha256": "2988864dac2a620c0a5e75adc0a79ed48e6e044f204dd839fbdbd09ba119f486",
+  "handoff_inspection_actual_exit_code": 0,
+  "source_output_hash_maps_match": {
+    "local": true,
+    "handoff": true
+  },
+  "hosted_or_publication_pass_claim": false
+}
