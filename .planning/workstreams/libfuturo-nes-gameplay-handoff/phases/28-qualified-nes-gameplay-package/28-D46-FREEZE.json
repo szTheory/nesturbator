@@ -1,0 +1,12 @@
+{
+  "status": "frozen-once",
+  "source_commit": "573af752cda36b56e78cc0305602bdedbefa47f3",
+  "source_tree": "54257c35da2f91458c6d8ec3a00d779030a84a31",
+  "manifest_sha256": "68e08e40f3aeb12d27cc33c57a1e3d38383f553871da19a65d06c1f5704c4a18",
+  "manifest_path_count": 435,
+  "driver_sha256": "44cc651a34391b143d63071bb1eea577a93ec35320b16962b66a4bdda94743a7",
+  "freeze_result_sha256": "833d1503c72e9b1fbaf81519a79982d1089fd8fb8e9e97f001c31b1e254a882b",
+  "route_snapshot_sha256": "7f51db28682b4721bf387008453e840fd0ff6aba6c0cc6f90042c7e3e81d4955",
+  "tool_exit_code": 0,
+  "no_local_started": true
+}

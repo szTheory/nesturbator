@@ -1,0 +1,15 @@
+{
+  "status": "frozen-once",
+  "source_commit": "fb5c93eb1c301d8d64b28c3ee1e9340f49c233bb",
+  "source_tree": "96eb120ac7ccbe136e85bd373d978522583c1cc3",
+  "manifest_sha256": "22f3e4eba7cea5c9a6f4230c9a3b970efbfd08f3b96ed8ced5686034504daf7c",
+  "manifest_path_count": 435,
+  "driver_sha256": "b67be4b63704f014c74ff64346db9786d57f8c5787d3eb36474f1068b816ad6e",
+  "freeze_result_sha256": "4e4c99ecd767e3e60020e2b5aef8c8e637994e393bad10dc21f0b4f2b70c42e0",
+  "freeze_exit_code": 0,
+  "local_live_session": 40859,
+  "local_attempt": 1,
+  "local_child_cap": 1500,
+  "outer_cap": 1800,
+  "max_workers": 4
+}

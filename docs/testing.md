@@ -62,3 +62,99 @@ includes the configured campaign; saved-evidence inspection never reruns it.
 The driver enforces the 15-second receipt-control subprocess cap, 180-second
 synthetic cap, 60-second inspection cap and the existing qualification limits.
 No ignored driver is shipped or available from a fresh clone.
+
+## Offline harness work and diagnostics
+
+`ci.session_inventory` asks real CTest discovery for the existing session-name
+prefix, then checks the exact full/short registration and real label exclusion.
+It retains the prefix filter for automatically included fixture tests and
+handles an empty selection. Unrelated test names need not be parsed.
+
+Each offline Phase20/Phase21 control invocation reads its unchanged runner/ROM
+inventory once. Every rejection case still rebuilds its fixture, rereads the
+scoreboard and recomputes source/evidence digests. Inventory is not reused
+across invocations or contracts. Changing the runner or ROM within an
+invocation would require a fresh inventory; validator results are never cached.
+
+Receipt selftests print timestamped section markers to locate selector, reset,
+scratch, ancestry, receipt/rights, hosted-control and final-usage costs in saved
+verbose output. These are wall timestamps, affected by `SOURCE_DATE_EPOCH`,
+not timeout enforcement. Test caps, live receipt modes and rejection predicates
+remain unchanged. Focused offline results do not qualify a release or restart
+a stopped acceptance/campaign run.
+
+## Provider observer preflight
+
+The provider receipt observer queries workflow runs with `ci.yml` or
+`release.yml`. Returned records must still match the exact
+`.github/workflows/ci.yml` or `.github/workflows/release.yml` path, expected
+head, event, workflow name, attempt and required jobs. Selecting by filename
+does not relax those identity checks.
+
+The existing receipt selftest checks synthetic record validation; it does not
+exercise the live query constructor. The local repair uses a disposable probe
+that loads the exact source function definitions and calls the real helper
+through the owned fake GitHub executable. A filename-only route table and an
+isolated command path prevent real GitHub access and reject unknown requests.
+This one-time probe adds no production loading mode, target or registration.
+
+Before any new acceptance route, check every reader and writer against its
+concrete draft evidence. Release-evidence JSON and the final published receipt
+are separate artifacts. Initialize all intermediate objects with the right
+types, including `candidate`, `main`, `release` and `linked_ci` for hosted
+evidence, and check setters on disposable copies without changing unrelated
+values. Mark drafts as synthetic and keep every real acceptance gate pending.
+Check the complete case-sensitive narrative and exact route-command strings
+before calling a handoff gate; a static preflight must not call the gate itself.
+
+Offline checks neither qualify a release nor establish hosted runtime margin.
+A repaired source needs its own separately approved qualification identity and
+route; historical hardcoded routes and spent ledgers cannot be reused.
+
+## Separate repaired-source qualification route
+
+The D46 qualification route starts at the repaired observer source and uses
+`d46-observer-v1` with its own exact base, branch, four-file metadata/documentation
+delta and `build/phase28-d46` evidence. D44/D45 retain their original tuples and
+terminal history. Registration, baseline, profile, scenario and public behavior
+remain unchanged. The ignored local supervisor is not shipped.
+
+Prefreeze uses one bounded offline session, full campaign OFF, the existing
+receipt control once under its unchanged15second cap and disposable route
+controls. A separate single source freeze/full local qualification includes its
+fresh configured campaign. Exact candidate/main checks and normal new-head
+release lineage precede actual published-byte/native/rights proof; no result is
+claimed until those gates pass. Each actual failure, interruption or timeout
+stops this route without retry or refreeze. Historical campaigns and ledgers
+are never restarted. Local preparation establishes no hosted runtime margin or
+consumer/host acceptance.
+
+## D-51 optimized receipt validation
+
+D-51 preserves the registered `provider.receipt.controls` test and its
+15-second timeout. In `pr_validate_structure`, checksum name/digest entries
+are validated once and retained as paired values. A nonempty prefix plus the
+name's hexadecimal bytes forms a CMake list-safe lookup key, preserving the
+original name, including malformed names and delimiters. Archive matching
+then uses the paired digest without rereading the full receipt document inside
+the archive loop. Asset, checksum and archive collection subtrees are read
+after their existing type and count checks. No lookup survives the current
+validation call.
+
+The existing validator's explicit reason prefixes and diagnostic context,
+validation order and rejection order are preserved. CMake-generated low-level
+JSON error text may contain shorter paths because the validator now reads
+extracted collection subtrees. Three additional controls require reversed
+checksum order with 18 distinct name-bound digests to pass, swapped digests to
+fail with `checksum-disagreement`, and a delimiter-plus-duplicate name
+mutation to fail with `checksum-missing`. The route selftest checks the exact
+D-51 base, branch, four-file source delta, evidence paths and route
+discriminator against the shared receipt helpers; it does not launch a hosted
+operation.
+
+Implementation-time snapshot: the earlier candidate CI run had timed out this
+test at its unchanged 15-second cap, and the optimization's runtime margin had
+not yet been measured. That approved preparation scope allowed up to three
+focused prefreeze validations and a separate full qualification. Later D-51
+results are recorded in the dated phase evidence and supersede this snapshot;
+the D-50 source, failed run and spent route remain historical and unchanged.

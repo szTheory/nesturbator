@@ -18,17 +18,11 @@ else()
   message(FATAL_ERROR "unsupported hosted evidence contract: ${CONTRACT}")
 endif()
 
-function(nesturbator_phase20_write_evidence_fixture root source_dir runner rom)
+function(nesturbator_phase20_write_evidence_fixture root source_dir inventory)
   file(REMOVE_RECURSE "${root}")
   file(MAKE_DIRECTORY "${root}/provenance" "${root}/downloads" "${root}/artifacts/perf"
     "${root}/artifacts/retroarch" "${root}/artifacts/nightly/vectors-full"
     "${root}/artifacts/nightly/mmc3-oracle")
-
-  execute_process(COMMAND "${runner}" --accuracycoin-inventory --rom "${rom}"
-    RESULT_VARIABLE inventory_result OUTPUT_VARIABLE inventory ERROR_VARIABLE inventory_error)
-  if(NOT "${inventory_result}" STREQUAL "0")
-    message(FATAL_ERROR "cannot create offline AccuracyCoin fixture inventory: ${inventory_error}")
-  endif()
 
   file(READ "${source_dir}/tests/accuracy/scoreboard.txt" candidate_scoreboard)
   file(STRINGS "${source_dir}/tests/accuracy/scoreboard.txt" scoreboard_rows)
@@ -555,7 +549,14 @@ if(NOT DEFINED CASE)
 endif()
 file(MAKE_DIRECTORY "${WORK}")
 set(FIXTURE "${WORK}/fixture")
-nesturbator_phase20_write_evidence_fixture("${FIXTURE}" "${SOURCE_DIR}" "${RUNNER}" "${ROM}")
+# The runner and ROM do not change within this invocation. Reuse only their
+# inventory bytes; rebuild each fixture and recompute source/evidence digests.
+execute_process(COMMAND "${RUNNER}" --accuracycoin-inventory --rom "${ROM}"
+  RESULT_VARIABLE inventory_result OUTPUT_VARIABLE fixture_inventory ERROR_VARIABLE inventory_error)
+if(NOT "${inventory_result}" STREQUAL "0")
+  message(FATAL_ERROR "cannot create offline AccuracyCoin fixture inventory: ${inventory_error}")
+endif()
+nesturbator_phase20_write_evidence_fixture("${FIXTURE}" "${SOURCE_DIR}" "${fixture_inventory}")
 
 if(CASE STREQUAL "adapter" OR CASE STREQUAL "availability")
   if(NOT DEFINED FAKE_GH OR NOT EXISTS "${FAKE_GH}")
@@ -1218,7 +1219,7 @@ if(CASE STREQUAL "all")
   endif()
 
   function(phase20_expect_rejection case_name expected_text)
-    nesturbator_phase20_write_evidence_fixture("${FIXTURE}" "${SOURCE_DIR}" "${RUNNER}" "${ROM}")
+    nesturbator_phase20_write_evidence_fixture("${FIXTURE}" "${SOURCE_DIR}" "${fixture_inventory}")
     set(artifact_json "${FIXTURE}/provenance/ci-artifacts.json")
     set(campaign_meta "${FIXTURE}/artifacts/build-linux-x64/accuracycoin/full/metadata.txt")
     set(protected_path "${FIXTURE}/artifacts/build-linux-x64/protected-main/scoreboard.txt")
@@ -1592,7 +1593,7 @@ if(CASE STREQUAL "all")
     message(FATAL_ERROR "duplicate workflow-step groups were not rejected: ${ambiguous_error}")
   endif()
 
-  nesturbator_phase20_write_evidence_fixture("${FIXTURE}" "${SOURCE_DIR}" "${RUNNER}" "${ROM}")
+  nesturbator_phase20_write_evidence_fixture("${FIXTURE}" "${SOURCE_DIR}" "${fixture_inventory}")
   file(READ "${SOURCE_DIR}/tests/cmake/phase20_hosted_evidence.cmake" source_before)
   file(APPEND "${SOURCE_DIR}/tests/cmake/phase20_hosted_evidence.cmake" "\n# phase20 post-test source-change control\n")
   nesturbator_phase20_validate_evidence("${FIXTURE}" "${SOURCE_DIR}" accepted source_reason TRUE)

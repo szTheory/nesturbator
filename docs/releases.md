@@ -397,3 +397,43 @@ remain, as do all stricter test limits including receipt controls at15seconds.
 Any actual gate failure, interruption or timeout stops that route without
 repair, retry, refreeze or another candidate. Local control success is neither
 publication proof nor downstream LibFuturo host acceptance.
+
+## Separate repaired-source qualification route
+
+The D46 qualification route starts at the repaired observer source and uses
+`d46-observer-v1` with its own exact base, branch, four-file metadata/documentation
+delta and `build/phase28-d46` evidence. D44/D45 retain their original tuples and
+terminal history. Registration, baseline, profile, scenario and public behavior
+remain unchanged. The ignored local supervisor is not shipped.
+
+Prefreeze uses one bounded offline session, full campaign OFF, the existing
+receipt control once under its unchanged15second cap and disposable route
+controls. A separate single source freeze/full local qualification includes its
+fresh configured campaign. Exact candidate/main checks and normal new-head
+release lineage precede actual published-byte/native/rights proof; no result is
+claimed until those gates pass. Each actual failure, interruption or timeout
+stops this route without retry or refreeze. Historical campaigns and ledgers
+are never restarted. Local preparation establishes no hosted runtime margin or
+consumer/host acceptance.
+
+## D-51 fresh qualification status
+
+D-51 gives the receipt optimization a new source-bound path after the prior
+candidate CI failure. Its closed tuple is `d51-receipt-v1`, base
+`4cf3d9483d36eaa0c4d50835c52e7c4f84078341`, branch
+`phase/28-d51-receipt-validation`, route
+`build/phase28-d51/route.json`, identity
+`28-D51-IDENTITY.json`, acceptance narrative `28-D51-ACCEPTANCE.md`, and
+release evidence `28-D51-RELEASE-EVIDENCE.json`. Only the receipt checker,
+README, testing guide and release guide form its reviewed product delta.
+Earlier D-44/D-45/D-46 identities and the D-50 failure remain separate history.
+
+Implementation-time snapshot: D-51 had not yet passed a fresh qualification or
+release gate when this source was prepared. Up to three focused receipt-control
+runs were authorized before freeze, each under the existing 15-second test
+limit; the full local workflow, candidate/main CI, publication, downloaded
+package, native replay and rights checks were pending at that point. Later
+outcomes belong to the dated phase acceptance and release evidence and
+supersede this snapshot. Local control success alone cannot qualify a release
+or LibFuturo acceptance. A failure after the new source is frozen ends this
+route without retry or refreeze.

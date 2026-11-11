@@ -1,0 +1,1871 @@
+{
+  "build" : 
+  {
+    "accuracycoin_full" : true,
+    "c_compiler_id" : "AppleClang",
+    "c_compiler_name" : "cc",
+    "c_compiler_version" : "21.0.0.21000101",
+    "cmake_compile_warning_as_error" : true,
+    "cmake_version" : "cmake version 4.4.3",
+    "ctest_jobs" : 4,
+    "ctest_no_tests_action" : "error",
+    "ctest_preset" : "ci",
+    "ctest_version" : "ctest version 4.4.3",
+    "cxx_compiler_id" : "AppleClang",
+    "cxx_compiler_name" : "c++",
+    "cxx_compiler_version" : "21.0.0.21000101",
+    "generator" : "Ninja",
+    "host_arch" : "arm64",
+    "host_os" : "Darwin",
+    "preset" : "ci",
+    "system_name" : "Darwin",
+    "system_processor" : "arm64",
+    "type" : "Release"
+  },
+  "candidate_branch" : "phase/28-d51-receipt-validation",
+  "candidate_source_commit" : "fb5c93eb1c301d8d64b28c3ee1e9340f49c233bb",
+  "candidate_tree_sha" : "96eb120ac7ccbe136e85bd373d978522583c1cc3",
+  "compatibility" : 
+  {
+    "abi" : 1,
+    "behaviour_revision" : 9,
+    "state_format" : 3
+  },
+  "contract" : 
+  {
+    "profile_sha256" : "1de93648482c0dd3fcface6a2982633037faded7194dd55ad94425d2fb0652e1",
+    "provider_profile_checker_sha256" : "7252fb730e9e8793750dd3ea3ec904c8bdc8b6b79c13e117b81377dc9bd69d1b"
+  },
+  "gates" : 
+  {
+    "candidate_ci" : "pending",
+    "main_ci" : "pending",
+    "pkg_01" : "pending",
+    "published_receipt" : "pending"
+  },
+  "inputs" : 
+  {
+    "files" : 
+    [
+      {
+        "path" : ".clang-format",
+        "sha256" : "6fa2585bfb473b1a67ec7c74cadcfea2e0cc14c28d51e294dfcde9355b1ed21e"
+      },
+      {
+        "path" : ".gitattributes",
+        "sha256" : "20f033f9b22782347a723c7fa58337438ee6b645981eaf4b071c06894aa5bd9a"
+      },
+      {
+        "path" : ".githooks/pre-commit",
+        "sha256" : "5924af399800327eb1e17bc7ac2ce8b5378f6ad52d3421eb981a66015014f641"
+      },
+      {
+        "path" : ".githooks/pre-push",
+        "sha256" : "b41474c3da1c4cfd88f9e7dd7a1d9bc45187bc71db84e75273875b7239ff987e"
+      },
+      {
+        "path" : ".github/dependabot.yml",
+        "sha256" : "c89c8744167fe4b5cf8c249a5e3fba98e3cce144588a11d783d0f58aa68ca227"
+      },
+      {
+        "path" : ".github/rulesets/main.json",
+        "sha256" : "a4a71dc53aab591d4737d58961f371f68f3d9c1756999c7d32932c055f10a317"
+      },
+      {
+        "path" : ".github/workflows/ci.yml",
+        "sha256" : "2e627e0240204a98edc5aad823767097f17c14c2dd74a1fc92f630f8e88efdd9"
+      },
+      {
+        "path" : ".github/workflows/nightly.yml",
+        "sha256" : "939dd3d144f344ca3c0eb66bf4069d7717fdb09078243bc9d854f5956f76eca1"
+      },
+      {
+        "path" : ".github/workflows/release.yml",
+        "sha256" : "397db5c93883519ebc43024ec438384ab0f3e5953faef48002d0ddbfd867970f"
+      },
+      {
+        "path" : ".gitignore",
+        "sha256" : "34ee85db6395e628a299973bb2b6038ef79bd270e4ae2fb4d5c0f34aedfea323"
+      },
+      {
+        "path" : ".release-please-manifest.json",
+        "sha256" : "b6cdae9e1cdac7960429401bda2078868ffe91c9394b18b8f17e1dcb1c8f89dd"
+      },
+      {
+        "path" : "CMakeLists.txt",
+        "sha256" : "93de8a1181f3aca9fd7450b83c85f065e379abb63cc4c54a53fb47fda00ce67e"
+      },
+      {
+        "path" : "CMakePresets.json",
+        "sha256" : "713bea5f16847710394e2305a874a90427cf91acd4ff7f6bc2a867c9afabe23b"
+      },
+      {
+        "path" : "LICENSE",
+        "sha256" : "4cb11312555fd29cd753da2c92771282efbba5287d9b7167038146f57e869ca6"
+      },
+      {
+        "path" : "README.md",
+        "sha256" : "f142bbdc2f8dadfd868f07eef99a2ccdaf2ccccc41820962289f111d8034409e"
+      },
+      {
+        "path" : "THIRD-PARTY-NOTICES.md",
+        "sha256" : "c0f0359b44283a423e754c02a63e6fdce03b65e51f309ab2b9c647e3862d7c61"
+      },
+      {
+        "path" : "cmake/nesturbator.pc.in",
+        "sha256" : "db15674b349756b867491bc8f9f37190e3dbcfb6e1ae2faf3ac6763edd57531c"
+      },
+      {
+        "path" : "cmake/nesturbatorConfig.cmake.in",
+        "sha256" : "d2d26f50d30eef98baa2a95a296575eed020619d01fafdfbc36626c18ea46d81"
+      },
+      {
+        "path" : "cmake/packaging.cmake",
+        "sha256" : "0797be3f2ba69a96076d342174ca4393274719d34d9207ce0acb45cf4a9261e4"
+      },
+      {
+        "path" : "docs/api.md",
+        "sha256" : "191a4fc7389b9528f82f67aea854069104a53e8ab3ea194fe50f2830cc7f51f2"
+      },
+      {
+        "path" : "docs/nrom-gameplay.md",
+        "sha256" : "edf72c31bf318600f9e5d4d5a0c3515e19a96b65be8953eebd79aa37d929c436"
+      },
+      {
+        "path" : "docs/provider-ntsc.json",
+        "sha256" : "1de93648482c0dd3fcface6a2982633037faded7194dd55ad94425d2fb0652e1"
+      },
+      {
+        "path" : "docs/provider-ntsc.md",
+        "sha256" : "cbe82f001244a75341d349c701566ac193ef0db4f65de6bc93c7adbe6a7eea85"
+      },
+      {
+        "path" : "docs/releases.md",
+        "sha256" : "3af9e60ec181bd324d0ff6e04a708c2320496e017c7d44cdea567dc594f8ed71"
+      },
+      {
+        "path" : "docs/reproduction.md",
+        "sha256" : "fa80799568993a0f6339d8cd4d11cb9b6d29b2ab3ce3adce63e11b634ff8e6f3"
+      },
+      {
+        "path" : "docs/testing.md",
+        "sha256" : "06e15cfe07c83fae138440e69c8705012c1aab6e15cdc93e3bc9a61082eba493"
+      },
+      {
+        "path" : "host/convert.c",
+        "sha256" : "dd99abede2a7ea3f7881c9ddfbae3fc8f7b31343cd9872feb6d94d27ce779b63"
+      },
+      {
+        "path" : "host/convert.h",
+        "sha256" : "3ee4ce7c213618ff11ed460f949b520714140e08f25744b6fda48d8c5fe6c475"
+      },
+      {
+        "path" : "include/nesturbator.h",
+        "sha256" : "724814cf9389e7254564a8a626a869a77acfa4b25feb869f78244c8f9ab59d00"
+      },
+      {
+        "path" : "libretro/CMakeLists.txt",
+        "sha256" : "4f81f57cbe5cbbaf0d3cc6cbeae3588a1931ff500894e8e03a5a5ad127818a15"
+      },
+      {
+        "path" : "libretro/libretro.c",
+        "sha256" : "538a481d3a8e0ea5692f1934b0c3c92e36fa32b70843928677c9be8a814dbeb5"
+      },
+      {
+        "path" : "libretro/libretro.h",
+        "sha256" : "bd3398d29c3763d18617087020ff56b5450a48a63123403a4b674f8e79947acb"
+      },
+      {
+        "path" : "libretro/nesturbator_libretro.info",
+        "sha256" : "9b74b19cbe45f761af922b0be26faf43a41d5ead99dae3f5605db9ee79795f82"
+      },
+      {
+        "path" : "release-please-config.json",
+        "sha256" : "a65c8e2819a881ad5ec0628250381e142cc0ace0aa6399872a9ff887b538de6b"
+      },
+      {
+        "path" : "runner/CMakeLists.txt",
+        "sha256" : "7a49f134a47c32777e788de3ad4b5639c3aae8911d021563d05e49618b051c18"
+      },
+      {
+        "path" : "runner/accuracycoin.c",
+        "sha256" : "25c60a47adfe48f449cd696c7b52bec03ff145e93c3e0bf6abd326b2d18c0356"
+      },
+      {
+        "path" : "runner/accuracycoin.h",
+        "sha256" : "0f6b7bf476cedc40ec60804251fb2ac54a95b7bba37713501af05d6795ddbaa5"
+      },
+      {
+        "path" : "runner/audio_hash.c",
+        "sha256" : "8820c21e75f495e83d19a6e472f4b495b76e16efa362a1129eacc42489e5b41e"
+      },
+      {
+        "path" : "runner/audio_hash.h",
+        "sha256" : "ccb445bb8b862578fe5fc464fdb07128a8cbd10f2c0d713a3fd30e650e66b6d0"
+      },
+      {
+        "path" : "runner/bench.c",
+        "sha256" : "33e71568223c5799fdc476ba07f6259fb80042533963beefd63128af4c60985c"
+      },
+      {
+        "path" : "runner/bench.h",
+        "sha256" : "c0cb3f29f0801afb16103c1d2c8f15e2256b1a42135fc82c86d9af9eccf8e1e5"
+      },
+      {
+        "path" : "runner/clock.c",
+        "sha256" : "3bb917cf5e4d5169a7b2cffc001e7022cb08227098f11f92616f24b2f6e46391"
+      },
+      {
+        "path" : "runner/clock.h",
+        "sha256" : "bb8e44fe608a7b8a29475f2d305cecf1ac335cf3db5bf0320b574afd8e6052d9"
+      },
+      {
+        "path" : "runner/exit_status.h",
+        "sha256" : "704221c1dcf1f27928c24f4159eb5e8e4d0d2b0f966045091597335287fd944b"
+      },
+      {
+        "path" : "runner/main.c",
+        "sha256" : "99a75e598c865ef88f9217601ba3567492beb06bad40c2f4c3cfa5d7cf7c2e08"
+      },
+      {
+        "path" : "runner/movie.c",
+        "sha256" : "dc2e1548bc70a36cb919310ec4e6a019ccd20aa48ce6bc3044b797864f9456f6"
+      },
+      {
+        "path" : "runner/movie.h",
+        "sha256" : "bcfb503b07b6cceb34e3b3d9950b29d210f7184867e2463e47683e9335747436"
+      },
+      {
+        "path" : "runner/ppm.c",
+        "sha256" : "2c8deda9089e891c811d96a4b86a08a2307b060b70110bb7ae008733025004b3"
+      },
+      {
+        "path" : "runner/ppm.h",
+        "sha256" : "b8f2e10d6c36769fd5d711e6f2897971e732caa724990b6f94f9194bd75a7cfa"
+      },
+      {
+        "path" : "runner/save.c",
+        "sha256" : "9c6f21285dbb313f67ace0f7ce5b225ce61a6701da8fb19ce15b320ada589739"
+      },
+      {
+        "path" : "runner/save.h",
+        "sha256" : "e7e811c9c6c3274259ab7b0a9c5ff0b10d62bcc42372aab2a0b3f50c8b5b2470"
+      },
+      {
+        "path" : "runner/sha256.c",
+        "sha256" : "6069ae6af88f3520e280aef562b38e829c42d884014b05be0c610a66094b8826"
+      },
+      {
+        "path" : "runner/sha256.h",
+        "sha256" : "bc6d12590f7107f0692912bbb683bd53d262d9df67c9c200d4e29391ffd305ed"
+      },
+      {
+        "path" : "runner/state_file.c",
+        "sha256" : "2b965be9d20c560c41e32866b6731a0fbac48b4b07c6767de5873d7770d714d6"
+      },
+      {
+        "path" : "runner/state_file.h",
+        "sha256" : "f65f035aa3cfab7a381d8d5c4d0507068243a0f82d1cae79d2fd81b23952e9e5"
+      },
+      {
+        "path" : "runner/stop.c",
+        "sha256" : "5dc91f53b5abfe4f9be63aaeb04b7f557e43d694c072114dbf912ae3418d1ba3"
+      },
+      {
+        "path" : "runner/stop.h",
+        "sha256" : "02036f1a754a3b1d2fec5a0548531d454f56d6a19cd85472d02d26483e14e635"
+      },
+      {
+        "path" : "runner/stop_internal.h",
+        "sha256" : "f248c5c33425dce1c497c7572d705a630c6444248b63e6f9315665d37ed3372b"
+      },
+      {
+        "path" : "scripts/check_push_format.py",
+        "sha256" : "a7b8c8222a86fec0ed6cc14690660ff78ecb994df2407d5177afbdf6fb49de93"
+      },
+      {
+        "path" : "scripts/hygiene.sh",
+        "sha256" : "599d78577a5e782cfe06c788437ed098c6a29a4070fcd8e0cda2082b9d89fdef"
+      },
+      {
+        "path" : "scripts/phase2_outcomes.sh",
+        "sha256" : "78fad1e5c440892146a289a128edb6b0b757700970829287ace524f31040d0ff"
+      },
+      {
+        "path" : "src/apu.c",
+        "sha256" : "52411eb2c97a293d6248ebc9a4d50b1e460508fd1b9d3b9d0e82197b977e3637"
+      },
+      {
+        "path" : "src/bus.c",
+        "sha256" : "c1c4e370a9184a37c0c180e29197cb6019362eeca6df966253255a2f366c96d2"
+      },
+      {
+        "path" : "src/cartridge.c",
+        "sha256" : "d1ee400104237089fd52c2996f09a66a245f993be05aa0c59efd998b0264a331"
+      },
+      {
+        "path" : "src/cpu.c",
+        "sha256" : "4974056a5024a2036ecdf38c04aaf02a95bd6fe1e47703089da2b7d9bb90889e"
+      },
+      {
+        "path" : "src/crc32.c",
+        "sha256" : "8653c6c0953ac62247f49da07e6a234571126c383a9e4bc216a345b74181adbc"
+      },
+      {
+        "path" : "src/frame.c",
+        "sha256" : "a9cd26f8fe19c3f639e9ad7dea797db8ad9655e7a465a04ac7fc061e74eebc7f"
+      },
+      {
+        "path" : "src/instance.c",
+        "sha256" : "9bb87d6a0ae8d8fa35b4df2c47ecd7f59bf4791f1fa7c599e4d51f601c5db494"
+      },
+      {
+        "path" : "src/internal.h",
+        "sha256" : "b0ee18bfc3c44e95d7d6e566a538fbebb663026a79635eb6591ea33358d339c1"
+      },
+      {
+        "path" : "src/mapper.h",
+        "sha256" : "316b6f24e2f59878bb065e6a63e2ce5614253fe6815e74c2a90adab226a21740"
+      },
+      {
+        "path" : "src/mapper_axrom.c",
+        "sha256" : "6d49a7b4570944a0619cecfca965b4f092e5285b845a5680a9429e3a883a2446"
+      },
+      {
+        "path" : "src/mapper_cnrom.c",
+        "sha256" : "9fb8a3c3a13c1735d0dea00658bf04785818277ce369435eead92a74f8820177"
+      },
+      {
+        "path" : "src/mapper_mmc1.c",
+        "sha256" : "1ff1fa9a61e8bad70c6c6f4b7f63914fa5eaabb1cbd3bd8fe2c501ba235f39c1"
+      },
+      {
+        "path" : "src/mapper_mmc3.c",
+        "sha256" : "082af55cd7b113dd8b39d86cb8894c288076cb1aafb8e841edc157d8870a6915"
+      },
+      {
+        "path" : "src/mapper_nrom.c",
+        "sha256" : "0000579cd5dce0b5ca91f6e8e1819275170ea8a7cdd9dd0d449ea8b40ab7cf0f"
+      },
+      {
+        "path" : "src/mapper_uxrom.c",
+        "sha256" : "1e565983f577a9be555601c7a4041c54a0514596d1b3c9a2f5d00cdb809d0464"
+      },
+      {
+        "path" : "src/palette.c",
+        "sha256" : "84eabf211fdf8356367eceb371b9399b658ed222030c40f6705c74a983e0f177"
+      },
+      {
+        "path" : "src/palette_ntsc.c",
+        "sha256" : "e5db51573984b2b3ab721b00a7a4c4cc7212797a4a91a4025e54715ceeb5681e"
+      },
+      {
+        "path" : "src/ppu.c",
+        "sha256" : "b77a7df1afc99de859ed2306b6c17bf7fda51550c5fabaa5e77f745bd52b904e"
+      },
+      {
+        "path" : "src/state.c",
+        "sha256" : "ce8d679a07eb4ae2dc7598a5a04ab5a5361276e69c633620591d619610a72e8d"
+      },
+      {
+        "path" : "src/state.h",
+        "sha256" : "8f8875d9c1b73b0dfafb54a7be89b2ef9d67c85e19138bc1a8253a9d07460a14"
+      },
+      {
+        "path" : "src/synth.c",
+        "sha256" : "6b47beb7f426d991fff69cc89716ab9993f2b0e01f6cf209976375b1ddbb700a"
+      },
+      {
+        "path" : "src/testcard.c",
+        "sha256" : "8b56398bee14b142ec435070a7ad0b5630f16e2fa35294a07bd1ed827655a393"
+      },
+      {
+        "path" : "tests/CMakeLists.txt",
+        "sha256" : "a4179a215765f1b783e7a408f55d2eb9f9264c0cb315215c9da09e0336624ea2"
+      },
+      {
+        "path" : "tests/abi/CMakeLists.txt",
+        "sha256" : "c57e512c16abcb38b1044b4ebf1317dda80b72b19d2a8b3da861f4bf49936972"
+      },
+      {
+        "path" : "tests/abi/float_fixture.c",
+        "sha256" : "6bbd5ddd2fb714da7431f10d4d140a672b4419c5fbc909481b0348c4e217e0eb"
+      },
+      {
+        "path" : "tests/accuracy/baseline-metadata.txt",
+        "sha256" : "e48e15e7203c0eef96281cb545f0f487f9b716168570918a5ba8d80209c0e65b"
+      },
+      {
+        "path" : "tests/accuracy/budgets.txt",
+        "sha256" : "1780bf182fb942058772d26e911baf710eedb8ead24ba27a3c387a3c3262be11"
+      },
+      {
+        "path" : "tests/accuracy/input-binding-v1.json",
+        "sha256" : "14c2bcce9406a80420791a17ce278b6028077650e093695f1a0e2d050feb8310"
+      },
+      {
+        "path" : "tests/accuracy/measurements.md",
+        "sha256" : "3649c6476006b4ddf89a0b653281327009659ef2640f774facc031ebad44ff1a"
+      },
+      {
+        "path" : "tests/accuracy/migration.tsv",
+        "sha256" : "01f743da5015402ebb5e1d24110753cc0cb3e8d9db220c7c5c8209e811f197a7"
+      },
+      {
+        "path" : "tests/accuracy/old-673ef-metadata.txt",
+        "sha256" : "88196fb2fbf495761ba5060664e88f0ff8cef3f1cfbdc231ef6563fcf3d4dcb0"
+      },
+      {
+        "path" : "tests/accuracy/old-673ef-scoreboard.txt",
+        "sha256" : "7a394b78803770cbde2ff047c9bfe0b21226d1c97e8d378e0f322b8754b7b9a4"
+      },
+      {
+        "path" : "tests/accuracy/scoreboard-main-metadata.txt",
+        "sha256" : "f990fd6fc3b501d889aea6242613bc637a539b388edcbaa4b7ede402bad54dfb"
+      },
+      {
+        "path" : "tests/accuracy/scoreboard-main.txt",
+        "sha256" : "7a394b78803770cbde2ff047c9bfe0b21226d1c97e8d378e0f322b8754b7b9a4"
+      },
+      {
+        "path" : "tests/accuracy/scoreboard.txt",
+        "sha256" : "059d7c7558bd9f4785ab384c589f04e16f330ef3ba477393a8492b59e086dbbf"
+      },
+      {
+        "path" : "tests/accuracy/test_conformance.c",
+        "sha256" : "a1a2cf424117fc27cf853b78ef538ad1e68ff5a0a2685dbe0dfa6338f77aea63"
+      },
+      {
+        "path" : "tests/accuracy/test_scoreboard.c",
+        "sha256" : "e44e0ea546f5bb990b614d97ef3de23e3ae39a883be7a50ee1fc83827b56b036"
+      },
+      {
+        "path" : "tests/check.h",
+        "sha256" : "bc4bb459a1484e179be231379de0dd312df7f8737e8c2df7fa03e60f4a552730"
+      },
+      {
+        "path" : "tests/cmake/accuracycoin_activation.cmake",
+        "sha256" : "559f02a8367c3d1220cdf93a0152c098f118cc3b12745e47a27cb5890a595e1a"
+      },
+      {
+        "path" : "tests/cmake/accuracycoin_baseline_fetch.cmake",
+        "sha256" : "f71fafad9b8fceacd057da302873d69908d50aeb23786bb976969a77009b3cdf"
+      },
+      {
+        "path" : "tests/cmake/accuracycoin_campaign.cmake",
+        "sha256" : "340433a452a5fcaa2e3012de9e2f2268cc8239b147e23fdaefff8ab3ff2195f2"
+      },
+      {
+        "path" : "tests/cmake/accuracycoin_driver.cmake",
+        "sha256" : "44a8e3ad498f67c479e5b60ff1535dee6990647475b7ece235e61455129c0b96"
+      },
+      {
+        "path" : "tests/cmake/accuracycoin_input_fingerprint.cmake",
+        "sha256" : "c755dbbb72744c1e5ce79eee00e84ecfa76222004804b85ca3bbe6cd3ed5c6c3"
+      },
+      {
+        "path" : "tests/cmake/accuracycoin_input_fingerprint_controls.cmake",
+        "sha256" : "243d432a9006b44f01abf50fbf359e4f685342c4c2ae9b601bd7b6ca60cc9a3b"
+      },
+      {
+        "path" : "tests/cmake/accuracycoin_jam.cmake",
+        "sha256" : "4f64bee8efbe69aac381067af1a2a924fade817810c6d0ac6baa395fedaf8d8d"
+      },
+      {
+        "path" : "tests/cmake/accuracycoin_nmi_targets_control.cmake",
+        "sha256" : "cdf9eea96cb76fd09684098e8745d5efe9ce055e58d77d6f59350a04bd227cc9"
+      },
+      {
+        "path" : "tests/cmake/accuracycoin_partial_failure.cmake",
+        "sha256" : "da39e9b8496d304cdc0ffc4fbd9f3d3bab2c01c5535182987d5dc0192cbf9f10"
+      },
+      {
+        "path" : "tests/cmake/accuracycoin_protected.cmake",
+        "sha256" : "6131dc0bed2c5faf2e4c95fc35a44b66f610586179aece4936e89736f76301e8"
+      },
+      {
+        "path" : "tests/cmake/accuracycoin_regression_controls.cmake",
+        "sha256" : "fbff758c2b473d582193101c251312bea907a67de1d89eb6a85104de60a90d83"
+      },
+      {
+        "path" : "tests/cmake/accuracycoin_tracer.cmake",
+        "sha256" : "86ad09c101312d311b00e23eb60a2a43e4c61bcad41d69b7e9a9e346415310b7"
+      },
+      {
+        "path" : "tests/cmake/accuracycoin_v5_targets_control.cmake",
+        "sha256" : "2bccb296c419b3d304e81da293aa5cfa07da3bfe54eff8d06f3da2022842975d"
+      },
+      {
+        "path" : "tests/cmake/action_pins.cmake",
+        "sha256" : "a0b0995936d82c93544a017d71f17f543af22fe7af35a2e32f97889fb9c4be7b"
+      },
+      {
+        "path" : "tests/cmake/check_archives.cmake",
+        "sha256" : "67fbab69fffe5660b17d6be2ef0b7f3c0414f8e876f4105e85fd36ef2e69fc86"
+      },
+      {
+        "path" : "tests/cmake/check_install_line.cmake",
+        "sha256" : "7147aee90e41b51352a2c38d196e5fc989b7579cfd97c375988f697e0911d5fa"
+      },
+      {
+        "path" : "tests/cmake/check_ppm.cmake",
+        "sha256" : "0ab256bf588293e20a18e6b2cfd8ab7cd7a0ce9e5a69e185056fd1f639d81ae5"
+      },
+      {
+        "path" : "tests/cmake/check_sav.cmake",
+        "sha256" : "c73a436190a4baa8d65781ca81e11e0766cb46a31656a8de3cb151938d48b29b"
+      },
+      {
+        "path" : "tests/cmake/ci_release_push_policy.cmake",
+        "sha256" : "1d9575abb3f1ecd3f0f92ef6a08af24737055b84a8686feffad7dbf3208f33e0"
+      },
+      {
+        "path" : "tests/cmake/ci_required_rollup.cmake",
+        "sha256" : "725a407e4a833a3face4bbbd6204d975da707555764a9451c378ec39e4c91f73"
+      },
+      {
+        "path" : "tests/cmake/claim_guard/CMakeLists.txt",
+        "sha256" : "3b23afa6781699b6ff03056f28338357e4c542640782d33a7056a4da2a6ffff2"
+      },
+      {
+        "path" : "tests/cmake/execution_campaign.cmake",
+        "sha256" : "870e2ea88dc61f76637db4443aa366053954aaaa5bfb5a751a01d10139a228f9"
+      },
+      {
+        "path" : "tests/cmake/execution_measure.cmake",
+        "sha256" : "55717aebc9536edad1c063caf6065ac4c5c722b0b39a577c3267e3b4c4e2ff75"
+      },
+      {
+        "path" : "tests/cmake/expect_output.cmake",
+        "sha256" : "10513e6a2a29efe7abe0b994e42531db391e6df08e4c2b242ab1330fd629e9ba"
+      },
+      {
+        "path" : "tests/cmake/fetch_blargg_mmc3.cmake",
+        "sha256" : "6ea4f30b5c0322634be9fefc39b8fb1aa51e3cdc9ba2d357abd624cc57c0b183"
+      },
+      {
+        "path" : "tests/cmake/fetch_guard.cmake",
+        "sha256" : "866279eddaad11ba1bbbaed89932c8e1c649d7cab6f9d41e9a1237d104cc59ff"
+      },
+      {
+        "path" : "tests/cmake/fetch_vectors.cmake",
+        "sha256" : "f922afbf8b545c4e748d8759322feb7ece1b9ab3e3f55f3b38fa154543842fd7"
+      },
+      {
+        "path" : "tests/cmake/fixture_identity.cmake",
+        "sha256" : "8c817c26391e8f93b09d914d10ee7a692e50e2d25a85931430a7a80f3989772e"
+      },
+      {
+        "path" : "tests/cmake/float_fixture.cmake",
+        "sha256" : "d53283e8a7a66924c774bed6f0f725217df87b92bf52daa3b20935501297e1f1"
+      },
+      {
+        "path" : "tests/cmake/float_scan.cmake",
+        "sha256" : "889ea2f4b439aa70ad81b04d77bb037267ab175ee7a3d23ca143880e418ba460"
+      },
+      {
+        "path" : "tests/cmake/format_check.cmake",
+        "sha256" : "d56f3629d3731fb1b2332d37e64f7650dd5d8df7608e1bf5193abe40fd4116f3"
+      },
+      {
+        "path" : "tests/cmake/fuzz_registration.cmake",
+        "sha256" : "4445f4fd11f6ae9115f3a687bf3a7016d66291c361757b051b246befb742c69d"
+      },
+      {
+        "path" : "tests/cmake/global_symbols.cmake",
+        "sha256" : "b8efff602a68c42deee508152237e9c49f8af2012e4a5964294661afe8ba8889"
+      },
+      {
+        "path" : "tests/cmake/hash_inventory.cmake",
+        "sha256" : "3472863eebcf91852974b29b47e76ddf0267dfe1f8c3caf27b64d95e739b47ad"
+      },
+      {
+        "path" : "tests/cmake/hash_keys.cmake",
+        "sha256" : "45f14b7934a4de572933dd0f6d27b1e650ed7abe05489b0229390976626f1e69"
+      },
+      {
+        "path" : "tests/cmake/hm_derive.cmake",
+        "sha256" : "4ca1cce540a11aabec6c228e5a7cafbb7833f3a9a5324607ceaa1a7792db4275"
+      },
+      {
+        "path" : "tests/cmake/info_claims.cmake",
+        "sha256" : "3a0740a3c71f1efd29f19c54a71123331459a8c83b1135d0ab0e0dae00dd41e7"
+      },
+      {
+        "path" : "tests/cmake/libretro_no_quirks.cmake",
+        "sha256" : "02c43640ea0d8933f418984ae2b6c5fed87d4ebffb464eab9ee91b1a42457762"
+      },
+      {
+        "path" : "tests/cmake/manifest_sha256.cmake",
+        "sha256" : "8c23342362e591b52a628f21ed11c1ab58ced403bfb04b3174e2122b4971e83c"
+      },
+      {
+        "path" : "tests/cmake/mmc3_oracle_inventory.cmake",
+        "sha256" : "9135040ca9d3c73575b250ea581d5abd95f211d2836a4d2684534cdb689a184b"
+      },
+      {
+        "path" : "tests/cmake/mmc3_oracle_run.cmake",
+        "sha256" : "168cfd0e19909434052ad8e13b06c80f9dc884452f0222cbc382318354bc0580"
+      },
+      {
+        "path" : "tests/cmake/nightly_workflow_policy.cmake",
+        "sha256" : "a14e72ac9081e650348be96a2314ee379aa5a46fec37ccf312dd81f1e7ea8b5a"
+      },
+      {
+        "path" : "tests/cmake/nmi_targets.cmake",
+        "sha256" : "a11fd0a47a0fdd41b74eb53687a38ef43ece0fa43f8709598eca611dc1784fad"
+      },
+      {
+        "path" : "tests/cmake/palette_regen.cmake",
+        "sha256" : "d3cc49ce636196bce148b798e2a123fcb1df5b461c1616b69175a773f5beb950"
+      },
+      {
+        "path" : "tests/cmake/perf_compare.cmake",
+        "sha256" : "53bd5c3d14519227471badef8fb46b20cc2c6ec80ce0608e8332208e4d76e762"
+      },
+      {
+        "path" : "tests/cmake/perf_gate_selftest.cmake",
+        "sha256" : "8559821a8c3972e2f18b5c498539bc5aa28f7ee5284cd8f55ef4b0635302cf45"
+      },
+      {
+        "path" : "tests/cmake/perf_roms_render.cmake",
+        "sha256" : "85848259c0a324b0ca110738002fc53300f10badbb6c56479908fa4f1ba96e5b"
+      },
+      {
+        "path" : "tests/cmake/phase20_hosted_evidence.cmake",
+        "sha256" : "99bb5b0f38f4f462ee1574ca6934eba553e59ea776e1562593fe8910b2e53eca"
+      },
+      {
+        "path" : "tests/cmake/phase20_hosted_evidence_controls.cmake",
+        "sha256" : "339525c83b847019174ad05104d2128676ebdc10648b4fff50fe9a415188b95d"
+      },
+      {
+        "path" : "tests/cmake/phase21_hosted_evidence.cmake",
+        "sha256" : "a76cebe521c79c5c319e3f06d4483fc80d345e6fcfd1b46de52c05f7530e23c8"
+      },
+      {
+        "path" : "tests/cmake/phase21_hosted_evidence_controls.cmake",
+        "sha256" : "efa971779da23057030e498be4c94a23ac937cd5f83044b4e48085000ddf32c8"
+      },
+      {
+        "path" : "tests/cmake/phase21_source_identity.cmake",
+        "sha256" : "569ccf2d9a5b9e275c238ccbe8bbbb454c5765f5d11b4c10a740df487cebcf31"
+      },
+      {
+        "path" : "tests/cmake/phase21_source_identity_controls.cmake",
+        "sha256" : "904b0d067e3c381fc88bac5e9df3e697546bbb348401e738ad4acd79bf3a27fc"
+      },
+      {
+        "path" : "tests/cmake/pins_check.cmake",
+        "sha256" : "2354f1547d44e810ad8c7c04d2eae119a3451cf2ae812a23336b47328566500a"
+      },
+      {
+        "path" : "tests/cmake/prepare_scoreboard_baseline.cmake",
+        "sha256" : "941e0eda72df7f8c62ae457f19a3053b7f9308995fce56ce2dc4dc21daac1a88"
+      },
+      {
+        "path" : "tests/cmake/provider_profile.cmake",
+        "sha256" : "7252fb730e9e8793750dd3ea3ec904c8bdc8b6b79c13e117b81377dc9bd69d1b"
+      },
+      {
+        "path" : "tests/cmake/provider_receipt.cmake",
+        "sha256" : "7b1cee3410a23a1246085be79d7225d4ee06080913eff0404758859ffad62ec2"
+      },
+      {
+        "path" : "tests/cmake/qualified_consumer.cmake",
+        "sha256" : "b1e1774f1ad0161153c83a3536ab1f8bffffdda47922d9f7262cc6e92e2243eb"
+      },
+      {
+        "path" : "tests/cmake/release_config.cmake",
+        "sha256" : "26aa354e7dd94506ea5b968ba136f9eaea962c855d5cbec3a8f5a107aab3a827"
+      },
+      {
+        "path" : "tests/cmake/release_credentials_policy.cmake",
+        "sha256" : "dbce5efccca935d7edcaf0142bd5a66e1054da5dec83e8d49d48abe03eb865ee"
+      },
+      {
+        "path" : "tests/cmake/release_markers.cmake",
+        "sha256" : "cb478db6f78bc6b3fdbd78da910e2d39d8012434389cf2c326fc7fd654f36b32"
+      },
+      {
+        "path" : "tests/cmake/release_policy.cmake",
+        "sha256" : "3605ac7554b273db985b3e60ed77d2ef6094a512cf0aaf325f9294b06b7a1e13"
+      },
+      {
+        "path" : "tests/cmake/release_version_format.cmake",
+        "sha256" : "569d7c36e926e09c8c35cbda418d187d580e7896df9c7bf31f858dd0c6a19567"
+      },
+      {
+        "path" : "tests/cmake/retroarch_revision_literals.cmake",
+        "sha256" : "7bec819d91c22b5aec5d2a6eecd5b55e0e71b244bbb0eb2f25873e4f93bc42e4"
+      },
+      {
+        "path" : "tests/cmake/rom_coverage.cmake",
+        "sha256" : "5af6c12caee17c913b5812418b9294fd625b0d4d428b3076ac86bafba110036b"
+      },
+      {
+        "path" : "tests/cmake/runner_bench.cmake",
+        "sha256" : "7416d35e6f471a36e09990662740b33fffe8b4b3d07c5919f409a68380bb9d3e"
+      },
+      {
+        "path" : "tests/cmake/runner_exit_table.cmake",
+        "sha256" : "185f7a4cd9beafc8c872503ec030dfca3cb0f594725cd99c346add5edb01c16a"
+      },
+      {
+        "path" : "tests/cmake/runner_options.cmake",
+        "sha256" : "45b69b47c43b7fee9c07413ec953a5c5bcb23524fb1d524d66fc4ce42ca9317e"
+      },
+      {
+        "path" : "tests/cmake/runner_save.cmake",
+        "sha256" : "1398b8750d656da448ccd777767341a7c8012b9d256bfe855c5eb99a5070c2ca"
+      },
+      {
+        "path" : "tests/cmake/runner_state.cmake",
+        "sha256" : "4fe2fc6b02d1d4a7c8fe7949b36e3fd5f4378b2efb6934333c0d24cc913f9271"
+      },
+      {
+        "path" : "tests/cmake/runner_stop.cmake",
+        "sha256" : "a05da681c7c7da114ffad81f32633db2988e3e5c5870666bbdf0fc58390bb210"
+      },
+      {
+        "path" : "tests/cmake/runner_version.cmake",
+        "sha256" : "ee9857a5a7d4a8bd3be509af55a683e2e62fa0dd0775d8ff365dfbceb62439f4"
+      },
+      {
+        "path" : "tests/cmake/script_policy.cmake",
+        "sha256" : "966115c8ae4052d26d8f75bef95ebb10408ddc9d00919f09f2aa3e060dc1490f"
+      },
+      {
+        "path" : "tests/cmake/session_helpers.cmake",
+        "sha256" : "667264d45d22db1cbcc431a4e08ab693b80adf0e6331d634094f0ffaad9a2cf2"
+      },
+      {
+        "path" : "tests/cmake/session_inventory.cmake",
+        "sha256" : "9d4947894d9886f42309f98e2b6cd5abe243da7ba502eb13641457bcd28f699f"
+      },
+      {
+        "path" : "tests/cmake/skip_policy.cmake",
+        "sha256" : "bee48ed7c5f70d856c7105d36bb0839f3b46af57aca93f0a43af7f15fc985986"
+      },
+      {
+        "path" : "tests/cmake/state_format_pin.cmake",
+        "sha256" : "28ff6af13d5f3b397f7a044bc95184b724bc8036a54eae7499411e71aeafd275"
+      },
+      {
+        "path" : "tests/cmake/status_table.cmake",
+        "sha256" : "d7afd7bff46e7cd917dd55dc793f59b21c912619a85c82d43ffc09f23987c709"
+      },
+      {
+        "path" : "tests/cmake/test_push_format.py",
+        "sha256" : "731d7b5cfa81112f189062e421e70be2aff788b05a76c883484ee4d000d6deb2"
+      },
+      {
+        "path" : "tests/cmake/timeout_comments.cmake",
+        "sha256" : "4bc57ecc205bd4d97886b73ecbb25ee74e79cd16f6adcc6844e2112a8b2df855"
+      },
+      {
+        "path" : "tests/cmake/undefined_symbols.cmake",
+        "sha256" : "068e0977a28ce554a6147e538c5bc9ce3629f8c9c6b75c74aa852a5a014ce670"
+      },
+      {
+        "path" : "tests/cmake/v5_targets.cmake",
+        "sha256" : "5f7a5303d59fbbd6120be5b78edd2d62f0c6cf08341be77c304d51577b62a98b"
+      },
+      {
+        "path" : "tests/cmake/vecconv_negative.cmake",
+        "sha256" : "cdbb3f65d527a878648d47b58ebe4ad1c18429596170fc78b2576e034b4c972c"
+      },
+      {
+        "path" : "tests/cmake/vector_api_policy.cmake",
+        "sha256" : "003cb1bc7349c8c1b88554ad2dcfd150a4344cda31031315d978207f09d185de"
+      },
+      {
+        "path" : "tests/cmake/vector_registration_policy.cmake",
+        "sha256" : "e4f298f573a2540a6f0f7afc66cc3132233cecd494167b0f0905e94a18ae5555"
+      },
+      {
+        "path" : "tests/cmake/vector_result_policy.cmake",
+        "sha256" : "b757117decb30e5370eeea21ce525c647026c526ab4698da8f2a42ec2f8ac16a"
+      },
+      {
+        "path" : "tests/cmake/vector_source_policy.cmake",
+        "sha256" : "3fc9a7765f0b33cd06ce1c6f06c48fdadfff51690595d3f40c88b7cea9efef52"
+      },
+      {
+        "path" : "tests/cmake/vectors_fixture.cmake",
+        "sha256" : "ad5f2ed26314c8ac42e0c8cceabf2ef795a89c43cca1eb5ac811a557c798fd23"
+      },
+      {
+        "path" : "tests/cmake/vectors_full_run.cmake",
+        "sha256" : "15c474974f9472872e59a3b3416a2a521f399fdbfdcbf9e587c30cfb61beeeed"
+      },
+      {
+        "path" : "tests/cmake/vectors_regen.cmake",
+        "sha256" : "30b65b749c355a4006ecc987c5bbb0b6fb7fab02df8396403ce1737d9da8de11"
+      },
+      {
+        "path" : "tests/cmake/vectors_sample_match.cmake",
+        "sha256" : "685c88277e7ba90ff38bedd16532a121a1eb4b92e167155864edc135c0ce3f4e"
+      },
+      {
+        "path" : "tests/cmake/vectors_stray_write.cmake",
+        "sha256" : "b9d5fa170dc635c70b0e3364a3a3461a23783057335a64ca5c1292c5066153b2"
+      },
+      {
+        "path" : "tests/cmake/vectors_transport.cmake",
+        "sha256" : "164e4a1075d85d93902494eccfa164f601002012d5ec6a4e03690f62e22cea63"
+      },
+      {
+        "path" : "tests/cmake/vendored_sha256.cmake",
+        "sha256" : "858aa497e2bf0ca591d36a503251050e240d2fa6b105a047967a3dc932cd9b60"
+      },
+      {
+        "path" : "tests/cmake/verify_scoreboard_regression.cmake",
+        "sha256" : "1abbf9388a4e7abaf578be53ac0daf9c5835e832d00bc7140d4666c9716019b2"
+      },
+      {
+        "path" : "tests/cmake/version_consistency.cmake",
+        "sha256" : "22527eea778fcbf6db74fa0b1bfd62bb1a5c707e3c34c5eac8d1f9b5543a1477"
+      },
+      {
+        "path" : "tests/cmake/write_hashes.cmake",
+        "sha256" : "478853ba71833e9a0876d8532b9cea4b1406ac3766251b6b1502211e56748a91"
+      },
+      {
+        "path" : "tests/consumer/CMakeLists.txt",
+        "sha256" : "f708d26de458a4a5a30d15ff62f6d13f46041109447578f83246a4ef57f4a440"
+      },
+      {
+        "path" : "tests/consumer/main.c",
+        "sha256" : "1b8d0583907aae73225550dc108250b6538d6b861d3c8ce2a0578e85ff1a4194"
+      },
+      {
+        "path" : "tests/core/test_api.c",
+        "sha256" : "ec29f1ac3c2a5634cebe12f4b67d9ca20249442beaeaca77d4fd858139f1fc53"
+      },
+      {
+        "path" : "tests/core/test_apu.c",
+        "sha256" : "6990abb14e962d89336c4ba41398310ef57a4cc77f756ec18557069ba367910b"
+      },
+      {
+        "path" : "tests/core/test_boundary.c",
+        "sha256" : "8a71815658c6be7e3f1e84142912a9cac146485906400fb117223b822c81f131"
+      },
+      {
+        "path" : "tests/core/test_cartridge.c",
+        "sha256" : "0e2ee5291c40695f7c3ba7ddf5bd7d81de96088388ed7098917cf9e8bf7e2aa7"
+      },
+      {
+        "path" : "tests/core/test_controller.c",
+        "sha256" : "4aa99f03f31f9943ab751a7774f888b2f4c3d57015211d74815f0c19799db90b"
+      },
+      {
+        "path" : "tests/core/test_frame.c",
+        "sha256" : "2cd677eacb10c9e3348ea12f5cb69022140bae32730d363cff0a7a56c45ac379"
+      },
+      {
+        "path" : "tests/core/test_interrupt_entry.c",
+        "sha256" : "c215a61c318d420207b3668b9134b063411a7f6e63189483595d99fd2b8f477c"
+      },
+      {
+        "path" : "tests/core/test_interrupt_state.c",
+        "sha256" : "b50e56d148ace2411df8c35a69a32ba2da0aa14a85e4846b9494809dbcd1b370"
+      },
+      {
+        "path" : "tests/core/test_irq_poll.c",
+        "sha256" : "4eeab6f3461caa56f043b1df9ff0f93804b2c201efdb90a9627546e25fdb545b"
+      },
+      {
+        "path" : "tests/core/test_mapper.c",
+        "sha256" : "7e7bd96b582ef81112846ebe549e16df64175afeeba7621a5f19f56b417476f2"
+      },
+      {
+        "path" : "tests/core/test_mapper_discrete.c",
+        "sha256" : "7461e87594ee593f655f5c9213f807e99fbd0bc5c82e03896e538683b2af04ed"
+      },
+      {
+        "path" : "tests/core/test_mapper_mmc1.c",
+        "sha256" : "e475daced70e5432d475daef23e5993105ea09b0f128539afe3d57ecaa217724"
+      },
+      {
+        "path" : "tests/core/test_mapper_mmc3.c",
+        "sha256" : "b476a266698300eacf2837338f96df4e6603af4ee6b811fa8d8ebe6715e370b1"
+      },
+      {
+        "path" : "tests/core/test_nmi_edge.c",
+        "sha256" : "d035f7ac5a44368e457966c492a2ad71da140eabe39dc5f55f9c9f3167a58432"
+      },
+      {
+        "path" : "tests/core/test_nmi_poll.c",
+        "sha256" : "8ddaa054acd60ca579bdbc1f0309c4a9fad7f347b2804e4f915f467fd809fedb"
+      },
+      {
+        "path" : "tests/core/test_nmi_state.c",
+        "sha256" : "025641b83324d6cb093e74ebfbcd58f36e9d6a5f6edc4c353f6c9bd9a6b98f6a"
+      },
+      {
+        "path" : "tests/core/test_palette.c",
+        "sha256" : "a528bffd3bcf28fdc5ab99d7ef046f9b5973cb332db2ea6d3fc55308b80fa09b"
+      },
+      {
+        "path" : "tests/core/test_profile.c",
+        "sha256" : "0114971a4af50e39f485d65498883fa113224983d8b12592534960023e913750"
+      },
+      {
+        "path" : "tests/core/test_reset.c",
+        "sha256" : "35dfe16d24f39b087a859f007cdfd9df7f80e1caba0efd5599b7ea1d9a1e468c"
+      },
+      {
+        "path" : "tests/core/test_save.c",
+        "sha256" : "8767fceb5c20d5513b4cf0666562018c6e057fcfc6664d965b88b039731e9aa3"
+      },
+      {
+        "path" : "tests/core/test_state.c",
+        "sha256" : "95c8e91c4a7bb025e7ec784845ea56e2fddce30b7b8e97bb3aa3a4a95e76674d"
+      },
+      {
+        "path" : "tests/core/test_state_fork.c",
+        "sha256" : "96810b681e1d39a7f6b67f749c16194ab2d83d645c85e68d2391466b12b3be5e"
+      },
+      {
+        "path" : "tests/core/test_state_generation.c",
+        "sha256" : "e7c1dbf450a593df974b127e1c68a28a71f130032a7c4e9d25b55cd91ccdc1ca"
+      },
+      {
+        "path" : "tests/core/test_state_reject.c",
+        "sha256" : "7ed91806806e8cf04e3998f3b4508051f4a196e80431a0d15c923b074fd30c8f"
+      },
+      {
+        "path" : "tests/core/test_state_runahead.c",
+        "sha256" : "a0df489067723f8a14009674c6a1a64d554d841c5490d0fdfa762061d0147b96"
+      },
+      {
+        "path" : "tests/core/test_synth.c",
+        "sha256" : "ed24c8655e88c5abe8f45d94d3be25ff600695d8b88bc5761b8e2612bd0c091b"
+      },
+      {
+        "path" : "tests/cpu/test_bus.c",
+        "sha256" : "a548b2f1755098d361eb4144e14c653054a57727445bee681af947aea233867b"
+      },
+      {
+        "path" : "tests/cpu/test_cpu_unit.c",
+        "sha256" : "2bb503dc7433104e63943e53955526f864191e9f46960b55d335606a5c938439"
+      },
+      {
+        "path" : "tests/cpu/test_vectors.c",
+        "sha256" : "91069f6e2aeeed9ddbf6244af8424b3b16bafd29442208afb5362689d38ffc29"
+      },
+      {
+        "path" : "tests/cpu/vector_bus.c",
+        "sha256" : "1a617499d4bd2ed14914741775d2272255525aae9dd8a68e8b231a49eb4d9144"
+      },
+      {
+        "path" : "tests/cpu/vector_bus.h",
+        "sha256" : "33137a4eae1ebf0df5c73a0ac4aaab7d5e792a5ebca4a69cf741e8f25a4fed70"
+      },
+      {
+        "path" : "tests/embed/CMakeLists.txt",
+        "sha256" : "47f96678e7bc61ea96bf26aee3e94993677f2ece147d59ddeae12bf8eaa44f31"
+      },
+      {
+        "path" : "tests/fuzz/corpus/axrom-odd-prg",
+        "sha256" : "e6f5181134c0489f557c63d5d72c6a73e0efcc7dcb2e80a9c58c7b7d180c6c9d"
+      },
+      {
+        "path" : "tests/fuzz/corpus/cnrom-chr-ram",
+        "sha256" : "2ba8b5abf61b1a42d96720002860be617238cdcff949c244c8030a85f8ac9272"
+      },
+      {
+        "path" : "tests/fuzz/corpus/empty",
+        "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path" : "tests/fuzz/corpus/header-only",
+        "sha256" : "8fbd8dbd0c41df71fdb2b2e02e911cea6225d12e18904219cfbd9e93717250d5"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mapper-118",
+        "sha256" : "9cc3ac6fed8c24a167c763e7c7bdefabbbbf83538807820d23705a6498b3e24e"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mapper-119",
+        "sha256" : "04d34acee5a9ba1bd38d6d0c79a164066bb09f27da16fdb6aa74f068d8c5077e"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mapper-155",
+        "sha256" : "ea29830af7a33011b259588396c48ed8eb62238f7cd90245fa1ce82e1b559451"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mapper-206",
+        "sha256" : "be882af55f2d70b3be9f6032cbddd6ee9dde2b7bdad033273e0f06f0d0439182"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mapper-249",
+        "sha256" : "ef9c3f147b6f4a79d9adfce18c9fb8360c0d1881359a7ea7da31ba5bc09dc44c"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mapper-bits",
+        "sha256" : "7f4ff3c91fbfee93fbcf5ae89b68a11f0d6bdd397252c837db3b15bf8dc6a651"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc1-512k-chr-rom",
+        "sha256" : "e13a0c090f0f6694a7dc82693c30a04d1ae867a7a960cccadb3be8dc75f78b37"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc1-battery-no-nvram",
+        "sha256" : "28ad3778f328161cc84412eec89411d55561773353472c4de97d52489df54449"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc1-chr-nvram",
+        "sha256" : "812bd903a787b4f47804691e98a80f4b8a19e5633eabbf8f07a8a77951ec365c"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc1-nvram-no-battery",
+        "sha256" : "f1de69ff4e724b4c865a08f2632f6fd7e3d053f1db019aa5fb07d426dddc450a"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc1-prg-16k",
+        "sha256" : "6a71c94f1dc3f6dcc23072d626a994dc7b3f49fbe39d61eec5bb522b41fd382a"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc1-ram-128b",
+        "sha256" : "35eb5f7823cb6d3c5950bd3a09e103a7dbb2b1b9ea8c028eaab07cb895f2b39e"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc1-ram-24k",
+        "sha256" : "15e4562db5d7dc4f750ac07e7c688dc7573b8162f568c534202f0bf1e9ae6668"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc1-ram-64k",
+        "sha256" : "04218de90d4f50ac7151844cf5a6b6d3043b30778370bf182ef1e2bcb762b377"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc1-sub5-128k",
+        "sha256" : "4c08b6786bc9646f4134480251de66e799ba95712e1349201fa189c6efef6658"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc1-submapper-1",
+        "sha256" : "520db4eaeae5825ab501a8f9ff643f71564ea96c701cdd6da820b9d8c186b5fa"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc1-submapper-3",
+        "sha256" : "b529b0ab57ada55a88d38a3fbefb71fd8c494dd326ed363959f13e795baeeda1"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc1-szrom",
+        "sha256" : "b8d719e0b239c205ef7f7e90d031e46b180129ffb2b0badb8295bedfc06af54d"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-battery-no-nvram",
+        "sha256" : "5e86892678fa7a3648c1af273b37aec7d56807ba57bef675c75916c1ec31726f"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-chr-24k",
+        "sha256" : "e9bf424d6c69ae63f60ca93132bebb0bff355f61a9eb0257887ad9cf3cfe015e"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-chr-512k",
+        "sha256" : "39a4f915c0e08e3728b5762be211039bb77f04f0e7ee7ed1f4cc777128e4e16a"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-chr-none",
+        "sha256" : "02cf130e6ec315e91205242c44ee9ce0073c4d2338759c13f12f2f4b63e2f52c"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-chr-nvram",
+        "sha256" : "172b36059ae4c7c46387f697eeeb5a9c356b0eee8387002cbe59f24f6d678c8a"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-chr-ram-16k",
+        "sha256" : "f72266ec36b2d2a6434c2fc62b7aec17800e3e55e2b5a01bfd49735df4d33737"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-four-screen",
+        "sha256" : "dd57d148314f8c3498b32bf8a8d85a19e6fe6ed7465cec18226f908369ea928d"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-four-screen-nes2",
+        "sha256" : "246f3a24dbff709aa628038d8e1882ee0533dd77dcde34068f7047a32c4c2b9c"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-nvram-no-battery",
+        "sha256" : "4657af7869e305827b8b7fb5c779ea9e124273564a58c4b4f0d0b4d04f96d808"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-prg-1m",
+        "sha256" : "b434154a1bf7e0961a54fed2af915285a7d7833853ec320479b16d40db327b03"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-prg-24k",
+        "sha256" : "ea396d4696be41d123615dff0aebb8fdd0be1980c0febb077b7339a719c1815f"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-prg-8k",
+        "sha256" : "db715c6dcd69e494c90d839838ee41b46f395faf1fb258e8a9e063baeecc0d2d"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-prg-exp-huge",
+        "sha256" : "b82e123d1f5f08b1c37ef8eb1c81738461524ca9d640d453f4b3050549fd2bb7"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-ram-16k",
+        "sha256" : "46e7399911e19520c33257495c676249f9e95c2dcf331b544910fcea43553d27"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-ram-1k",
+        "sha256" : "73e2dade69ad550fd53b1bdb36bce6217981db72c2baef999f9c46aa81935b89"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-ram-2k",
+        "sha256" : "231b7e1dbd8d8d552b77e62e3d6e4cefc74987540174f1dee14cf84cc89eaa60"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-submapper-1",
+        "sha256" : "7fd51dfdb59306ea7cf05f2434393f01124a284c4d3d8bc8e9c8fac6e344fef9"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-submapper-15",
+        "sha256" : "8a887315d6a0ac9f7380ecdf359f29b5aaae505bd38567d06387a3d29d1bebbc"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-submapper-2",
+        "sha256" : "1910de63347b8fbdd706e0d3ce8f248f4d5c1b6adfea5fb7e201599ee6e6e263"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-submapper-3",
+        "sha256" : "e10c5282615cbe05dbc2bf4beb837e27c5acafbffa2e321a8ec1733dc2cf36a6"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-submapper-5",
+        "sha256" : "3ed2b8c7363b96a23f0d76dc66aabbaaf92d814e01bb655790311a1fe8f97248"
+      },
+      {
+        "path" : "tests/fuzz/corpus/mmc3-work-and-nv",
+        "sha256" : "0c0b713d2c16a58ad35cd4ed398d2ea5d5532bb94a2d7469c4b4425e246f22bd"
+      },
+      {
+        "path" : "tests/fuzz/corpus/short-prg",
+        "sha256" : "549be2416a02ad8f76e9c4d25d453ebd38d7a39652a1450ade44ab3b1b80305f"
+      },
+      {
+        "path" : "tests/fuzz/corpus/single-byte",
+        "sha256" : "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+      },
+      {
+        "path" : "tests/fuzz/corpus/submapper-3",
+        "sha256" : "6fe0586bb2ffbd50245e1545cb400f6db94c5f6ae90da41949170464d08d1afe"
+      },
+      {
+        "path" : "tests/fuzz/corpus/trailing-byte",
+        "sha256" : "4900de497b16b78efb542827e5f9442e8cc3a269efc79af69269df1d88fd25c1"
+      },
+      {
+        "path" : "tests/fuzz/corpus/truncated-header",
+        "sha256" : "85840c3562bec588c7cebbfc6f02e76c5ce0f03bce51173271a443221be871aa"
+      },
+      {
+        "path" : "tests/fuzz/corpus/valid-axrom",
+        "sha256" : "902046ad9ce66333828da738eea885c531b4b9be5de305384148b971922776cf"
+      },
+      {
+        "path" : "tests/fuzz/corpus/valid-cnrom",
+        "sha256" : "5b8b06977d074028bfc2c8aad3ca77e759f1a0395008668c7fc87fe9a8fda000"
+      },
+      {
+        "path" : "tests/fuzz/corpus/valid-mmc1",
+        "sha256" : "327effc4c95863847b86119c23314f30b87db431b586b3ec46a2849efb69c3cb"
+      },
+      {
+        "path" : "tests/fuzz/corpus/valid-mmc1-sorom",
+        "sha256" : "1b12ba67b1c114316e9e2a34136e5ea6b819959c3e3105b573c3145959511496"
+      },
+      {
+        "path" : "tests/fuzz/corpus/valid-mmc3",
+        "sha256" : "ebfd56c2230e41a32e3a706525eb66f4de0ba2f0f2b42cc49f46f3b0b80007da"
+      },
+      {
+        "path" : "tests/fuzz/corpus/valid-mmc3-ines1",
+        "sha256" : "a01d0c6b12191cac4f349a88892860d4dc7bf6415e1685fdcf7a2aac52b84cd9"
+      },
+      {
+        "path" : "tests/fuzz/corpus/valid-mmc3-prg16k",
+        "sha256" : "e3bbb97c066705fa6c4fcf5ea496fcac31a287f981303be90e478a3f50ed4deb"
+      },
+      {
+        "path" : "tests/fuzz/corpus/valid-mmc3-sub4",
+        "sha256" : "83adc3b560016e5cba230984ee9f1be35ce76dc542a8e07d455aaaf6834c5edb"
+      },
+      {
+        "path" : "tests/fuzz/corpus/valid-mmc3-tgrom",
+        "sha256" : "32539f8a6a701b3dc64ab4ab3eeb24b4b967a0805aec407198e1b051dddae90d"
+      },
+      {
+        "path" : "tests/fuzz/corpus/valid-nrom",
+        "sha256" : "99f2c3dd2122f83c39d4d7f8b884d4f1b52f644d78a3d929c3b372ccd1291f54"
+      },
+      {
+        "path" : "tests/fuzz/corpus/valid-uxrom",
+        "sha256" : "7c0175b19350bdf9e9fbbc30b46833eec45a9a25e26a833e858473d238eabb8c"
+      },
+      {
+        "path" : "tests/fuzz/corpus_execution/axrom-deep",
+        "sha256" : "e0f6089b2115c9856aa850d64c0016f2a631f0d57fa79553dafbe1b70282e9e9"
+      },
+      {
+        "path" : "tests/fuzz/corpus_execution/cnrom-deep",
+        "sha256" : "041215400b8887eb4b2451c33faa4e01ab411a7ee57bce9ac35e31c755a06d86"
+      },
+      {
+        "path" : "tests/fuzz/corpus_execution/jam",
+        "sha256" : "d829d805ca1a36d6e1e0221411eed92dfb083c624f553723f4a6cfac03180541"
+      },
+      {
+        "path" : "tests/fuzz/corpus_execution/loop",
+        "sha256" : "0b37147b8d5dc704049feb4d8a0403e4c21ebb81692c570d9cb345199b758bde"
+      },
+      {
+        "path" : "tests/fuzz/corpus_execution/mmc1-deep",
+        "sha256" : "b7fbf5e2258199f599de555a542d02e80a4b0ddef9973e95b86a9724585ed954"
+      },
+      {
+        "path" : "tests/fuzz/corpus_execution/mmc3-deep",
+        "sha256" : "c851d8b4bd707e6d53d62a1e51cfd139e1dc8cb480a809d448db9e1cc0ba30fc"
+      },
+      {
+        "path" : "tests/fuzz/corpus_execution/nrom-deep",
+        "sha256" : "f7c05d3637ef2b45dcbd8abeeda61e06b3f5962bafccc61b8eea7da3dde0308a"
+      },
+      {
+        "path" : "tests/fuzz/corpus_execution/uxrom-deep",
+        "sha256" : "200605f44a3bd941ba787b24af6b3d24fe4e704646e84b97510def3bd2f79361"
+      },
+      {
+        "path" : "tests/fuzz/corpus_state/reject-header-only",
+        "sha256" : "8d33f520a3c4cef80d2453aef81b612bfe1cb44c8b2025630ad38662763f13d3"
+      },
+      {
+        "path" : "tests/fuzz/corpus_state/reject-long",
+        "sha256" : "c3641f8544d7c02f3580b07c0f9887f0c6a27ff5ab1d4a3e29caf197cfc299ae"
+      },
+      {
+        "path" : "tests/fuzz/corpus_state/reject-raw-checksum",
+        "sha256" : "4c84ac7f84c2d53ce761c4eb2c56292b376e0fc2aecf428e75b1667dd75dfabc"
+      },
+      {
+        "path" : "tests/fuzz/corpus_state/reject-raw-magic",
+        "sha256" : "6533f9cf40ccd091ddf42305602a70304b88f557bda7f0d2de4c768681badb7b"
+      },
+      {
+        "path" : "tests/fuzz/corpus_state/reject-short",
+        "sha256" : "36a9e7f1c95b82ffb99743e0c5c4ce95d83c9a430aac59f84ef3cbfab6145068"
+      },
+      {
+        "path" : "tests/fuzz/corpus_state/valid-m0-max",
+        "sha256" : "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+      },
+      {
+        "path" : "tests/fuzz/corpus_state/valid-m0-small",
+        "sha256" : "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+      },
+      {
+        "path" : "tests/fuzz/corpus_state/valid-m1-max",
+        "sha256" : "084fed08b978af4d7d196a7446a86b58009e636b611db16211b65a9aadff29c5"
+      },
+      {
+        "path" : "tests/fuzz/corpus_state/valid-m1-small",
+        "sha256" : "dbc1b4c900ffe48d575b5da5c638040125f65db0fe3e24494b76ea986457d986"
+      },
+      {
+        "path" : "tests/fuzz/corpus_state/valid-m2-max",
+        "sha256" : "e77b9a9ae9e30b0dbdb6f510a264ef9de781501d7b6b92ae89eb059c5ab743db"
+      },
+      {
+        "path" : "tests/fuzz/corpus_state/valid-m2-small",
+        "sha256" : "e52d9c508c502347344d8c07ad91cbd6068afc75ff6292f062a09ca381c89e71"
+      },
+      {
+        "path" : "tests/fuzz/corpus_state/valid-m3-max",
+        "sha256" : "ca358758f6d27e6cf45272937977a748fd88391db679ceda7dc7bf1f005ee879"
+      },
+      {
+        "path" : "tests/fuzz/corpus_state/valid-m3-small",
+        "sha256" : "67586e98fad27da0b9968bc039a1ef34c939b9b8e523a8bef89d478608c5ecf6"
+      },
+      {
+        "path" : "tests/fuzz/corpus_state/valid-m4-max",
+        "sha256" : "2b4c342f5433ebe591a1da77e013d1b72475562d48578dca8b84bac6651c3cb9"
+      },
+      {
+        "path" : "tests/fuzz/corpus_state/valid-m4-small",
+        "sha256" : "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+      },
+      {
+        "path" : "tests/fuzz/corpus_state/valid-m7-max",
+        "sha256" : "e7cf46a078fed4fafd0b5e3aff144802b853f8ae459a4f0c14add3314b7cc3a6"
+      },
+      {
+        "path" : "tests/fuzz/corpus_state/valid-m7-small",
+        "sha256" : "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+      },
+      {
+        "path" : "tests/fuzz/execution-budgets.txt",
+        "sha256" : "780a51a1eb17d10cca1d555e36005eff8e8b5f7a01571a89ad1fa0db0d463c12"
+      },
+      {
+        "path" : "tests/fuzz/execution-measurements.md",
+        "sha256" : "571edcefc83d506553c4a940d488b69a3f6615d8d1c37cf215916d2628d65639"
+      },
+      {
+        "path" : "tests/fuzz/execution.c",
+        "sha256" : "89c5a8df170fdee34ab4330ee160d0a0df9ec3620ba738e4864d429fa484f9b9"
+      },
+      {
+        "path" : "tests/fuzz/failure_control.h",
+        "sha256" : "e47dd1dae4771ccf37fc1d7ba8726ab4b7cd48b32f18c875c58b5c43fb91ee8a"
+      },
+      {
+        "path" : "tests/fuzz/replay_main.h",
+        "sha256" : "b4f4a4260dcb3b34269b7c68882428d9a7dcd5456ca6ba8eba931a2d201a7894"
+      },
+      {
+        "path" : "tests/fuzz/rom_loader.c",
+        "sha256" : "44e6cd27bb56d31b21840762bac9bf0720b9ed6c5d02ff2a002fcf6426a04cab"
+      },
+      {
+        "path" : "tests/fuzz/state_loader.c",
+        "sha256" : "8cb3df778afc0b4084212755f0898aca382aa08b3719d761a2d36d664e13563d"
+      },
+      {
+        "path" : "tests/fuzz/test_execution.c",
+        "sha256" : "6cc211333ba65184185d17d3aca6fb9e504194cc118d1eae943f3b450ecbbb09"
+      },
+      {
+        "path" : "tests/header/header_c.c",
+        "sha256" : "eb6191f62d6c7062eefdf5a3cfdc25f4500bc0848034e6469042a752e87195bb"
+      },
+      {
+        "path" : "tests/header/header_cxx.cpp",
+        "sha256" : "c114c853c61249aee634c74e0be157d159221c8e9f479a75115f7194e141e689"
+      },
+      {
+        "path" : "tests/holymapperel/decode.c",
+        "sha256" : "dc4dd04eafac944a5b459dc2a7c1d8b12f7b6b96c9badfc2b67c5dff614d0978"
+      },
+      {
+        "path" : "tests/holymapperel/derive.c",
+        "sha256" : "f7e51c11b42ff3e4331af5125a2dc8dac6623c20935dd58adde95515686145a8"
+      },
+      {
+        "path" : "tests/holymapperel/hm_decode.h",
+        "sha256" : "ce2ee7b60d8d2da0e13713ada04bb1cc049f6432341a1d1f4991bf94b4b96be2"
+      },
+      {
+        "path" : "tests/holymapperel/roms.cmake",
+        "sha256" : "01241837bce2f4af63d0c29c5d9124f62239b7f002083ed819a6eb01813c0264"
+      },
+      {
+        "path" : "tests/holymapperel/test_decode.c",
+        "sha256" : "d6191e0162054b82a8473d529d910c00b988448f3db4b2ba395bced76f7dc98a"
+      },
+      {
+        "path" : "tests/host/test_convert.c",
+        "sha256" : "d177fa4014e5477659bbf408d577b2c0a8de237eb3fae760e55a9a1b03c79973"
+      },
+      {
+        "path" : "tests/hygiene/CMakeLists.txt",
+        "sha256" : "9dbb25f4d4fb6b6e37e9277861b2feda4b88e2f3dc1ffa810a625e90f0b772e0"
+      },
+      {
+        "path" : "tests/hygiene/fixtures/pins_bad.yml",
+        "sha256" : "6543858c4c6fcadf9fa1d2f30c32562462c905d72cac8c0bcff1ca50382c9363"
+      },
+      {
+        "path" : "tests/hygiene/fixtures/pins_good.yml",
+        "sha256" : "927564915d099f573a23917ffe3f84101724004a232a4e9a1d8c50c106e50df0"
+      },
+      {
+        "path" : "tests/hygiene/fixtures/timeouts_bad.yml",
+        "sha256" : "35b24a84c67683aede0034e3647a28526e6bd5d044ee98b05b8c1ab4033ceccf"
+      },
+      {
+        "path" : "tests/hygiene/fixtures/timeouts_good.yml",
+        "sha256" : "822694fbe4e75dc9863d4a57f074d7aad219ae745288739588595e4d8710020d"
+      },
+      {
+        "path" : "tests/hygiene/scan_selftest.sh",
+        "sha256" : "7e0067c5eedc6bdb81ba002422fa539bdc4d8ec687098f22cf21feae672ca1af"
+      },
+      {
+        "path" : "tests/ines.h",
+        "sha256" : "07bf5cb6ef295f863967dcf77bcd0aae61df0672ae20fe9a588e9782bb070627"
+      },
+      {
+        "path" : "tests/interrupt_fixture.h",
+        "sha256" : "05a27df4b316ad6870f764743bad818ce9edb43a4177bd4c4b4923612ba3de21"
+      },
+      {
+        "path" : "tests/libretro/libretro_host.c",
+        "sha256" : "61a7de13aefef9da123bfe75fec6f006e776af96ddca6ea8070024bf63e90154"
+      },
+      {
+        "path" : "tests/mapper_test.h",
+        "sha256" : "7aaf978285ac5e9e25d4021bba3882499aa7f82ae9075f2a9c91b2337a6dfb39"
+      },
+      {
+        "path" : "tests/mmc3/oracle.c",
+        "sha256" : "80d3032d6f39013771adcaeb1f4eb481b7119cadc11cd5c0d1a38b310f870340"
+      },
+      {
+        "path" : "tests/mmc3/oracle.h",
+        "sha256" : "7c8f047246c51c7adae83a95e06e856fdffa52700f4cba22890f5b20a2f664a9"
+      },
+      {
+        "path" : "tests/mmc3/oracle.txt",
+        "sha256" : "38044db85c6890ee845a7e575f58e7cf9a025dcbc0fb6094ac9acd8ed2e79430"
+      },
+      {
+        "path" : "tests/mmc3/pins.txt",
+        "sha256" : "107b35cc7e39ef5809fe74cb22dd7ac049b705980b6f328d4d2c75396d364b43"
+      },
+      {
+        "path" : "tests/mmc3/test_oracle.c",
+        "sha256" : "4ede8c2eb8ba6c6f2c83c574f87e537278895c6a095cfb5b8548de762b59d9c1"
+      },
+      {
+        "path" : "tests/nmi_fixture.h",
+        "sha256" : "5983b2d65da245ef442fd96484694f14c5d67fc2b20349427bd4dfedbc6cfda8"
+      },
+      {
+        "path" : "tests/perf/allow.txt",
+        "sha256" : "712833cffdeae7c45c2c05ab4973d3ae701396b12abd4d3fa409ba211f4cae6c"
+      },
+      {
+        "path" : "tests/perf/fixtures/cachegrind.out.in",
+        "sha256" : "c5ee654631849a6f66799e4e91f032a19bb0e04bca3103ef2ee6086fc1f1115e"
+      },
+      {
+        "path" : "tests/ppu/ppu_fixture.h",
+        "sha256" : "f33801579e59313dd9ccf006faaff5e8404e9ce0728ab34c3fdd559803c24e81"
+      },
+      {
+        "path" : "tests/ppu/test_fetch.c",
+        "sha256" : "eeaa3765d848db3a735b87e344cf16dc1341929ee9db4a65a35e44cc43561a98"
+      },
+      {
+        "path" : "tests/ppu/test_mmc3.c",
+        "sha256" : "40417cde021e7e0efce66a0f00e67f6dc3a59ab39fde1aff24e25ec6783825d0"
+      },
+      {
+        "path" : "tests/ppu/test_nmi_races.c",
+        "sha256" : "92e1cee5a517fd7119af540f2075812d35e50035eb7c5d0794a7338cc0c44f64"
+      },
+      {
+        "path" : "tests/ppu/test_registers.c",
+        "sha256" : "b91c5d2387f73046ae93badf9a29b231b19dedc0091991e7b2dc1eaa0439f085"
+      },
+      {
+        "path" : "tests/ppu/test_render.c",
+        "sha256" : "9ae93d6a96bf6ba5e94594dfc262076164d1b9ac7c5d72a031c63669c411c41f"
+      },
+      {
+        "path" : "tests/ppu/test_split_scroll.c",
+        "sha256" : "80553fd87bd0d3dd9c6ceaf13890b9a7763a6e8dd18b88b473c59bd2e67a56bf"
+      },
+      {
+        "path" : "tests/ppu/test_sprites.c",
+        "sha256" : "79452feb50949a67a6cfbd6ec250520b0ba2b7dbbf9030a78bd8f20bae3f2ee5"
+      },
+      {
+        "path" : "tests/release/two_versions.md",
+        "sha256" : "5f022c9eef38f77b7ae0590ac22e2fcae715b3c811cb641f125ee738fde86a5c"
+      },
+      {
+        "path" : "tests/retroarch/CMakeLists.txt",
+        "sha256" : "1a57b6703b4a67473fc4805907d41f861238ab13b2c565dcc9f8ded4047d7b2a"
+      },
+      {
+        "path" : "tests/retroarch/bmp_ppm.c",
+        "sha256" : "40c9c778ad25d9d995d07bc96ae3de4ec5147d59bcdd96404bf4a3baabe29d08"
+      },
+      {
+        "path" : "tests/retroarch/bmp_ppm.h",
+        "sha256" : "f1fc9de65551a1a4ae9b04a349abe24f54ba77eeabb33871b5001283f355f927"
+      },
+      {
+        "path" : "tests/retroarch/compare_frame.c",
+        "sha256" : "152592ebd2e325769dbb98eef879b345e690ecb08a6e606f957ada320f968b3f"
+      },
+      {
+        "path" : "tests/retroarch/fixtures/allow-failed-load.txt",
+        "sha256" : "9856239a4723651bdb654d81171dc49ab93482e46185457a1cad27284e6109f0"
+      },
+      {
+        "path" : "tests/retroarch/fixtures/allow-uncommented.txt",
+        "sha256" : "1c6a09eeab2d3071e9b2c8e7404bd91a9ed4654157a510ccc65bc74a00201035"
+      },
+      {
+        "path" : "tests/retroarch/fixtures/log-clean.txt",
+        "sha256" : "298c3c7a9c13472b28ce902cb8fb0a37a8c5ba3d8139c7bc28c44119fbf88caf"
+      },
+      {
+        "path" : "tests/retroarch/fixtures/log-failed-load.txt",
+        "sha256" : "cd6ea3b6f4a0d078acb5ab6b0f81aa2729cb8e6f12ed87693437eb9323d0ab3b"
+      },
+      {
+        "path" : "tests/retroarch/fixtures/log-level-allowlist.txt",
+        "sha256" : "71f9069f54239299543da47cc44ea83e99fd1a67bbe328ab929c3b302ebb63bb"
+      },
+      {
+        "path" : "tests/retroarch/fixtures/log-no-netcmd.txt",
+        "sha256" : "eba607f020efbda53e7abd954865d9961018df658bf41f7f8326808794f61a3c"
+      },
+      {
+        "path" : "tests/retroarch/fixtures/log-rewind-warn.txt",
+        "sha256" : "6fb05ae20d91dfcaaf48e0d2be7db733da2ab0e17f3632c9b6fe0e22e72fdf0b"
+      },
+      {
+        "path" : "tests/retroarch/fixtures/log-unlisted-error.txt",
+        "sha256" : "006ec8cf6c02a9d7125442691102b2c3ff210806beb54b0aaaa9cb28c71ab1f3"
+      },
+      {
+        "path" : "tests/retroarch/frame_index.c",
+        "sha256" : "387ce821646367243d25bd4e6addfadbb34b22b6d71e5d7bf23556c3fabb434e"
+      },
+      {
+        "path" : "tests/retroarch/interruption_trace.sh",
+        "sha256" : "a899d87ed398cbfff75b965b01a5575912cb9b0696b048ffdd55732d278ee165"
+      },
+      {
+        "path" : "tests/retroarch/log_allowlist.txt",
+        "sha256" : "f22c01d9ced24a922dfc9abc2e1d841e1309a4484138d939a05479b9c3caa1e8"
+      },
+      {
+        "path" : "tests/retroarch/log_check.cmake",
+        "sha256" : "3030d5fd3880b77bb7237a62af484905210f4b20d0088e04d60a37b6ef7104a0"
+      },
+      {
+        "path" : "tests/retroarch/progression.h",
+        "sha256" : "33e082251ec479ea058a5af5ba2d2793cda7c55ad625551d5affda5f2669f9ee"
+      },
+      {
+        "path" : "tests/retroarch/run_retroarch.cmake",
+        "sha256" : "bdf72c90532def11672c3a8c65905cc454d967c005a0af4cb1360145d012c025"
+      },
+      {
+        "path" : "tests/retroarch/state.cfg.in",
+        "sha256" : "7ee94281468ae05c2588df5628da07d9ec7813081c8253d6caac019b943be1ca"
+      },
+      {
+        "path" : "tests/retroarch/state_session.sh",
+        "sha256" : "9cca8d2d90d5c5504d92f6ee5674bd8549f04183a15ebeeed187f34c1ee0e171"
+      },
+      {
+        "path" : "tests/retroarch/test.cfg.in",
+        "sha256" : "d12587c07bb3f2cdd464d6ee00e71962edb1dbb395844337336720385bbe74ff"
+      },
+      {
+        "path" : "tests/retroarch/test_compare_frame.c",
+        "sha256" : "76072c68aced7279fd3d5d87cbe7f9f561fd1f8294b7fff2e7095561002b8cf4"
+      },
+      {
+        "path" : "tests/retroarch/test_state_session.sh",
+        "sha256" : "09ec36bdce41703f84a4f03fdcd8e3a1267dcaad6cfe4ee6f2645b43b93f1f59"
+      },
+      {
+        "path" : "tests/roms/accuracycoin-673ef.nes",
+        "sha256" : "4fe8c2bc9abc6f4d418da47b73f62cba89fcacd950fae763097a1681d650e839"
+      },
+      {
+        "path" : "tests/roms/accuracycoin.nes",
+        "sha256" : "8ac8904a3cf26fbdfa6be501e414d45886ff4478d30dee8e58fa436cf5fd5adc"
+      },
+      {
+        "path" : "tests/roms/dabg.nes",
+        "sha256" : "eca79b9d0b546e96c1bc73099e239539fb9c7773ff10a431bb3a9cd6763208ca"
+      },
+      {
+        "path" : "tests/roms/hm/M1_P128K_C128K_S8K.nes",
+        "sha256" : "2263d212fe9c8e857f89c846962e7e78f3ba885e1413644b94e50cfff65ecd08"
+      },
+      {
+        "path" : "tests/roms/hm/M1_P128K_C32K_W8K.nes",
+        "sha256" : "3d330d32bb45d41ce6c9666b80f580ff2912444b44f833ee89d062794abdfe32"
+      },
+      {
+        "path" : "tests/roms/hm/M1_P128K_CR8K.nes",
+        "sha256" : "0595f0896d71d6e54ad19b00a2cdfb6d1665e3166167a06935c5971105ed5793"
+      },
+      {
+        "path" : "tests/roms/hm/M1_P512K_CR8K_S32K.nes",
+        "sha256" : "7db5b5191ce842d44a5a8cb132a58d7116741053d4bd0f8a5def832be80e655a"
+      },
+      {
+        "path" : "tests/roms/hm/M1_P512K_CR8K_S8K.nes",
+        "sha256" : "c3f239ea8f2fa1023a272b5e1b5add884b583e79ffd6487771cc53a1f4566b5c"
+      },
+      {
+        "path" : "tests/roms/hm/M2_P128K_CR8K_V.nes",
+        "sha256" : "c7e83755bd9adbb7c705ea9f29535442af7390444632f9f824fcf4c00632069b"
+      },
+      {
+        "path" : "tests/roms/hm/M3_P32K_C32K_H.nes",
+        "sha256" : "499891c6d8c7a1e7631bdc601d9d624938842735f92fe1fda7b19ef9fae514b7"
+      },
+      {
+        "path" : "tests/roms/hm/M4_P128K_CR8K.nes",
+        "sha256" : "edb301630dae50a8470c1fb914f436434a150c886d9537d072275b751a9b4125"
+      },
+      {
+        "path" : "tests/roms/hm/M4_P256K_C256K.nes",
+        "sha256" : "278041824af3a0530d6a1367fa1a1d3bb544d2dd1e97ad8372673f7fe0379b17"
+      },
+      {
+        "path" : "tests/roms/hm/M7_P128K_CR8K.nes",
+        "sha256" : "4aa0050f36ae17e17701506821e5147df5b843bcdf2827468fa9c66e4b7ac1ba"
+      },
+      {
+        "path" : "tests/roms/licenses/DABG-ZLIB-LICENSE.txt",
+        "sha256" : "06fa223afb2949c20e030910d7010af2100a9e42ffa3d3f3c1c0307ec2903fdc"
+      },
+      {
+        "path" : "tests/roms/manifest.txt",
+        "sha256" : "e56a6b2cde320a3c4b5315904b9d4dd99cefc7edf80292ed3f81fc5c008b850d"
+      },
+      {
+        "path" : "tests/roms/nesteroids.nes",
+        "sha256" : "a30dcfb12c1447dc121619c93b4083d2b83c7405a883ed490c3a59e52ce74f36"
+      },
+      {
+        "path" : "tests/roms/rhde.nes",
+        "sha256" : "b2c4748a5b3651e393572046daf126213653b58b55472cdfdf4b863834dd0241"
+      },
+      {
+        "path" : "tests/roms/runner.nes",
+        "sha256" : "1a67bfabdde2d96eacb04eb7f9d17e8da6c082d4976c318315fe31e2d19b4384"
+      },
+      {
+        "path" : "tests/runahead_model.h",
+        "sha256" : "dc26cbe299ce551af2f2d57e0961c652f0f795d82f93358249090c2cfde1eb6e"
+      },
+      {
+        "path" : "tests/runner/game_movie.c",
+        "sha256" : "cab43a16d2a9a56c2a7895233e2cc768b94ae265d0c58a8fd224a98cf2848ec2"
+      },
+      {
+        "path" : "tests/runner/hashes.txt",
+        "sha256" : "76f999668c5bf584074a37f050a19cb4c31f9c63b6671b06b85388e9950be850"
+      },
+      {
+        "path" : "tests/runner/movie_fixture.h",
+        "sha256" : "a9753dff3cb5f8566f35251ba369a64046fa306915c77be47e17c7c32285107f"
+      },
+      {
+        "path" : "tests/runner/nmi_fixture.c",
+        "sha256" : "b9b574dd4342e5a4f2e90dd1b477ef53a8b1cce6c3f71e1d869a1c531d748287"
+      },
+      {
+        "path" : "tests/runner/phase20_fake_gh.c",
+        "sha256" : "e9597cde79f32703f7c170bb5afbddc37283b821c37acffe039d8e53aa78f209"
+      },
+      {
+        "path" : "tests/runner/save_rom.c",
+        "sha256" : "3ffc3613ebe253d16b68fdd047092515a95714f374d156cf190f77dd4133a0dc"
+      },
+      {
+        "path" : "tests/runner/state_mutate.c",
+        "sha256" : "57597d133fc2f816968438500b3c84601d81f7fe79aa5d6cd67fe45e452b86de"
+      },
+      {
+        "path" : "tests/runner/test_audio_hash.c",
+        "sha256" : "a5d62c9e589430b1a86adda433acee1adeb8b76eab613010dd0f9b2eabaf6e8d"
+      },
+      {
+        "path" : "tests/runner/test_bench.c",
+        "sha256" : "79c1dd24893b2355a7e3044fd59089fac3b3a8beb8ccea030e4c5f69f58d53cb"
+      },
+      {
+        "path" : "tests/runner/test_boot_to_play.c",
+        "sha256" : "8de6f6b63c48b3c3e62705a2cf07ccbb2168fc1537d97ea48a8add3ff0b1736d"
+      },
+      {
+        "path" : "tests/runner/test_console.c",
+        "sha256" : "e7e977a6559628aa46494e5a01239d886666633346ee36a31993bd8981edadf9"
+      },
+      {
+        "path" : "tests/runner/test_movie.c",
+        "sha256" : "790f6d3ab1b9ea5c39f78e6d7cbb9a8c11c883390fad1831f892b2818f01f9a4"
+      },
+      {
+        "path" : "tests/runner/test_save.c",
+        "sha256" : "f62e8f4951e37eb6d1c4745fc935fa5fe4b856afb3a6a2c081a978286feb04d2"
+      },
+      {
+        "path" : "tests/runner/test_save_fsize.c",
+        "sha256" : "e42e9628a847ab66b025da378978a8c82d00e34da1a7ab50eb5bbf9096d593a8"
+      },
+      {
+        "path" : "tests/runner/test_save_replace.c",
+        "sha256" : "0d7c3b501ac03a41951a610b51867e2873d48abdf90da37d4861fad70944c027"
+      },
+      {
+        "path" : "tests/runner/test_sha256.c",
+        "sha256" : "bc4421c326ccb1d081ecc5abebd2e246f7754e4c1c6dfeb2f34298cbf0b2f019"
+      },
+      {
+        "path" : "tests/runner/test_signal.c",
+        "sha256" : "b30c434917d2234bf3bad603565c6787481cf58e3307a5b20d9f6a0024e69983"
+      },
+      {
+        "path" : "tests/runner/test_spectral.c",
+        "sha256" : "bfec799e06adb8567cf35df6b31fca7bcbc50ad68f85cb80072ee22e4b033c3d"
+      },
+      {
+        "path" : "tests/runner/test_stop_win.c",
+        "sha256" : "b88aabcba134040ea1c0df5b2a8643c05f1b110f552f85e8eb22f3684f79d55e"
+      },
+      {
+        "path" : "tests/state_test.h",
+        "sha256" : "fc36c88579829f67ced05b31133f399410c197436fca03321fdb334f59772125"
+      },
+      {
+        "path" : "tests/test_process.h",
+        "sha256" : "e3d0c8a163f07457e89a9743fd25aafa0301b9024200fc4c728330d62056034b"
+      },
+      {
+        "path" : "tests/vectors/65x02-sample.n65v",
+        "sha256" : "0c318cec0bd4031396964ca9a0de0daf25c2651c28f34a0d0616a9294430e109"
+      },
+      {
+        "path" : "tests/vectors/fixtures/02-first3.json",
+        "sha256" : "2738dad0c19bc0e4dc4d3a131a7cd3768a1493df9ec665b0e738fa397fbbb58f"
+      },
+      {
+        "path" : "tests/vectors/fixtures/README.md",
+        "sha256" : "2eca4e95ec28f5cfbf233002033c015eb63ad8bc7a97384cf810d8e98682b4a5"
+      },
+      {
+        "path" : "tests/vectors/fixtures/a9-first3.json",
+        "sha256" : "3195bc1b6d17fb002f8d0a4f8f5b99077d42d62f79e35161d9de1f7d4bf1d83b"
+      },
+      {
+        "path" : "tests/vectors/fixtures/a9-tail.json",
+        "sha256" : "6d60b42a8fca08c75e7e3ea364085be67ea786c9d15e279e6fe9e4790ab42ddc"
+      },
+      {
+        "path" : "tests/vectors/n65v.c",
+        "sha256" : "ae3a71854ba9eb44c97a4c73d1aab05353a2c5dc15281d73587010872140f733"
+      },
+      {
+        "path" : "tests/vectors/n65v.h",
+        "sha256" : "26769596ca38daa37fb9936da7be5b290eeeea5d91b3f75f1fa9485217a0617e"
+      },
+      {
+        "path" : "tests/vectors/pins.txt",
+        "sha256" : "eb93c6910ea504b584526bde33bcca473a3652671ad05276c06babc15de16472"
+      },
+      {
+        "path" : "tests/vectors/test_n65v.c",
+        "sha256" : "6257ba236653f0863005c0737897fc88c7623f22d8ef3bfb3caec390c516e04c"
+      },
+      {
+        "path" : "tools/palgen/CMakeLists.txt",
+        "sha256" : "fbf7f50599d34c254dc606e97f7b92d4caf52ca90d7e61ab49e9673b66128e26"
+      },
+      {
+        "path" : "tools/palgen/palgen.c",
+        "sha256" : "5ad52dd804dd1daaf8b8d3ff3cd8663b832ceec3a351747565b46cf25ba0cefb"
+      },
+      {
+        "path" : "tools/vecconv/CMakeLists.txt",
+        "sha256" : "35e3a0494b6b8d21cc48b7d39552b15914d122493081169b26e20e52d4e395dc"
+      },
+      {
+        "path" : "tools/vecconv/vecconv.c",
+        "sha256" : "e0b3913054c036235e637464b969d4592cb2d7638e420f0fc489c8bd3afb54e0"
+      },
+      {
+        "path" : "version.txt",
+        "sha256" : "0a6c8dc4148eed841498d2c2be544947a62f8f50c381b2e64bcd7ce40461cf34"
+      }
+    ],
+    "guide_sha256" : "edf72c31bf318600f9e5d4d5a0c3515e19a96b65be8953eebd79aa37d929c436",
+    "manifest_sha256" : "22f3e4eba7cea5c9a6f4230c9a3b970efbfd08f3b96ed8ced5686034504daf7c",
+    "profile_sha256" : "1de93648482c0dd3fcface6a2982633037faded7194dd55ad94425d2fb0652e1",
+    "rom_sha256" : "eca79b9d0b546e96c1bc73099e239539fb9c7773ff10a431bb3a9cd6763208ca",
+    "scenario_guide_sha256" : "edf72c31bf318600f9e5d4d5a0c3515e19a96b65be8953eebd79aa37d929c436",
+    "scenario_rom_sha256" : "eca79b9d0b546e96c1bc73099e239539fb9c7773ff10a431bb3a9cd6763208ca"
+  },
+  "local_acceptance" : 
+  {
+    "archive_check_exit_code" : "0",
+    "archives" : 
+    [
+      {
+        "name" : "nesturbator-0.1.12-library-macos-arm64.zip",
+        "sha256" : "04282bf123fae46328460365956059a243d4bbb108d98e05ddd16b5018ae9dc0",
+        "size" : 108188
+      },
+      {
+        "name" : "nesturbator-0.1.12-libretro-macos-arm64.zip",
+        "sha256" : "c53da04008f4f7a5e0b1dd1af9d75bd277af79498d008779d4a16f324428f8d1",
+        "size" : 86400
+      },
+      {
+        "name" : "nesturbator-0.1.12-runner-macos-arm64.zip",
+        "sha256" : "bc5539701bd90baca09cf5fcde447a120f1986f38d857dfd555bd28d7c90b95b",
+        "size" : 120725
+      }
+    ],
+    "command" : "cmake --workflow --preset ci",
+    "ctest_discovery_sha256" : "b56e6661caec050b4bff7bb0e967312d3ebe6e50029f32eef30d714271ea20ce",
+    "ctest_selection" : "all discovered tests in the ci workflow; see evidence ctest-discovery.json and LastTest.log",
+    "duration_seconds" : 458,
+    "evidence_root" : "build/phase28-d51/local",
+    "exit_code" : "0",
+    "finished_at" : "2026-11-11T18:19:39Z",
+    "gameplay_report" : "build/ci/qualified-consumer-45d181a903c3/gameplay.json",
+    "gameplay_report_sha256" : "b89868547120284668bc59e867b46addb4d5f543e2e3934fbac55f6ebb7c6962",
+    "installed_runtime_profile_exit_code" : "0",
+    "last_test_log_sha256" : "283c459fcdb48f3425f66c61e9e22c16023871356c70f574db5d35bf4b529eb6",
+    "provider_receipt_controls_seconds" : 3.0899999999999999,
+    "receipt_checker_sha256" : "7b1cee3410a23a1246085be79d7225d4ee06080913eff0404758859ffad62ec2",
+    "required_tests" : 
+    [
+      "accuracycoin.campaign=passed",
+      "provider.profile=passed",
+      "provider.profile.controls=passed",
+      "install.gameplay=passed",
+      "provider.receipt.controls=passed"
+    ],
+    "stages" : 
+    {
+      "build" : "passed",
+      "configure" : "passed",
+      "package" : "passed",
+      "test" : "passed"
+    },
+    "started_at" : "2026-11-11T18:12:01Z",
+    "status" : "passed"
+  },
+  "qualification" : 
+  {
+    "published_receipt" : "docs/provider-ntsc-release.json",
+    "release_binding" : "pending",
+    "status" : "local-ready"
+  },
+  "scenario" : 
+  {
+    "guide_sha256" : "edf72c31bf318600f9e5d4d5a0c3515e19a96b65be8953eebd79aa37d929c436",
+    "recipe_sha256" : "b1e1774f1ad0161153c83a3536ab1f8bffffdda47922d9f7262cc6e92e2243eb",
+    "rom_sha256" : "eca79b9d0b546e96c1bc73099e239539fb9c7773ff10a431bb3a9cd6763208ca"
+  },
+  "schema_version" : 1,
+  "source" : 
+  {
+    "commit" : "fb5c93eb1c301d8d64b28c3ee1e9340f49c233bb",
+    "tree_sha" : "96eb120ac7ccbe136e85bd373d978522583c1cc3",
+    "unrelated_dirty_work_excluded" : true,
+    "working_tree_status" : "",
+    "working_tree_status_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}
