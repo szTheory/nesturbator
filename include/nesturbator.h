@@ -46,7 +46,7 @@ extern "C" {
 /* clang-format off */
 #define NESTURBATOR_VERSION_MAJOR 0 /* x-release-please-major */
 #define NESTURBATOR_VERSION_MINOR 1 /* x-release-please-minor */
-#define NESTURBATOR_VERSION_PATCH 12 /* x-release-please-patch */
+#define NESTURBATOR_VERSION_PATCH 13 /* x-release-please-patch */
 /* clang-format on */
 
 /* Binary interface number. nesturbator_create refuses a config whose abi
