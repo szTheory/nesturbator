@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.13](https://github.com/szTheory/nesturbator/compare/v0.1.12...v0.1.13) (2026-11-12)
+
+
+### Features
+
+* **package:** qualify NTSC gameplay provider handoff ([#66](https://github.com/szTheory/nesturbator/issues/66)) ([6f29d82](https://github.com/szTheory/nesturbator/commit/6f29d82a14ff5bfa5fb24524ec7027822ad35728))
+
+
+### Performance Improvements
+
+* **test:** reduce receipt validation parsing ([#69](https://github.com/szTheory/nesturbator/issues/69)) ([49e0065](https://github.com/szTheory/nesturbator/commit/49e0065f73768cf8a3969d6430fad30beb62121b))
+
 ## [0.1.12](https://github.com/szTheory/nesturbator/compare/v0.1.11...v0.1.12) (2026-10-30)
 
 
