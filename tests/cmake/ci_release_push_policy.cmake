@@ -154,7 +154,7 @@ function(check_policy ci_source release_source nightly_source out_errors)
       "path: build/\${{ matrix.preset }}/packages/*.zip"
       "name: hashes-\${{ matrix.os }}-\${{ matrix.arch }}"
       "path: build/\${{ matrix.preset }}/tests/hashes.txt"
-      "needs: [hygiene, title, vector-inventory, session-controls, build, asan, nofp, hash-equality, retroarch-e2e, perf]"
+      "needs: [hygiene, vector-inventory, session-controls, build, asan, nofp, hash-equality, retroarch-e2e, perf]"
       "run: echo \"\$NEEDS\" | jq -e --arg event \"\$EVENT\" 'to_entries | all(.value.result == \"success\" or (.key == \"perf\" and .value.result == \"skipped\" and \$event != \"pull_request\"))'")
     require_fragment("${ci}" "${fragment}" "ci-required-and-artifacts" missing)
     string(APPEND errors "${missing}")

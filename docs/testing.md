@@ -156,5 +156,66 @@ Implementation-time snapshot: the earlier candidate CI run had timed out this
 test at its unchanged 15-second cap, and the optimization's runtime margin had
 not yet been measured. That approved preparation scope allowed up to three
 focused prefreeze validations and a separate full qualification. Later D-51
-results are recorded in the dated phase evidence and supersede this snapshot;
-the D-50 source, failed run and spent route remain historical and unchanged.
+evidence records the fresh route and its terminal duplicate-run stop during
+release CI; it was not retried and no D-51 release was published. The D-50
+source, failed run and spent route remain historical and unchanged.
+
+## D-52 PR title proof
+
+The full CI workflow remains attached to source events. PR title edits run the
+separate `PR title` metadata workflow, so a title change cannot cancel or
+restart full source validation. The protected `main` branch requires the
+`PR title` check.
+
+For candidate and release PRs, the observer reads the live PR title and head,
+then asks GitHub for the latest `PR title` check from the Actions app on that
+head. It selects exactly one workflow run by the check suite ID, then binds its
+job, check run, attempt and raw job log to the live title digest. This ignores
+cancelled sibling workflow runs that have no current required check while
+rejecting missing, ambiguous, pending, failed or stale current checks. The
+observer repeats the current-check lookup after retaining the log. It records
+the successful proof before each merge and validates that saved proof and log
+afterward without replacing them from later PR metadata.
+
+The ordinary published-package path accepts `-DREQUIRE_TITLE_PROOF=ON` to
+require both linked PR proofs and their retained logs in release evidence and
+the published receipt. `verify-published` uses the same flag to check that the
+receipt preserves those exact records. The flag defaults off for historical
+receipt fixtures and older read-only callers; the new normal release driver
+passes it explicitly. The title proof adds no test registration or timeout;
+its parser and malformed/stale/workflow/head cases run inside the existing
+receipt-control registration and its unchanged 15-second cap.
+
+The generic supervisor runs the actual registered `provider.receipt.controls`
+CTest selection, checks that its timeout remains 15 seconds and retains its
+absolute JUnit output. A full local proof still runs `cmake --workflow --preset
+ci` with the configured full AccuracyCoin campaign, installed gameplay/profile
+checks and package inventory. Static preparation or a direct helper invocation
+cannot substitute for those registered tests.
+
+Each attempt has a fresh owned output and immutable input/log/result records.
+An ordinary local attempt honors its explicit acceptance Markdown path; its
+handoff records publication and hosted checks as pending and tests the existing
+missing-publication refusal. The generic supervisor replaces the old reset
+wrapper's source/premerge/process/accounting assertions; using its child-entry
+flag without those replacements does not qualify a source. See the bounded
+limits and title-check rollout in [the release guide](releases.md#normal-bounded-verification-and-title-rollout).
+
+Implementation-time snapshot: verification was pending when this change was
+prepared. The dated phase records identify the actual tested source and outcome;
+this description alone establishes no qualification, release or consumer
+acceptance.
+
+
+The registered receipt controls also exercise the complete title-proof function
+through closed API fixtures at array indexes zero and one, with separate run,
+job and check identities. They reject newer failed or pending runs, stale suites
+or logs, a changed final live title and a replacement run arriving during proof.
+The fixture transport is installed only inside the selftest control and restored
+before it returns; ordinary title and hosted verification retain the live API
+transport. Title-job output is captured directly to a file; file hashing and
+retention preserve its bytes, while text reads serve only parsing. Complete proof
+fixtures check retained LF and CRLF logs and literal template-like title text
+against independent expected digests. Existing checkout-log capture retains its
+separate stripped-text contract. These structural fixtures do not claim current
+GitHub qualification.

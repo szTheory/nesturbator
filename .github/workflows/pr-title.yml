@@ -1,0 +1,76 @@
+# Metadata-only title checks never allocate full build/test matrices.
+name: PR title
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions: {}
+
+# Distinct from full CI: an edit must never cancel expensive source validation.
+# Every surviving job reads the live title, regardless of event dispatch order.
+concurrency:
+  group: pr-title-${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr-title:
+    name: PR title
+    runs-on: ubuntu-24.04
+    # 5-minute network floor (ENGINEERING section 5); twice the only successful sample (4 s in run 43103712252) is 8 s, below that floor.
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    steps:
+      # No checkout, dependencies, PR-controlled code or write permission.
+      # Pass event data through environment values, never shell source.
+      - name: Validate the live title on this exact PR head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_ACTION: ${{ github.event.action }}
+        run: |
+          python3 -c '
+          import hashlib, json, os, re, subprocess
+          repo = os.environ["GITHUB_REPOSITORY"]
+          number = int(os.environ["PR_NUMBER"])
+          expected_head = os.environ["PR_HEAD_SHA"]
+          payload = subprocess.check_output(
+              ["gh", "api", "--method", "GET", f"repos/{repo}/pulls/{number}"],
+              timeout=30,
+          )
+          pr = json.loads(payload)
+          if pr.get("number") != number or pr.get("base", {}).get("repo", {}).get("full_name") != repo:
+              raise SystemExit("PR title check: repository/number mismatch")
+          head = pr.get("head", {}).get("sha")
+          if head != expected_head or not re.fullmatch(r"[0-9a-f]{40}", head or ""):
+              raise SystemExit("PR title check: event head is stale; no current-head evidence")
+          title = pr.get("title")
+          if not isinstance(title, str):
+              raise SystemExit("PR title check: missing live title")
+          pattern = r"^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._-]+\))?!?: .+"
+          valid = re.match(pattern, title) is not None
+          evidence = {
+              "schema_version": 1,
+              "context": "PR title",
+              "workflow_name": "PR title",
+              "workflow_path": ".github/workflows/pr-title.yml",
+              "check_context": "PR title",
+              "job_name": "PR title",
+              "repository": repo,
+              "pr_number": number,
+              "head_sha": head,
+              "title": title,
+              "title_sha256": hashlib.sha256(title.encode("utf-8")).hexdigest(),
+              "title_valid": valid,
+              "event": os.environ["GITHUB_EVENT_NAME"],
+              "event_action": os.environ["PR_ACTION"],
+              "event_sha": os.environ["GITHUB_SHA"],
+              "run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
+          }
+          print("PR_TITLE_EVIDENCE=" + json.dumps(evidence, sort_keys=True, ensure_ascii=True), flush=True)
+          if not valid:
+              raise SystemExit("PR title must be a Conventional Commit")
+          '
