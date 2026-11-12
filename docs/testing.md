@@ -205,3 +205,12 @@ Implementation-time snapshot: verification was pending when this change was
 prepared. The dated phase records identify the actual tested source and outcome;
 this description alone establishes no qualification, release or consumer
 acceptance.
+
+
+The registered receipt controls also exercise the complete title-proof function
+through closed API fixtures at array indexes zero and one, with separate run,
+job and check identities. They reject newer failed or pending runs, stale suites
+or logs, a changed final live title and a replacement run arriving during proof.
+The fixture transport is installed only inside the selftest control and restored
+before it returns; ordinary title and hosted verification retain the live API
+transport. These structural fixtures do not claim current GitHub qualification.
