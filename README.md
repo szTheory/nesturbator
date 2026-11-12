@@ -956,7 +956,8 @@ set of every artifact, and rejecting duplicates, missing keys, extra keys and
 malformed hashes. The normal release path requires both `CI required`, which
 passes only when every required source job succeeded, and the separate
 `PR title` check. The title context is activated after its first matching
-check succeeds, before the workflow repair PR is merged. Every
+check succeeds, before the workflow repair PR is merged. Title-job proof logs
+are captured directly to files and hashed without platform text rewriting. Every
 action is pinned to a commit SHA, and Dependabot proposes updates weekly.
 Each build lane clears its native hash file before testing, then uploads the
 same `tests/hashes.txt` that CTest generated and checked against the pin. It

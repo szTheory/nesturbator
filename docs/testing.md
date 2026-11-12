@@ -213,4 +213,9 @@ job and check identities. They reject newer failed or pending runs, stale suites
 or logs, a changed final live title and a replacement run arriving during proof.
 The fixture transport is installed only inside the selftest control and restored
 before it returns; ordinary title and hosted verification retain the live API
-transport. These structural fixtures do not claim current GitHub qualification.
+transport. Title-job output is captured directly to a file; file hashing and
+retention preserve its bytes, while text reads serve only parsing. Complete proof
+fixtures check retained LF and CRLF logs and literal template-like title text
+against independent expected digests. Existing checkout-log capture retains its
+separate stripped-text contract. These structural fixtures do not claim current
+GitHub qualification.
