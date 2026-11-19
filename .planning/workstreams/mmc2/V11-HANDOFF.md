@@ -1,8 +1,8 @@
 # v11 handoff: MMC2 mainline compatibility port
 
-**Status:** Phase 30 discussion completed and recorded. Planning is next in the
-active autonomous run. No v11 source, tests, CI, package or release work has
-started.
+**Status:** Three Phase 30 plans passed independent review. The previous
+autonomous run reached the 30-minute workflow limit before source work. No v11
+source, tests, CI, package or release work has started.
 
 ## Resume
 
@@ -12,12 +12,11 @@ Run exactly:
 $gsd-autonomous --ws mmc2
 ```
 
-If the current autonomous run is interrupted, run this same command to resume
-from Phase 30 planning. It then drives the approved milestone through
-implementation, automated verification, review and the normal release gates.
-The discussion result is recorded in [Phase 30 context](phases/30-mmc2-mainline-compatibility-and-delivery/30-CONTEXT.md)
-and [discussion log](phases/30-mmc2-mainline-compatibility-and-delivery/30-DISCUSSION-LOG.md).
-No scope choice is pending; the active orchestrator continues now.
+Run this command to start a fresh bounded run from the reviewed Phase 30 plans.
+It drives implementation, automated verification, review and the normal release
+gates. The user may clear context before running it. The discussion, research
+and plans are recorded in the Phase 30 directory. No scope choice is pending;
+the next actor is the owner, whose command starts the new workflow window.
 
 ## Why this milestone exists
 

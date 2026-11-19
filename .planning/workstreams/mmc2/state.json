@@ -5,8 +5,8 @@
   "phases": [],
   "next": {
     "command": "$gsd-autonomous --ws mmc2",
-    "label": "Continue Phase 30 planning and delivery",
-    "reason": "Phase 30 discussion is complete; the active autonomous run continues"
+    "label": "Execute the reviewed Phase 30 plans",
+    "reason": "The three-plan set passed review; the previous run reached its 30-minute limit before source work"
   },
-  "updated_at": "2026-11-19T19:14:00Z"
+  "updated_at": "2026-11-19T19:47:00Z"
 }

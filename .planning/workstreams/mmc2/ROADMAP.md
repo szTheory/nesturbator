@@ -2,7 +2,7 @@
 
 ## Milestones
 
-- ✅ **v10 Bounded MMC2 mapper 9** — Phase 29 is verified and archived. Its outcome and preserved limits are summarized in the [v10 handoff](V10-HANDOFF.md). No v10 public package release is claimed.
+- ✅ **v10 Bounded MMC2 mapper 9** — Phase 29 is verified and archived. See the [roadmap](milestones/v10-ROADMAP.md), [requirements](milestones/v10-REQUIREMENTS.md), [audit](milestones/v10-MILESTONE-AUDIT.md) and [handoff](V10-HANDOFF.md). No v10 public package release is claimed.
 - 🚧 **v11 MMC2 mainline compatibility port** — Phase 30 carries the bounded capability onto live GitHub `main` and through the normal qualified delivery path.
 
 ## v11 — MMC2 mainline compatibility port
@@ -38,7 +38,7 @@ it never permits taking the entire Phase 29 branch or silently reusing its CI.
   3. Existing supported mapper behavior and protected output evidence remain intact. Necessary serialized-state hash changes have explicit reasons, and protected AccuracyCoin inputs, baselines, campaign evidence and acceptance rules are not re-anchored to make the port pass.
   4. A source-bound preflight and focused controls pass before expensive acceptance. The standard full workflow then passes on that same candidate within existing limits and generates the library, runner and libretro packages; automated verification establishes the port without avoidable human UAT.
   5. The port has a reviewed Conventional Commit PR, green required candidate checks before merge, and green resulting-main checks before publication. Release-worthy output is published through the existing release path with verified contents, checksums and exact source identity; no LibFuturo receipt or consumer acceptance is inferred.
-**Plans**: TBD after Phase 30 discussion and planning.
+**Plans**: `30-01` core mapper/state → `30-02` deliverable parity/compatibility → `30-03` protected evidence, full acceptance and delivery. The plan set passed review; no plan has executed yet.
 
 ### Required discussion and execution order
 
@@ -57,7 +57,7 @@ evidence. No hardware, Punch-Out!!, broad mapper-9, MMC4 or commercial-title
 claim follows from marker or hash parity.
 
 The five inherited unverified-prohibition flags and v10 WR-01 remain visible
-in the [v10 handoff](V10-HANDOFF.md). Scope-specific stale
+in the [v10 audit](milestones/v10-MILESTONE-AUDIT.md). Scope-specific stale
 wording may be corrected in the port without rewriting its historical verdict.
 Phase 29 attempts 01–08, halted plans and completed CI remain terminal; do not
 restart them, create attempt-09 or import their recovery scaffolding. Phase 30
