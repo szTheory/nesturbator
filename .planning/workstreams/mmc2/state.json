@@ -4,9 +4,9 @@
   "milestone": "v11",
   "phases": [],
   "next": {
-    "command": "$gsd-autonomous --ws mmc2",
-    "label": "Execute the reviewed Phase 30 plans",
-    "reason": "The three-plan set passed review; the previous run reached its 30-minute limit before source work"
+    "command": "Await explicit owner disposition",
+    "label": "Plan 30-03 acceptance decision",
+    "reason": "The sole authorized full workflow failed in build on two stale state-format assertions. The targeted fix passed, but the plan/preflight scope must be amended and reviewed before any additional full run, which requires explicit authorization."
   },
-  "updated_at": "2026-11-19T19:47:00Z"
+  "updated_at": "2026-11-19T21:23:24Z"
 }

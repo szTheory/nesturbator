@@ -1,22 +1,30 @@
 # v11 handoff: MMC2 mainline compatibility port
 
-**Status:** Three Phase 30 plans passed independent review. The previous
-autonomous run reached the 30-minute workflow limit before source work. No v11
-source, tests, CI, package or release work has started.
+**Status:** Plans 30-01 and 30-02 are complete. Plan 30-03's single authorized
+full workflow failed during build because two C/C++ public-header smoke tests
+still asserted state format 3. Those assertions now match format 4, and both
+targeted header tests pass. The phase remains incomplete; no campaign,
+packaging, PR, merge or release gate passed for the corrected candidate.
 
-## Resume
+## Owner disposition
 
-Run exactly:
+The original full-workflow allowance is spent. The failed workflow stopped
+before CTest, AccuracyCoin campaign and packaging. The fix is limited to
+`tests/header/header_c.c` and `tests/header/header_cxx.cpp`, but those files
+were outside Plan 30-03's reviewed file scope and preflight coverage.
 
-```text
-$gsd-autonomous --ws mmc2
-```
+Before another full workflow, amend the plan scope and cheap build/preflight to
+cover both files, obtain independent plan review, and preflight the corrected
+candidate. That work does not itself authorize a full run. A second standard
+`cmake --workflow --preset ci` requires explicit owner authorization and keeps
+the existing 1500-second cap.
 
-Run this command to start a fresh bounded run from the reviewed Phase 30 plans.
-It drives implementation, automated verification, review and the normal release
-gates. The user may clear context before running it. The discussion, research
-and plans are recorded in the Phase 30 directory. No scope choice is pending;
-the next actor is the owner, whose command starts the new workflow window.
+**Next actor:** Owner, to choose whether to authorize that reviewed scope update
+and exactly one additional full workflow. If authorized, continue with
+`$gsd-autonomous --ws mmc2` from this same Phase 30 checkout. No checkout switch
+or new clone is needed. If not authorized, leave Plan 30-03 blocked and stop.
+
+Detailed failed-run and targeted-fix evidence is in the [30-03 checkpoint](phases/30-mmc2-mainline-compatibility-and-delivery/30-03-SUMMARY.md).
 
 ## Why this milestone exists
 
