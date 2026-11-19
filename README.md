@@ -13,7 +13,7 @@ request whose per-frame instruction count rises by more than 1%. A policy still 
 registered test to skip. The 6502 core matches the public
 65x02 test vectors on every opcode and bus cycle. The library, runner and
 libretro core accept bounded iNES 1.0 and NES 2.0 images for mapper 0 (NROM,
-16 or 32 KiB PRG), mapper 1 (MMC1, with battery saves; see below) and mapper 2 (UxROM), with 8 KiB CHR ROM or declared CHR RAM, mapper 3 (CNROM, 8 to 32 KiB CHR ROM), mapper 4 (MMC3; see below) and mapper 7 (AxROM, CHR RAM); the PPU renders backgrounds
+16 or 32 KiB PRG), mapper 1 (MMC1, with battery saves; see below) and mapper 2 (UxROM), with 8 KiB CHR ROM or declared CHR RAM, mapper 3 (CNROM, 8 to 32 KiB CHR ROM), mapper 4 (MMC3; see below), mapper 7 (AxROM, CHR RAM) and the bounded mapper 9 profile; the PPU renders backgrounds
 and evaluated sprites, including palette priority, flips, 8x16 selection,
 clipping, sprite-zero hit and the eight-sprite limit. Pre-render evaluation
 includes OAM Y=$FF sprites on visible framebuffer row 0. After eight sprites
@@ -26,7 +26,7 @@ comparison still see overflow clear. This is
 not full game compatibility: cartridges load through a per-board mapper
 interface (page tables, a four-entry nametable map, a CPU-cycle-stamped write
 hook, a mapper IRQ ORed with the APU's, and PPU A12 edges reported to the
-board), with NROM, MMC1, UxROM, CNROM, MMC3 and AxROM as the boards so far. The behaviour revision is 8: CPU bus-clock seams capture rising edges on the derived PPU NMI line, and instruction-specific poll cycles decide when a captured request is serviced. A captured request survives later line deassertion. `$2002` samples bit 7 at M2 rise and the remaining status bits at M2 fall. Revision 7 clears OAMADDR during sprite tile loading
+board), with NROM, MMC1, UxROM, CNROM, MMC3, AxROM and the bounded MMC2 profile. The behaviour revision is 10: MMC2 adds a watched pattern read that returns the selected byte before switching its CHR latch. Revision 9 retains accepted IRQs at the instruction poll; revision 8 captures rising edges on the derived PPU NMI line, and instruction-specific poll cycles decide when a captured request is serviced. A captured request survives later line deassertion. `$2002` samples bit 7 at M2 rise and the remaining status bits at M2 fall. Revision 7 clears OAMADDR during sprite tile loading
 (dots 257-320 while rendering) and sprite evaluation starts at OAMADDR, so the first sprite
 evaluated acts as sprite 0 wherever it sits in OAM; this changes the frames of programs that
 leave OAMADDR nonzero while rendering. Revision 6's PPUCTRL NMI edge
@@ -1691,7 +1691,7 @@ nesturbator-run --version
   (UxROM, submappers 0 to 2), or 16 or 32 KiB PRG with 8, 16 or 32 KiB CHR ROM
   for mapper 3 (CNROM, submappers 0 to 2), or 32 to 256 KiB PRG in 32 KiB banks
   with 8 KiB declared CHR RAM for mapper 7 (AxROM, submappers 0 to 2), or the
-  mapper 1 and mapper 4 shapes below; optional trainers are included in the validated
+  mapper 1, mapper 4 and mapper 9 shapes below; mapper 9 requires NES 2.0 submapper 0, exactly 128 KiB PRG and CHR ROM, and no trainer or RAM. Optional trainers for other boards are included in the validated
   file length. UxROM writes to `$8000-$FFFF` select the bank at `$8000`; the
   last bank stays at `$C000`. Submappers 0 and 2 AND the written value with
   the ROM byte under the write (submapper 0 is the project default), and
@@ -1709,7 +1709,7 @@ nesturbator-run --version
   KiB in total (work plus battery), and more than 8 KiB only with 8 KiB CHR.
   The battery bit must be set exactly when battery RAM is declared. CHR NVRAM,
   other submappers, mapper 155 and a 24 KiB or 64 KiB total are refused.
-  Mappers 0, 2, 3 and 7 still refuse the battery bit and every RAM size.
+  Mappers 0, 2, 3, 7 and 9 refuse the battery bit and every RAM size.
   The board is the MMC1B chip: five writes to `$8000-$FFFF` fill the serial
   port, and a write on the CPU cycle right after another write is ignored
   unless its bit 7 is set, which always resets the port (this is what makes
@@ -1718,6 +1718,10 @@ nesturbator-run --version
   follow from the header sizes (hardware: NESdev Wiki "MMC1" and "SxROM").
   `nesturbator_reset` keeps the MMC1 registers and the battery RAM, because
   the cartridge sees no reset line.
+Supported NTSC MMC2: mapper 9, NES 2.0 submapper 0 only; exactly 128 KiB PRG and CHR ROM; no trainer, RAM or four-screen.
+
+- Mapper 9 (MMC2) uses one switchable 8 KiB PRG bank and three fixed final banks, four 4 KiB CHR selectors, and switchable horizontal/vertical mirroring. PPU reads in the selected FD/FE trigger rows return the old-bank byte before updating that half's latch. The initial FE latch and header-derived mirroring are deterministic project policy. The adopted full-row latch behavior is supported by a secondary reference; it is not silicon validation or a broad mapper/title claim.
+
 Supported NTSC MMC3: mapper 4, submappers 0/4; MMC6=no; four-screen=no.
 
 - Mapper 4 (MMC3) is accepted with submapper 0 (the Sharp revision, also used

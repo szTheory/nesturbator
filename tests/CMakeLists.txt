@@ -87,7 +87,7 @@ set_tests_properties(runner.exit.done runner.exit.failure runner.exit.usage
 
 # MAP-03 / D-15: a refused cartridge gets one named reason on stderr and exit 1.
 set(NESTURBATOR_REJECT_SEEDS ${PROJECT_SOURCE_DIR}/tests/fuzz/corpus)
-set(NESTURBATOR_MAPPER_LIST "supported mappers are 0, 1, 2, 3, 4 and 7")
+set(NESTURBATOR_MAPPER_LIST "supported mappers are 0, 1, 2, 3, 4, 7 and 9")
 nesturbator_runner_test(NAME runner.reject.four_screen
   ARGS --rom ${NESTURBATOR_REJECT_SEEDS}/mmc3-four-screen --frames 1
   EXIT 1 IGNORE_STDOUT
@@ -1030,6 +1030,10 @@ target_include_directories(core.mapper_mmc1 PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # BOARD-03 (D-04 to D-09): the MMC3 board, hook level and through the CPU.
 nesturbator_core_test(core.mapper_mmc3 core/test_mapper_mmc3.c)
 target_include_directories(core.mapper_mmc3 PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# MMC2 (Phase 30): public load, actual PPU marker read and native continuation.
+nesturbator_core_test(core.mapper_mmc2 core/test_mapper_mmc2.c)
+target_include_directories(core.mapper_mmc2 PRIVATE ${PROJECT_SOURCE_DIR}/src)
+set_tests_properties(core.mapper_mmc2 PROPERTIES TIMEOUT 30)
 # SAVE-01 (D-06, D-11, D-12): the battery span, its address and the write counter.
 nesturbator_core_test(core.save core/test_save.c)
 target_include_directories(core.save PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -1971,6 +1975,7 @@ add_executable(bus.unit cpu/test_bus.c
   ${PROJECT_SOURCE_DIR}/src/mapper_cnrom.c
   ${PROJECT_SOURCE_DIR}/src/mapper_axrom.c
   ${PROJECT_SOURCE_DIR}/src/mapper_mmc3.c
+  ${PROJECT_SOURCE_DIR}/src/mapper_mmc2.c
   ${PROJECT_SOURCE_DIR}/src/ppu.c)
 target_include_directories(bus.unit PRIVATE
   ${PROJECT_SOURCE_DIR}/src

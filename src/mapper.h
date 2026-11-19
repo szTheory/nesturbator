@@ -28,6 +28,7 @@ struct nesturbator__mapper;
 #define NESTURBATOR_WATCH_CPU_WRITE 1u
 #define NESTURBATOR_WATCH_BUS_CONFLICT 2u
 #define NESTURBATOR_WATCH_PPU_A12 4u
+#define NESTURBATOR_WATCH_PPU_READ 8u
 
 struct nesturbator__mapper_ops {
     /* Sets map.watch. Registers are zero from the loader's memset and kept by a
@@ -92,6 +93,11 @@ struct nesturbator__mapper {
             uint8_t select, r[8], mirror, a001_x, latch, counter, reload, irq_enable, a12;
             uint64_t low_cycle;
         } mmc3;
+        /* MMC2 mapper 9: PRG selector, four CHR selectors, mirror bit and the
+           two FE/FD latches. These eight bounded bytes are serialized in order. */
+        struct {
+            uint8_t prg, chr[4], mirror, latch[2];
+        } mmc2;
     } reg;
 };
 
@@ -138,5 +144,8 @@ void nesturbator__mapper_mmc1_ops(struct nesturbator__mapper_ops *out);
 
 /* Fills out with the MMC3 board (src/mapper_mmc3.c). */
 void nesturbator__mapper_mmc3_ops(struct nesturbator__mapper_ops *out);
+
+/* Fills out with the bounded NTSC MMC2 board (src/mapper_mmc2.c). */
+void nesturbator__mapper_mmc2_ops(struct nesturbator__mapper_ops *out);
 
 #endif /* NESTURBATOR_MAPPER_H */
