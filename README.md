@@ -1367,7 +1367,8 @@ valid for the same format version, ROM and board, and it is byte-identical on
 every platform. The library does no file I/O and never allocates for a state;
 the host owns the buffer and decides where states live.
 
-The current state format is 3 and the behavior revision is 9. Format 3 stores
+The current state format is 4 and the behavior revision is 10. Format 4 adds
+MMC2's eight bounded bank, mirroring and latch bytes. The format also stores
 the sampled NMI line, captured request, last instruction poll, retained
 close-edge IRQ level and accepted IRQ decision independently of the live IRQ
 line. It also stores an active BRK/IRQ/NMI entry's origin, next unperformed bus
@@ -2477,8 +2478,8 @@ The current source binding preserves the historical AccuracyCoin identity
 d4802809ff41 as explicitly dirty and checks its pinned historical input map
 separately from current checker bytes. The reconstructed map does not
 independently authenticate that dirty tree, and neither identity proves
-hardware behavior. The profile remains ABI 1, behavior revision 9, state
-format 3 and ordinary-loader NTSC only. Local acceptance, the actual
+hardware behavior. The current profile is ABI 1, behavior revision 10, state
+format 4 and ordinary-loader NTSC only. Local acceptance, the actual
 AccuracyCoin campaign and package publication remain pending; no release is
 claimed by this maintenance change.
 
