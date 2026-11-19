@@ -30,7 +30,7 @@ completed: 2026-11-19
 
 # Phase 30 Plan 03: Acceptance and delivery checkpoint
 
-**The reviewed MMC2 source binding and original focused checks passed, but the initial full workflow failed in the build because two C/C++ public-header tests pinned state format 3. Their assertions were corrected and targeted checks now pass. The owner authorized exactly one follow-on full run, conditional on the amended plan/preflight review and corrected-candidate gates; that review is in progress.**
+**The initial full workflow failed during build. The owner-authorized follow-on completed all 702 CTest entries in 388.8 seconds but failed seven compatibility checks; the campaign test passed and packaging did not start. The stale compatibility checks are now fixed, and the expanded 24-test focused set passes. The owner has authorized exactly one third full workflow after independent review of this final plan/preflight amendment and passing source-bound gates; no retry is authorized.**
 
 ## Completed work
 
@@ -53,24 +53,26 @@ completed: 2026-11-19
 
 ## Full workflow failure and stop
 
-The single authorized `cmake --workflow --preset ci` started at 2026-11-19T21:16:02Z with a supervised 1500-second deadline. Configure completed. Build failed after 0.971 seconds with exit 1:
+The initial `cmake --workflow --preset ci` started at 2026-11-19T21:16:02Z with a supervised 1500-second deadline. Configure completed. Build failed after 0.971 seconds with exit 1:
 
 - `tests/header/header_c.c:28`: `_Static_assert(NESTURBATOR_STATE_FORMAT_VERSION == 3, ...)` conflicts with declared format 4.
 - `tests/header/header_cxx.cpp:28`: the same obsolete C++ assertion conflicts with format 4.
 
-Evidence is retained in `build/ci/phase30-03-full.log`, `phase30-03-full.json`, and `phase30-03-full-started.json`. The full CTest, campaign and package stages did not run, so no new campaign metadata, campaign report, JUnit acceptance or deliverable archives exist for this attempt. No second full invocation, PR, merge, release or publication occurred; the only post-failure source change is the narrow header assertion correction below.
+Evidence is retained in `build/ci/phase30-03-full.log`, `phase30-03-full.json`, and `phase30-03-full-started.json`. The full CTest, campaign and package stages did not run on this first attempt. The later owner-authorized follow-on is recorded separately below.
 
 The focused build omitted `header.c` and `header.cxx`; these two compile-only pins were also absent from the reviewed plan file scopes. This is a verification omission, not an emulation mismatch. The failed attempt remains terminal and preserved.
 
-## Post-failure targeted fix
+## Post-failure compatibility fixes
 
-After recording the terminal full-workflow result, updated only the obsolete state-format assertions in `tests/header/header_c.c` and `tests/header/header_cxx.cpp` from 3 to 4. The targeted command `cmake --build build/ci --target header.c header.cxx` exited 0; the build log is `build/ci/phase30-03-header-build.log`. The exact targeted CTest command `ctest --test-dir build/ci --output-on-failure --no-tests=error -R '^(header[.]c|header[.]cxx)$'` passed both tests (2/2, 0.01 seconds); the log is `build/ci/phase30-03-header-ctest.log`.
+After the first failure, changed only the obsolete state-format assertions in `tests/header/header_c.c` and `tests/header/header_cxx.cpp` from 3 to 4. After a target-specific clean, `cmake --build build/ci --target header.c header.cxx` compiled both source files, and CTest passed both header smoke tests. Evidence is in `build/ci/phase30-03-header-gate.json`, `phase30-03-header-build.log`, and `phase30-03-header-ctest.log`.
 
-These narrow checks verify the corrected public-header smoke tests only. They do not validate the changed candidate against the AccuracyCoin binding/preflight or satisfy MMC2-11. The prior candidate fingerprint and source-bound preflight are stale for any new acceptance attempt.
+The follow-on workflow then exposed three compatibility-check issues: the Phase 21 test still asserted behavior revision 9; the temporary public-declaration digest still described revision 9/state format 3; and the info-claims guard treated the new MMC2 clause as a duplicate MMC3 clause. The follow-on also showed that the info-claims unsupported-board self-test expected the old diagnostic. Corrected those pins and made the info-claims guard count only `Supported NTSC MMC3:` clauses, preserving duplicate-MMC3 rejection while allowing the separate MMC2 fact. These test-only changes do not alter the AccuracyCoin measured-source closure.
+
+The eight directly affected tests subsequently passed 8/8. The expanded focused CTest set, including all compatibility/header/mapper/state/provider/parity/libretro checks, passed 24/24 in 43.8 seconds; log and command record are `build/ci/phase30-03-followon-focused-ctest.log` and `.json`. The prior source-bound fingerprint remains `d45734c098d790da3aad63eb25d1cba37e388e62b7e7f5d00aea5ec7525bbb01` with 57 inputs; rerun the fingerprint and preflight after the final edits, before the newly authorized full workflow.
 
 ## Authorized follow-on conditions
 
-On 2026-11-19, the owner explicitly authorized exactly one additional `cmake --workflow --preset ci` with the same 1500-second hard cap, conditional on updating and independently reviewing the plan/preflight and passing all corrected-candidate gates. Plan 30-03 now adds both header files to its file scope, requires their build and CTest, and the preflight validates the exact commands, two test names, source hashes, logs and log digests. Independent review initially found two gaps; the follow-up review passed after both were corrected. The reviewed product-diff SHA-256 is `d2a36bbd4ed05e11fe3d11fdfc0888e9dce14c68d748fed3feff90bfbd157fef`. Before using the authorization, refresh the local reviewed-diff pin, then require the source-bound preflight and focused controls to pass and freeze the candidate. This authorization permits no third full workflow. MMC2-11 and MMC2-12 remain incomplete until the corrected candidate's full acceptance and delivery gates pass.
+On 2026-11-19, the owner authorized one follow-on `cmake --workflow --preset ci` under a 1500-second cap. It started from frozen candidate `3cf84ceaf1aa9e8451d47b3a100598ccf917e5ac`, completed configure/build and 702 CTest entries in 388.8 seconds, and exited 8 because seven tests failed: `phase21.hosted_evidence.controls`, `vectors.api_policy`, `vectors.api_policy.self_test`, `libretro.info_claims.self_test`, `libretro.info_support`, `libretro.info_staged`, and `libretro.info_archives.self_test`. `accuracycoin.campaign` passed. Workflow steps 1–3 completed; package step 4 did not start, so no release archives were produced. The full-run record and log are `build/ci/phase30-03-followon-full-started.json`, `phase30-03-followon-full.json`, and `phase30-03-followon-full.log`. The post-run source fingerprint matched the frozen run fingerprint, count 57. That authorization is spent. The failed test contracts have since been corrected and their expanded focused set passes. The owner has now authorized one additional full workflow (third overall), conditional on independent review of the final plan/preflight amendment and passing source-bound gates. This third invocation is terminal; no retry is authorized. MMC2-11 and MMC2-12 remain incomplete until current acceptance/delivery evidence exists.
 
 ## Preserved boundaries
 
@@ -78,4 +80,4 @@ Phase 29 attempts and recovery routes remain stopped. Historical AccuracyCoin ev
 
 ## Checkpoint status
 
-The frozen initial candidate, its failed full-workflow logs and targeted header-gate logs are recorded. The two header test files differ from the initial candidate by the state-format assertion correction. One follow-on full workflow is owner-authorized under the amended plan, subject to the conditions above; it has not run yet. This is not plan, phase or delivery completion.
+Both prior full-workflow attempts, their logs and source identities are recorded. The second run's campaign test passed, but seven compatibility checks failed before packaging. All seven directly affected checks now pass within the expanded focused set. The product tree has compatibility-test fixes and a corresponding plan/preflight amendment awaiting independent review. The owner has authorized exactly one third full workflow after review and passing source-bound gates; no retry is authorized by that decision. No PR, merge or release has started; this is not plan, phase or delivery completion.

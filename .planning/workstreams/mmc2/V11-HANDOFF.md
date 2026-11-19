@@ -1,39 +1,34 @@
 # v11 handoff: MMC2 mainline compatibility port
 
-**Status:** Plans 30-01 and 30-02 are complete. Plan 30-03's single authorized
-full workflow failed during build because two C/C++ public-header smoke tests
-still asserted state format 3. Those assertions now match format 4, and both
-targeted header tests pass. The phase remains incomplete; no campaign,
-packaging, PR, merge or release gate passed for the corrected candidate.
+**Status:** Plans 30-01 and 30-02 are complete. Plan 30-03 has had two terminal
+full-workflow failures: the first stopped on stale state-format header pins;
+the second completed 702 CTest entries and passed the campaign but failed seven
+compatibility checks before packaging. Those compatibility checks now pass in
+the expanded 24-test focused set. The owner has authorized exactly one third
+full workflow after independent review of the final plan/preflight amendment
+and passing source-bound gates. No retry is authorized by that decision.
 
-## Authorized follow-on acceptance
+## Third full-workflow acceptance
 
-The original full workflow stopped before CTest, AccuracyCoin campaign and
-packaging. The owner has authorized exactly one additional local full workflow
-after the plan/preflight amendment is independently reviewed and corrected
-candidate gates pass. No further attempt is authorized by that decision.
+The test-only fixes update the Phase 21 behavior revision pin, the public API
+declaration digest, and the info-claims parser/self-test so MMC2 support text
+does not count as a duplicate MMC3 clause. Directly affected checks passed 8/8;
+the expanded focused set passed 24/24. This is not full acceptance: the second
+workflow never reached packaging, and no corrected-candidate full run has yet
+completed.
 
-The fix is limited to `tests/header/header_c.c` and
-`tests/header/header_cxx.cpp`. Both files are now in Plan 30-03's reviewed file
-scope. The throwaway preflight now validates the exact header build/CTest
-commands, the two test names, both source hashes, log paths and log digests.
-After a target-specific clean, the C/C++ header build passed and both CTest
-smoke tests passed.
-
-Independent review of the amended plan/preflight passed. Its reviewed product
-diff SHA-256 is
-`d2a36bbd4ed05e11fe3d11fdfc0888e9dce14c68d748fed3feff90bfbd157fef`. Commit
-the amendment, refresh the local candidate-diff pin to that value, rerun the
-focused/source-bound preflight gates, freeze the corrected candidate, and
-spend the one authorized `cmake --workflow --preset ci` with its existing
-1500-second cap.
+The current Plan 30-03 amendment and throwaway preflight must receive an
+independent review. Then refresh the candidate diff digest, source fingerprint,
+focused inventory and full campaign inventory; run the source-bound preflight.
+If every gate passes, execute exactly one `cmake --workflow --preset ci` in
+this same checkout under the existing 1500-second cap. Preserve the outcome as
+terminal; do not retry a failed workflow.
 
 **Next actor:** Orchestrator.
 Continue with `$gsd-autonomous --ws mmc2` in this same Phase 30 checkout. No
-checkout switch or new clone is needed. If any gate fails, record it and stop;
-do not start a third full workflow.
+checkout switch or new clone is needed. No PR, merge or release has started.
 
-Detailed failed-run and targeted-fix evidence is in the [30-03 checkpoint](phases/30-mmc2-mainline-compatibility-and-delivery/30-03-SUMMARY.md).
+Detailed run and targeted-fix evidence is in the [30-03 checkpoint](phases/30-mmc2-mainline-compatibility-and-delivery/30-03-SUMMARY.md).
 
 ## Why this milestone exists
 

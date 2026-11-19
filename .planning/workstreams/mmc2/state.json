@@ -6,7 +6,7 @@
   "next": {
     "command": "$gsd-autonomous --ws mmc2",
     "label": "Finish amended Plan 30-03 acceptance",
-    "reason": "The owner authorized exactly one follow-on full workflow; independent review of the amended plan/preflight passed. The two header smoke tests are fixed and their clean targeted build/CTest passed; corrected-candidate focused/preflight gates remain."
+    "reason": "The owner authorized exactly one third full workflow. The compatibility fixes and 24-test focused gate pass; independent review of the final plan/preflight amendment and fresh source-bound gates must pass before running it. No retry is authorized."
   },
-  "updated_at": "2026-11-19T21:41:26Z"
+  "updated_at": "2026-11-19T22:11:41Z"
 }
