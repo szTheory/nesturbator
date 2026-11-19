@@ -2,18 +2,18 @@
 gsd_state_version: "1.0"
 milestone: v11
 milestone_name: MMC2 mainline compatibility port
-status: planning
-stopped_at: Phase 30 plan review passed; execution deferred at workflow time limit
-last_updated: "2026-11-19T19:47:00Z"
+status: executing
+stopped_at: Phase 30 Plans 30-01 and 30-02 complete; Plan 30-03 remains
+last_updated: "2026-11-19T20:49:00Z"
 last_activity: 2026-11-19
-last_activity_desc: Phase 30 plans passed review; execution deferred at the workflow time limit
+last_activity_desc: Core port, three-client parity and state/provider compatibility checks completed
 current_phase: 30
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
-  percent: 0
+  completed_plans: 2
+  percent: 67
 ---
 
 # Project State
@@ -29,13 +29,13 @@ See the [shared project](../../PROJECT.md), [v11 requirements](REQUIREMENTS.md),
 ## Current Position
 
 Phase: 30 — MMC2 mainline compatibility and delivery
-Plan: Not yet planned
-Status: Planning complete; the plan review passed. Execution awaits a fresh bounded autonomous run.
-Last activity: 2026-11-19 — Three sequential Phase 30 plans passed independent review on the exact-main branch. The 30-minute autonomous workflow limit was reached before source work; no implementation or acceptance run started.
+Plan: 30-02 complete; 30-03 remains
+Status: Plans 30-01 and 30-02 are complete on the exact-main branch. Plan 30-03 owns final preflight, the one full workflow and delivery.
+Last activity: 2026-11-19 — The bounded MMC2 core path, actual runner/libretro parity, provider contract and state pins passed their focused checks.
 
-Progress: 0% — 0 of 1 phases complete
+Progress: 0% — 0 of 1 phases complete; 2 of 3 plans complete
 
-Planning: 3 plans, all reviewed and ready; none executed.
+Planning: 3 plans, all reviewed; Plans 30-01 and 30-02 executed and summarized.
 
 ## Performance Metrics
 
@@ -57,15 +57,16 @@ acceptance for the mainline port.
 - Phase 30 discussion revalidated live `main` at `8923b66cca16739c5b402643798515cf5537ae22` with the expected rev9/state3/ABI1 compatibility contract; the isolated branch is pinned to that exact head. The selected minimal port remains rev10/state4/ABI1.
 - Phase 30 plan review passed for three sequential plans in waves 1–3, with all six requirements covered, no human checkpoint, under-15-file plan scopes, and one full CI workflow after all implementation/evidence edits. See [30-01](phases/30-mmc2-mainline-compatibility-and-delivery/30-01-PLAN.md), [30-02](phases/30-mmc2-mainline-compatibility-and-delivery/30-02-PLAN.md), and [30-03](phases/30-mmc2-mainline-compatibility-and-delivery/30-03-PLAN.md).
 - The current local CI preset does not enable the target's full AccuracyCoin campaign by default. Configure it on before running the unchanged standard workflow, and adapt only the exact source-closure admission needed for MMC2 while preserving historical evidence and same-run source fingerprinting.
+- Plans 30-01 and 30-02 are implemented and summarized in [30-01](phases/30-mmc2-mainline-compatibility-and-delivery/30-01-SUMMARY.md) and [30-02](phases/30-mmc2-mainline-compatibility-and-delivery/30-02-SUMMARY.md). Focused core tests, three-client parity, provider controls and state-format checks passed. Existing-board state payloads matched after a version/revision/CRC transform; other pinned output rows stayed unchanged. No full workflow has run.
 - A fresh public LibFuturo check found no current NES consumer/playback acceptance; its main remains a synthetic-v1 proof and older rev9/state3 create/destroy seam. The 2026-11-19 publisher receipt is still missing and remains a separate gate.
 
 ### Pending Todos
 
-No new todo is created by the roadmap. Discussion, research and reviewed plans are recorded in the Phase 30 directory. Execute the reviewed plan set next.
+Complete reviewed Plan 30-03: source-bound preflight, evidence binding, the single full workflow, required review and delivery gates.
 
 ### Blockers and Preserved Stops
 
-- No v11 implementation blocker or unresolved scope decision has been established. The plan is reviewed and the exact-main worktree is pinned correctly. Execution stopped at the project's 30-minute workflow limit before source work; a fresh autonomous invocation is required to begin the reviewed plans within a new bounded window.
+- No v11 implementation blocker or unresolved scope decision has been established. Plans 30-01 and 30-02 are complete; the remaining acceptance and delivery work is owned by Plan 30-03. Preserve its single-full-workflow allowance and the project's 30-minute session limit.
 - The five inherited v10 unverified-prohibition flags remain visible and unwaived; v10 WR-01 remains historical documentation debt. Technical checks may be assessed under the verification policy without converting an old flag into a waiver. Their completed disposition and limits are summarized in the [v10 handoff](V10-HANDOFF.md).
 - Phase 29 CI is complete and must not be repeated for this port. Attempts 01–08 and halted recovery scopes remain terminal; no attempt-09, recovery-wrapper reuse or allowance renewal is authorized.
 - Protected AccuracyCoin baselines, source/evidence bindings and acceptance rules cannot be re-anchored to hide a port mismatch. Diagnose a mismatch before long acceptance; a new material consequence requires its concrete scope decision.
@@ -79,10 +80,10 @@ Inherited audit debt and future direction remain in the [product roadmap](../../
 ## Session Continuity
 
 Last session: 2026-11-19
-Stopped at: Phase 30 plans reviewed; execution deferred at the 30-minute workflow limit
+Stopped at: Plans 30-01 and 30-02 complete; Plan 30-03 remains
 Next command: $gsd-autonomous --ws mmc2
 Next actor: Owner, who starts a fresh bounded autonomous run with the command above.
-Next action: Execute the reviewed plans on the exact-main branch, then continue focused checks, full acceptance, review and delivery without per-step acknowledgments. Preserve exact stops and ask only for a real new scope, authority, cost/risk decision or unavailable human-only evidence.
-Automatic continuation now: No — the 30-minute workflow limit has been reached. The next command starts a fresh bounded run on the already reviewed plan.
+Next action: Execute reviewed Plan 30-03 on the exact-main branch: preflight and bind evidence, then use the one approved full workflow and continue its review and delivery gates without per-step acknowledgments. Preserve exact stops and ask only for a real new scope, authority, cost/risk decision or unavailable human-only evidence.
+Automatic continuation now: No — this session is handing off after completing two plans; the command starts a fresh bounded run for the remaining plan.
 Resume file: .planning/workstreams/mmc2/V11-HANDOFF.md
-Context may be cleared before the next command. No source implementation, local acceptance, release, protected-evidence change or historical retry occurred in this run.
+Context may be cleared before the next command. The local full workflow, release, protected-evidence change and historical retry have not occurred.
