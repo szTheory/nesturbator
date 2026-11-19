@@ -2,11 +2,11 @@
 gsd_state_version: "1.0"
 milestone: v11
 milestone_name: MMC2 mainline compatibility port
-status: blocked
-stopped_at: Plan 30-03's single full workflow failed during build; targeted header fix passed, but another full run needs plan/preflight review and owner authorization
-last_updated: "2026-11-19T21:23:24Z"
+status: executing
+stopped_at: Plan 30-03 remediation; owner authorized exactly one follow-on full workflow conditional on amended plan/preflight review and passing gates
+last_updated: "2026-11-19T21:41:26Z"
 last_activity: 2026-11-19
-last_activity_desc: Full workflow stopped on stale header format pins; the narrow C/C++ header test fix passed targeted checks
+last_activity_desc: Owner authorized one conditional follow-on run; amended plan/preflight is under independent review after clean header-gate evidence
 current_phase: 30
 progress:
   total_phases: 1
@@ -29,13 +29,13 @@ See the [shared project](../../PROJECT.md), [v11 requirements](REQUIREMENTS.md),
 ## Current Position
 
 Phase: 30 — MMC2 mainline compatibility and delivery
-Plan: 30-02 complete; 30-03 blocked at acceptance
-Status: Plans 30-01 and 30-02 are complete. Plan 30-03's sole authorized full workflow failed in the build because two C/C++ public-header smoke tests still asserted state format 3. The assertions now match format 4 and both targeted tests pass. The plan's file scope and preflight omitted these tests, so a new full run requires a reviewed plan/preflight update and explicit owner authorization.
-Last activity: 2026-11-19 — Full workflow stopped before CTest or packaging; the two stale header assertions were corrected and their targeted checks passed.
+Plan: 30-02 complete; 30-03 remediation and conditional acceptance
+Status: Plans 30-01 and 30-02 are complete. Plan 30-03's initial full workflow failed in the build because two public-header smoke tests asserted state format 3. Both now assert format 4 and the clean targeted build and CTest pass. The owner authorized exactly one follow-on full workflow. Independent review of the amended plan/preflight passed; corrected-candidate gates are next.
+Last activity: 2026-11-19 — Amended plan/preflight passed independent review; header clean build and exact CTest gate passed.
 
 Progress: 0% — 0 of 1 phases complete; 2 of 3 plans complete
 
-Planning: 3 plans reviewed; Plans 30-01 and 30-02 executed and summarized. Plan 30-03 needs its source scope and cheap preflight coverage amended before any additional full acceptance attempt.
+Planning: 3 plans reviewed; Plans 30-01 and 30-02 executed and summarized. The 30-03 scope and preflight amendment passed independent review; source-bound/focused gates are pending.
 
 ## Performance Metrics
 
@@ -64,11 +64,11 @@ acceptance for the mainline port.
 
 ### Pending Todos
 
-Await owner disposition on whether to amend/review Plan 30-03 and its preflight/build coverage for both header test files, then authorize exactly one additional full workflow with the existing 1500-second cap. If authorized, continue only in this checkout. If not, leave Plan 30-03 blocked and the phase incomplete.
+Refresh the review digest to the independently reviewed product diff, run focused/preflight gates, freeze the corrected candidate, and use exactly one owner-authorized follow-on full workflow with the existing 1500-second cap. Continue only in this checkout; no further full attempt is authorized.
 
 ### Blockers and Preserved Stops
 
-- Plan 30-03 is blocked: its one full-workflow allowance was consumed by a build failure on two stale public-header test pins. The pins have a narrow targeted fix, but the plan/preflight scope omission must be corrected and independently reviewed, and an additional full run needs explicit owner authorization. No CTest/campaign/package/PR/release gate has passed for the corrected candidate. Preserve the project's 30-minute session limit and all historical stops.
+- The initial Plan 30-03 full workflow failed before CTest/campaign/package on two stale public-header test pins. The owner authorized exactly one follow-on attempt; independent plan/preflight review passed. If any corrected-candidate gate fails, preserve its evidence and stop without another full run. No full acceptance, package, PR or release gate has passed for the corrected candidate. Preserve the project's 30-minute session limit and all historical stops.
 - The five inherited v10 unverified-prohibition flags remain visible and unwaived; v10 WR-01 remains historical documentation debt. Technical checks may be assessed under the verification policy without converting an old flag into a waiver. Their completed disposition and limits are summarized in the [v10 handoff](V10-HANDOFF.md).
 - Phase 29 CI is complete and must not be repeated for this port. Attempts 01–08 and halted recovery scopes remain terminal; no attempt-09, recovery-wrapper reuse or allowance renewal is authorized.
 - Protected AccuracyCoin baselines, source/evidence bindings and acceptance rules cannot be re-anchored to hide a port mismatch. Diagnose a mismatch before long acceptance; a new material consequence requires its concrete scope decision.
@@ -82,10 +82,10 @@ Inherited audit debt and future direction remain in the [product roadmap](../../
 ## Session Continuity
 
 Last session: 2026-11-19
-Stopped at: Plan 30-03's sole full workflow failed in build; the narrow header-test fix passed targeted checks.
-Next command: None until owner disposition; if an additional full acceptance is authorized, resume with `$gsd-autonomous --ws mmc2` from this same checkout.
-Next actor: Owner. Decide whether to authorize a reviewed Plan 30-03/preflight scope update and exactly one additional full workflow capped at 1500 seconds.
-Next action: If authorized, add both header smoke-test files to the plan scope and cheap preflight/build, obtain independent review, rerun the source-bound preflight for the corrected candidate, then spend the newly authorized single full workflow. Continue review/delivery only if exact-candidate acceptance passes.
-Automatic continuation now: No — the original one-run allowance is spent. Work is waiting for the owner on a material acceptance decision.
+Stopped at: Amended Plan 30-03/preflight passed independent review; refresh exact diff digest and run corrected-candidate preflight/focused gates.
+Next command: Continue the current `$gsd-autonomous --ws mmc2` run after review.
+Next actor: Orchestrator.
+Next action: Commit the approved amendment, pin the reviewed exact candidate diff, rerun source-bound preflight and focused controls, then run the one authorized follow-on full workflow. Continue review/delivery only if exact-candidate acceptance passes.
+Automatic continuation now: Yes — the owner authorized the conditional follow-on run; no more user input is needed unless a gate fails or scope changes.
 Resume file: .planning/workstreams/mmc2/V11-HANDOFF.md
-The original full workflow failed before tests or packages. The header-test-only fix is checked in this same checkout; no retry, release, protected-evidence change, PR or merge has occurred. Context may be cleared while waiting for owner disposition.
+The original full workflow failed before tests or packages; exactly one follow-on is now authorized subject to amended gates. The header-test-only fix is committed in this same checkout. No package, PR or merge has occurred; preserve the failed attempt and do not start any further full workflow after the authorized one.

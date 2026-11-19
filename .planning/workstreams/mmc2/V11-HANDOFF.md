@@ -6,23 +6,32 @@ still asserted state format 3. Those assertions now match format 4, and both
 targeted header tests pass. The phase remains incomplete; no campaign,
 packaging, PR, merge or release gate passed for the corrected candidate.
 
-## Owner disposition
+## Authorized follow-on acceptance
 
-The original full-workflow allowance is spent. The failed workflow stopped
-before CTest, AccuracyCoin campaign and packaging. The fix is limited to
-`tests/header/header_c.c` and `tests/header/header_cxx.cpp`, but those files
-were outside Plan 30-03's reviewed file scope and preflight coverage.
+The original full workflow stopped before CTest, AccuracyCoin campaign and
+packaging. The owner has authorized exactly one additional local full workflow
+after the plan/preflight amendment is independently reviewed and corrected
+candidate gates pass. No further attempt is authorized by that decision.
 
-Before another full workflow, amend the plan scope and cheap build/preflight to
-cover both files, obtain independent plan review, and preflight the corrected
-candidate. That work does not itself authorize a full run. A second standard
-`cmake --workflow --preset ci` requires explicit owner authorization and keeps
-the existing 1500-second cap.
+The fix is limited to `tests/header/header_c.c` and
+`tests/header/header_cxx.cpp`. Both files are now in Plan 30-03's reviewed file
+scope. The throwaway preflight now validates the exact header build/CTest
+commands, the two test names, both source hashes, log paths and log digests.
+After a target-specific clean, the C/C++ header build passed and both CTest
+smoke tests passed.
 
-**Next actor:** Owner, to choose whether to authorize that reviewed scope update
-and exactly one additional full workflow. If authorized, continue with
-`$gsd-autonomous --ws mmc2` from this same Phase 30 checkout. No checkout switch
-or new clone is needed. If not authorized, leave Plan 30-03 blocked and stop.
+Independent review of the amended plan/preflight passed. Its reviewed product
+diff SHA-256 is
+`d2a36bbd4ed05e11fe3d11fdfc0888e9dce14c68d748fed3feff90bfbd157fef`. Commit
+the amendment, refresh the local candidate-diff pin to that value, rerun the
+focused/source-bound preflight gates, freeze the corrected candidate, and
+spend the one authorized `cmake --workflow --preset ci` with its existing
+1500-second cap.
+
+**Next actor:** Orchestrator.
+Continue with `$gsd-autonomous --ws mmc2` in this same Phase 30 checkout. No
+checkout switch or new clone is needed. If any gate fails, record it and stop;
+do not start a third full workflow.
 
 Detailed failed-run and targeted-fix evidence is in the [30-03 checkpoint](phases/30-mmc2-mainline-compatibility-and-delivery/30-03-SUMMARY.md).
 

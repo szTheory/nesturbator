@@ -4,9 +4,9 @@
   "milestone": "v11",
   "phases": [],
   "next": {
-    "command": "Await explicit owner disposition",
-    "label": "Plan 30-03 acceptance decision",
-    "reason": "The sole authorized full workflow failed in build on two stale state-format assertions. The targeted fix passed, but the plan/preflight scope must be amended and reviewed before any additional full run, which requires explicit authorization."
+    "command": "$gsd-autonomous --ws mmc2",
+    "label": "Finish amended Plan 30-03 acceptance",
+    "reason": "The owner authorized exactly one follow-on full workflow; independent review of the amended plan/preflight passed. The two header smoke tests are fixed and their clean targeted build/CTest passed; corrected-candidate focused/preflight gates remain."
   },
-  "updated_at": "2026-11-19T21:23:24Z"
+  "updated_at": "2026-11-19T21:41:26Z"
 }
