@@ -2,11 +2,13 @@
 
 **Status:** Plans 30-01 and 30-02 are complete. The first two Plan 30-03
 full-workflow attempts failed and remain preserved. The owner-authorized third
-attempt passed all 702 CTest entries, the AccuracyCoin campaign and activation,
-and package generation. The post-run source fingerprint matched the frozen
-57-input candidate. The standard-depth review of the 27-file product scope
-reported no blockers or warnings. The one-run authorization is spent; no retry
-is authorized. PR, merge and release delivery remain.
+local attempt passed all 702 CTest entries, the AccuracyCoin campaign and
+activation, and package generation on commit `48f6f05`; its one-run
+authorization is spent. Exact-head hosted CI then found compiler/format
+diagnostics. Reviewed follow-on commit `6e28aa2` fixes those issues; its current
+source binding, preflight, 24-test focused set and clang-format check pass. PR
+#73 is open on the prior head until the fix is pushed and all exact-head CI and
+Nightly checks pass. Merge and release delivery remain.
 
 ## Local acceptance passed; delivery remains
 
@@ -15,15 +17,16 @@ The final source-bound preflight and independent plan/preflight review passed.
 The third workflow ran once at candidate
 `48f6f054ed363ea50b5da0bfe96f960230f673b7`, completed in 460.358 seconds under
 the 1500-second cap, and generated the library, runner and libretro archives.
-Logs, fingerprint evidence and package hashes are in the [30-03 checkpoint](phases/30-mmc2-mainline-compatibility-and-delivery/30-03-SUMMARY.md).
+Those packages remain bound to that source and are not final provenance for
+the follow-on. Logs, fingerprint evidence and package hashes are in the [30-03
+checkpoint](phases/30-mmc2-mainline-compatibility-and-delivery/30-03-SUMMARY.md).
 
-Continue with read-only PR triage, revalidate live `main`, and prepare the
-reviewed Conventional Commit PR from this same Phase 30 checkout. Read-only
-triage found no MMC2 PR; provider PR #68 remains separate, open and unmergeable.
-Do not modify it. Do not start
-another local full workflow under the spent one-run authorization. Complete PR
-head CI and resulting-main/release evidence before asking the owner to approve
-any merge or publication step.
+Push `6e28aa2` to the existing PR #73 and require all configured CI platform
+jobs and triggered Nightly checks to pass on its exact head. Provider PR #68
+remains separate, open and unmergeable; do not modify it. Do not start another
+local full workflow under the spent one-run authorization. Revalidate live
+`main`, then complete resulting-main and release-source evidence before asking
+the owner to approve merge or publication.
 
 **Next actor:** Orchestrator. No checkout switch or new clone is needed.
 

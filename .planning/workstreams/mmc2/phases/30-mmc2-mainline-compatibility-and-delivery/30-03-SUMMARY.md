@@ -89,7 +89,17 @@ CPack generated the library, runner and libretro archives. The library package c
 
 The final standard-depth review covered all 27 product files in the union of Plans 30-01/02/03 at candidate `48f6f054ed363ea50b5da0bfe96f960230f673b7`. It reported zero blockers, warnings or info findings; see [30-REVIEW.md](30-REVIEW.md). No tests or workflows were run by the reviewer.
 
-Read-only GitHub triage found no open MMC2 or mapper-9 PR. PR [#68](https://github.com/szTheory/nesturbator/pull/68) remains the separate provider qualification route; it is open and marked unmergeable, and was not modified. Live `main` still pointed to the pinned base at the latest read. Revalidate it immediately before opening the MMC2 PR.
+## Exact-head CI follow-up
+
+The third local full workflow and its package hashes are bound to source commit `48f6f054ed363ea50b5da0bfe96f960230f673b7`. The first exact-head PR checks ran on documentation checkpoint `146e75c50ddaf825b0ca83e8c8ba95e336619340` and exposed build/format diagnostics before runtime tests started: clang-format 18 rejected the shared fixture layout; GCC warned that the trainer fixture copy length could underflow; MSVC rejected complemented-mask casts; and Ubuntu warning-as-error builds flagged the MMC2 mirror assignment conversion. No runtime assertion failure was observed.
+
+The narrow, semantics-preserving fixes are committed as `6e28aa2` (`fix(mmc2): resolve hosted portability warnings`). The current AccuracyCoin source binding updates only `current_input_hashes.src/cartridge.c` to `07cb817b535b0cd66dc3257dcee975519d46ae13159e0488831431cd0052065c`; all historical binding fields remain unchanged. The new 57-input source fingerprint is `9fce2e18c4ba79904503a2d3d1958dac075f88c013be53f6e281e6cbd82bbd11`.
+
+The follow-on source review found no blockers or warnings. The exact-source preflight passed with all negative guards rejected. `core.mapper_mmc2` built and passed, the expanded 24-test focused CTest set passed in 38.59 seconds, and the clang-format 18 check passed. A first preflight invocation rejected the still-uncommitted planning amendment because its throwaway status reader stripped Git's leading status column; the throwaway reader was corrected to remove only the final newline, and the second supervised preflight passed. Evidence is in `build/ci/phase30-03-followup-focused-ctest.log`, `phase30-03-followup-preflight2.json`, and `phase30-03-followup-preflight2.log`.
+
+PR [#73](https://github.com/szTheory/nesturbator/pull/73) is open and not merged. Its current remote head is still `146e75c50ddaf825b0ca83e8c8ba95e336619340`, whose initial CI jobs failed on the diagnostics above. The follow-on commit has not yet been pushed; after it is pushed, all configured CI platform jobs and triggered Nightly checks must pass on the exact updated PR head. The one-run local workflow authorization remains spent. The earlier CPack hashes are not final-source package evidence; final packages must be built and verified on the actual release commit.
+
+Read-only triage found no other open MMC2 or mapper-9 PR. PR [#68](https://github.com/szTheory/nesturbator/pull/68) remains the separate provider qualification route; it is open and marked unmergeable, and was not modified. Live `main` remained at the pinned base during the last check; revalidate it before merge.
 
 ## Preserved boundaries
 
@@ -97,4 +107,4 @@ Phase 29 attempts and recovery routes remain stopped. Historical AccuracyCoin ev
 
 ## Checkpoint status
 
-All three full-workflow outcomes and their source identities are recorded: two terminal failures followed by one successful, terminal local acceptance. The third run passed all 702 CTest entries and package generation on the same frozen fingerprint. Final code review is clean. No PR, merge or release has started; MMC2-11 local acceptance is complete, but MMC2-12 and Phase 30 delivery remain incomplete. No further full workflow is authorized by the one-run decision.
+All three full-workflow outcomes and their source identities are recorded: two terminal failures followed by one successful, terminal local acceptance on commit `48f6f054ed363ea50b5da0bfe96f960230f673b7`. The reviewed portability follow-up is commit `6e28aa2`; its focused checks and refreshed preflight pass, but its exact PR-head CI is pending. PR #73 is open and unmerged. MMC2-12 and Phase 30 delivery remain incomplete. No further local full workflow is authorized by the one-run decision.

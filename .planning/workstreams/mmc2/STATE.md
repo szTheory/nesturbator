@@ -29,13 +29,13 @@ See the [shared project](../../PROJECT.md), [v11 requirements](REQUIREMENTS.md),
 ## Current Position
 
 Phase: 30 — MMC2 mainline compatibility and delivery
-Plan: 30-02 complete; 30-03 local acceptance and code review passed, delivery gates pending
-Status: The first full workflow failed on two stale header state-format pins. The second passed its campaign but failed seven compatibility checks before packaging. Those test contracts were fixed. The owner-authorized third workflow passed all 702 CTest entries, the AccuracyCoin campaign and activation checks, and generated all three local packages. The frozen commit and 57-input source fingerprint matched after the run. The final standard-depth source review found no blockers or warnings. No PR, merge or release has started; no further local full workflow is authorized by the one-run decision.
-Last activity: 2026-11-19 — Local acceptance and code review passed; library, runner and libretro archives were inspected and hashed.
+Plan: 30-02 complete; 30-03 hosted follow-up and delivery gates in progress
+Status: The first two full workflows failed and remain preserved. The owner-authorized third local workflow passed all 702 CTest entries, the AccuracyCoin campaign and activation checks, and generated three packages on source commit `48f6f054ed363ea50b5da0bfe96f960230f673b7`; that single-run authorization is spent. Exact-head GitHub CI then found compiler/format diagnostics. The reviewed follow-on portability fix is committed as `6e28aa2`; its current source binding, exact-source preflight, focused 24-test gate and clang-format check pass. The current PR head still has the initial failed check results until the follow-on is pushed and its CI/Nightly runs finish. No further local full workflow is authorized.
+Last activity: 2026-11-19 — Follow-on CI diagnostics fixed, independently reviewed and locally focused-verified; pushing and exact-head CI remain.
 
 Progress: 0% — 0 of 1 phases complete; 2 of 3 plans complete
 
-Planning: Plans 30-01 and 30-02 executed and summarized. Both Plan 30-03 amendments passed independent review. The final source-bound preflight and one newly authorized full workflow passed. Plan 30-03 delivery remains open.
+Planning: Plans 30-01 and 30-02 executed and summarized. The Plan 30-03 follow-on acceptance disposition passed independent review: refresh exact-source binding/preflight, use focused checks, and require all configured CI platform and Nightly jobs green on the exact PR head without another local full workflow. Plan 30-03 delivery remains open.
 
 ## Performance Metrics
 
@@ -64,11 +64,11 @@ acceptance for the mainline port.
 
 ### Pending Todos
 
-Read-only triage found no open MMC2 or mapper-9 PR. Provider PR #68 is open and unmergeable on a separate branch; preserve it unchanged. Revalidate live `main`, prepare/open the reviewed Conventional Commit PR for this exact candidate, and verify its required CI and eventual resulting-main/release identities. Do not run another local full workflow under the spent one-run authorization. Prepare all evidence before asking the owner to approve any irreversible merge or publication step.
+PR #73 is already open and unmerged. Push the reviewed follow-on commit and verify all configured CI platform and Nightly jobs on the exact new head; then revalidate live `main`, resulting-main checks and release provenance. Provider PR #68 remains open and unmergeable on its separate branch; preserve it unchanged. Do not run another local full workflow under the spent one-run authorization. Keep the final merge and publication approval as the last owner decision after all evidence is concrete.
 
 ### Blockers and Preserved Stops
 
-- The first two full workflow attempts remain terminal failures and their causes are documented. The one newly authorized third workflow passed all 702 tests, the campaign and package step; source and fingerprint were unchanged. That one-run authorization is spent and the run is terminal. Do not start another local full workflow without new explicit owner authorization and independent plan/preflight review. No PR, merge or release has started. Preserve the project's 30-minute limit and all historical stops.
+- The first two full workflow attempts remain terminal failures and their causes are documented. The owner-authorized third local workflow passed all 702 tests, the campaign and package step on commit `48f6f054ed363ea50b5da0bfe96f960230f673b7`; the one-run authorization is spent. The narrowly reviewed follow-on source candidate is `6e28aa2`; no local full workflow has run on it. Its targeted checks and preflight pass. PR #73 is open on the prior head and must receive the follow-on push and green exact-head hosted checks before merge. Preserve the project's 30-minute limit and all historical stops.
 - The five inherited v10 unverified-prohibition flags remain visible and unwaived; v10 WR-01 remains historical documentation debt. Technical checks may be assessed under the verification policy without converting an old flag into a waiver. Their completed disposition and limits are summarized in the [v10 handoff](V10-HANDOFF.md).
 - Phase 29 CI is complete and must not be repeated for this port. Attempts 01–08 and halted recovery scopes remain terminal; no attempt-09, recovery-wrapper reuse or allowance renewal is authorized.
 - Protected AccuracyCoin baselines, source/evidence bindings and acceptance rules cannot be re-anchored to hide a port mismatch. Diagnose a mismatch before long acceptance; a new material consequence requires its concrete scope decision.
@@ -82,10 +82,10 @@ Inherited audit debt and future direction remain in the [product roadmap](../../
 ## Session Continuity
 
 Last session: 2026-11-19
-Stopped at: Local acceptance and standard-depth source review passed; delivery to PR/main/release remains.
+Stopped at: Follow-on fix and local focused gates are complete; the exact PR-head CI recheck remains.
 Next command: Continue the current `$gsd-autonomous --ws mmc2` run through the existing PR/main/release gates.
 Next actor: Orchestrator.
-Next action: Triage the open related provider PR read-only, recheck live main, prepare and open the exact reviewed feature PR, and verify current-head CI. Ask the owner only after the merge/publication state is concrete and reviewable.
-Automatic continuation now: Yes through PR preparation and required checks; pause for owner approval before merge or publication.
+Next action: Push commit `6e28aa2` to PR #73, verify every configured CI platform and triggered Nightly check on that exact head, then verify resulting-main and release identities. Ask the owner only after merge/publication evidence is concrete and reviewable.
+Automatic continuation now: Yes through exact-head CI and release evidence; pause for owner approval before merge or publication.
 Resume file: .planning/workstreams/mmc2/V11-HANDOFF.md
-The first full workflow failed during build; the second failed seven compatibility checks before packaging. Their causes are fixed. The owner-authorized third run passed the full workflow, including 702 tests, campaign, and three packages. Source commit and fingerprint matched pre/post-run; the independent 27-file review had no blockers or warnings. The one-run authorization is spent, and no PR/merge/release has started. Continue delivery in the same Phase 30 checkout; do not create another clone or worktree.
+The first two full workflow failures remain terminal. The owner-authorized third local run passed all 702 tests, campaign and package steps on commit `48f6f05`; no additional local full run is authorized. Exact-head hosted CI found portability/format diagnostics, fixed in reviewed commit `6e28aa2`. Its source binding, preflight and 24 focused checks pass. PR #73 remains open on the old head until this fix is pushed and all exact-head CI/Nightly checks pass. Continue in the same Phase 30 checkout; do not create another clone or worktree.
