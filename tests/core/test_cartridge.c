@@ -350,6 +350,7 @@ static const struct board_row board_rows[] = {
     {"axrom-vertical", 7, 0, 0, 4, 0, 6, 1, 0, 0, OK_},
     {"axrom-sub2", 7, 1, 2, 2, 0, 0, 0, 0, 0, OK_},
     {"mapper-4-ines1-16k", 4, 0, 0, 1, 1, 0, 0, 0, 0, OK_},
+    {"mmc2-nes2-128k", 9, 1, 0, 8, 16, 0, 0, 0, 0, OK_},
     /* refuse: mappers without a board */
     {"mapper-5", 5, 0, 0, 1, 1, 0, 0, 0, 0, BAD_},
     {"mapper-6", 6, 0, 0, 1, 1, 0, 0, 0, 0, BAD_},
@@ -780,7 +781,7 @@ static void test_board_switch_matches_profiles(void)
     for (unsigned id = 0u; id <= 4095u; ++id) {
         struct nesturbator__mapper_ops ops;
         int has = nesturbator__mapper_ops_for((uint16_t)id, &ops);
-        int want = id == 0u || id == 1u || id == 2u || id == 3u || id == 4u || id == 7u;
+        int want = id == 0u || id == 1u || id == 2u || id == 3u || id == 4u || id == 7u || id == 9u;
         CHECK_EQ_U64(has, want);
         if (has) {
             boarded++;
@@ -788,7 +789,7 @@ static void test_board_switch_matches_profiles(void)
             CHECK(ops.rebuild != NULL);
         }
     }
-    CHECK_EQ_U64(boarded, 6u);
+    CHECK_EQ_U64(boarded, 7u);
 }
 /* D-08, D-09, C3: unload returns the instance to the state create gave it. */
 #define UF_W 256u
