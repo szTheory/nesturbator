@@ -1,8 +1,8 @@
 /* STATE-04 (D-03, D-04, D-16): a hostile or damaged state is refused with the right status and
    changes nothing. For each ROM a state is made after 20 frames, then:
      1. cross-ROM matrix and no-cartridge: ERR_STATE_CARTRIDGE
-     2. format_version 0 through 3 and 5: FORMAT; header_size 63 and 65: CHECKSUM, then INVALID with the
-   CRC recomputed
+     2. format_version 0 through 3 and 5: FORMAT; header_size 63 and 65: CHECKSUM, then INVALID with
+   the CRC recomputed
      3. truncation to every length below S, S + 1 bytes, NULL arguments, S itself loads
      4. flip every header byte and body byte: the D-04 class per offset (RAM bytes with a stride
         under --short)

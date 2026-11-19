@@ -28,8 +28,7 @@ static void map_chr_window(struct nesturbator *nes, uint32_t half, uint8_t bank_
 {
     for (uint32_t i = 0u; i < MMC2_CHR_PAGES; ++i) {
         const uint32_t page = half * MMC2_CHR_PAGES + i;
-        nes->map.chr_r[page] =
-            nesturbator__map_chr(nes, (uint32_t)bank_4k * MMC2_CHR_PAGES + i);
+        nes->map.chr_r[page] = nesturbator__map_chr(nes, (uint32_t)bank_4k * MMC2_CHR_PAGES + i);
         nes->map.chr_w[page] = NULL;
     }
 }

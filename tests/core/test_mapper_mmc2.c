@@ -30,10 +30,9 @@ static const uint8_t prg_markers[16][8] = {
 };
 
 static const uint8_t chr_markers[32] = {
-    0xa0u, 0xa1u, 0xa2u, 0xa3u, 0xa4u, 0xa5u, 0xa6u, 0xa7u,
-    0xa8u, 0xa9u, 0xaau, 0xabu, 0xacu, 0xadu, 0xaeu, 0xafu,
-    0xb0u, 0xb1u, 0xb2u, 0xb3u, 0xb4u, 0xb5u, 0xb6u, 0xb7u,
-    0xb8u, 0xb9u, 0xbau, 0xbbu, 0xbcu, 0xbdu, 0xbeu, 0xbfu,
+    0xa0u, 0xa1u, 0xa2u, 0xa3u, 0xa4u, 0xa5u, 0xa6u, 0xa7u, 0xa8u, 0xa9u, 0xaau,
+    0xabu, 0xacu, 0xadu, 0xaeu, 0xafu, 0xb0u, 0xb1u, 0xb2u, 0xb3u, 0xb4u, 0xb5u,
+    0xb6u, 0xb7u, 0xb8u, 0xb9u, 0xbau, 0xbbu, 0xbcu, 0xbdu, 0xbeu, 0xbfu,
 };
 
 struct mmc2_allocator_counts {
@@ -242,15 +241,15 @@ static void test_profile_refusals_are_transactional(void)
     static uint8_t image[MMC2_FIXTURE_CAP];
     static uint8_t invalid[MMC2_IMAGE_CAP];
     static const enum invalid_profile cases[] = {
-        INVALID_INES,          INVALID_ARCHAIC,     INVALID_SUBMAPPER,
-        INVALID_SUBMAPPER_MAX, INVALID_MAPPER_10,    INVALID_PRG_SMALL,
-        INVALID_CHR_SMALL,     INVALID_CHR_LARGE,   INVALID_PRG_EXPONENT,
-        INVALID_CHR_EXPONENT,  INVALID_PRG_RAM,     INVALID_PRG_NVRAM,
-        INVALID_CHR_RAM,       INVALID_CHR_NVRAM,   INVALID_CHR_ABSENT,
-        INVALID_CHR_RAM_BOARD, INVALID_TRAINER,     INVALID_BATTERY,
-        INVALID_FOUR_SCREEN,   INVALID_CONSOLE,     INVALID_RESERVED_TIMING,
+        INVALID_INES,          INVALID_ARCHAIC,        INVALID_SUBMAPPER,
+        INVALID_SUBMAPPER_MAX, INVALID_MAPPER_10,      INVALID_PRG_SMALL,
+        INVALID_CHR_SMALL,     INVALID_CHR_LARGE,      INVALID_PRG_EXPONENT,
+        INVALID_CHR_EXPONENT,  INVALID_PRG_RAM,        INVALID_PRG_NVRAM,
+        INVALID_CHR_RAM,       INVALID_CHR_NVRAM,      INVALID_CHR_ABSENT,
+        INVALID_CHR_RAM_BOARD, INVALID_TRAINER,        INVALID_BATTERY,
+        INVALID_FOUR_SCREEN,   INVALID_CONSOLE,        INVALID_RESERVED_TIMING,
         INVALID_MISC_HEADER,   INVALID_MISC_HEADER_14, INVALID_MISC_HEADER_15,
-        INVALID_DENDY_REGION,  INVALID_SHORT_FILE,  INVALID_TRAILING_FILE,
+        INVALID_DENDY_REGION,  INVALID_SHORT_FILE,     INVALID_TRAILING_FILE,
     };
     struct mmc2_allocator_counts counts = {0u, 0u};
     const size_t size = mmc2_fixture_build(image, sizeof image, 1u);
@@ -308,7 +307,8 @@ static void test_prg_banks_registers_and_mirroring(void)
     static uint8_t vertical_image[MMC2_FIXTURE_CAP];
     static uint8_t horizontal_image[MMC2_FIXTURE_CAP];
     const size_t vertical_size = mmc2_fixture_build(vertical_image, sizeof vertical_image, 1u);
-    const size_t horizontal_size = mmc2_fixture_build(horizontal_image, sizeof horizontal_image, 0u);
+    const size_t horizontal_size =
+        mmc2_fixture_build(horizontal_image, sizeof horizontal_image, 0u);
     struct mmc2_allocator_counts counts = {0u, 0u};
     nesturbator *inst = make_instance(&counts);
     nesturbator *peer = make_instance(&counts);
@@ -316,7 +316,8 @@ static void test_prg_banks_registers_and_mirroring(void)
     if (inst == NULL || peer == NULL)
         goto done;
     CHECK_EQ_U64(nesturbator_load_cartridge(inst, vertical_image, vertical_size), NESTURBATOR_OK);
-    CHECK_EQ_U64(nesturbator_load_cartridge(peer, horizontal_image, horizontal_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_load_cartridge(peer, horizontal_image, horizontal_size),
+                 NESTURBATOR_OK);
     struct nesturbator *nes = (struct nesturbator *)inst;
     struct nesturbator *other = (struct nesturbator *)peer;
 
@@ -815,7 +816,7 @@ static void mmc2_check_state_mapper_bytes(const nesturbator *inst, const uint8_t
     const uint8_t values[8] = {12u, 5u, 3u, 9u, 7u, 1u, latch0, latch1};
     struct nesturbator__state_bound bounds[512];
     const size_t count = nesturbator__state_bounds((const struct nesturbator *)inst, bounds,
-                                                    sizeof bounds / sizeof bounds[0]);
+                                                   sizeof bounds / sizeof bounds[0]);
     CHECK(count >= 8u && count <= sizeof bounds / sizeof bounds[0]);
     if (count < 8u || count > sizeof bounds / sizeof bounds[0])
         return;
@@ -880,8 +881,7 @@ static void test_mapper_state_restore_and_transactional_rejection(void)
     CHECK_EQ_U64(nesturbator_load_cartridge(source, image, image_size), NESTURBATOR_OK);
     CHECK_EQ_U64(nesturbator_load_cartridge(restored, image, image_size), NESTURBATOR_OK);
     CHECK_EQ_U64(nesturbator_load_cartridge(peer, image, image_size), NESTURBATOR_OK);
-    CHECK_EQ_U64(nesturbator_load_cartridge(identity_mismatch, image, image_size),
-                 NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_load_cartridge(identity_mismatch, image, image_size), NESTURBATOR_OK);
     state_size = nesturbator_state_size(source);
     CHECK(state_size > 64u);
     states = (uint8_t *)malloc(state_size * 5u);
@@ -1006,8 +1006,9 @@ static void test_mapper_state_restore_and_transactional_rejection(void)
             for (size_t frame = 0u; frame < 4u; ++frame) {
                 uint32_t a_video = 0u, a_audio = 0u, b_video = 0u, b_audio = 0u;
                 uint64_t a_ticks = 0u, a_frame = 0u, b_ticks = 0u, b_frame = 0u;
-                CHECK_EQ_U64(st_frame(reference, st_buttons(frame_numbers[frame]), &a_video, &a_audio,
-                                      &a_ticks, &a_frame), NESTURBATOR_OK);
+                CHECK_EQ_U64(st_frame(reference, st_buttons(frame_numbers[frame]), &a_video,
+                                      &a_audio, &a_ticks, &a_frame),
+                             NESTURBATOR_OK);
                 if (frame == 1u && repeat == 0u) {
                     struct nesturbator *independent = (struct nesturbator *)peer;
                     nesturbator__bus_write(independent, 0xa000u, 4u);
@@ -1016,7 +1017,8 @@ static void test_mapper_state_restore_and_transactional_rejection(void)
                     (void)nesturbator__ppu_read(independent, 0x1fd0u);
                 }
                 CHECK_EQ_U64(st_frame(restored, st_buttons(frame_numbers[frame]), &b_video,
-                                      &b_audio, &b_ticks, &b_frame), NESTURBATOR_OK);
+                                      &b_audio, &b_ticks, &b_frame),
+                             NESTURBATOR_OK);
                 CHECK_EQ_U64(a_video, b_video);
                 CHECK_EQ_U64(a_audio, b_audio);
                 CHECK_EQ_U64(a_ticks, b_ticks);
@@ -1048,7 +1050,7 @@ static void test_mapper_state_restore_and_transactional_rejection(void)
     {
         struct nesturbator__state_bound bounds[512];
         const size_t count = nesturbator__state_bounds((const struct nesturbator *)source, bounds,
-                                                        sizeof bounds / sizeof bounds[0]);
+                                                       sizeof bounds / sizeof bounds[0]);
         CHECK(count >= 8u && count <= sizeof bounds / sizeof bounds[0]);
         if (count >= 8u && count <= sizeof bounds / sizeof bounds[0]) {
             for (size_t field = count - 8u; field < count; ++field) {
