@@ -1,0 +1,12 @@
+{
+  "contract": "1.0.0",
+  "flavor": "core",
+  "milestone": "v11",
+  "phases": [],
+  "next": {
+    "command": "$gsd-autonomous --ws mmc2",
+    "label": "Continue Phase 30 planning and delivery",
+    "reason": "Phase 30 discussion is complete; the active autonomous run continues"
+  },
+  "updated_at": "2026-11-19T19:14:00Z"
+}
