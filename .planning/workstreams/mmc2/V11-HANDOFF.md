@@ -1,32 +1,31 @@
 # v11 handoff: MMC2 mainline compatibility port
 
-**Status:** Plans 30-01 and 30-02 are complete. Plan 30-03 has had two terminal
-full-workflow failures: the first stopped on stale state-format header pins;
-the second completed 702 CTest entries and passed the campaign but failed seven
-compatibility checks before packaging. Those compatibility checks now pass in
-the expanded 24-test focused set. The owner has authorized exactly one third
-full workflow after independent review of the final plan/preflight amendment
-and passing source-bound gates. No retry is authorized by that decision.
+**Status:** Plans 30-01 and 30-02 are complete. The first two Plan 30-03
+full-workflow attempts failed and remain preserved. The owner-authorized third
+attempt passed all 702 CTest entries, the AccuracyCoin campaign and activation,
+and package generation. The post-run source fingerprint matched the frozen
+57-input candidate. The standard-depth review of the 27-file product scope
+reported no blockers or warnings. The one-run authorization is spent; no retry
+is authorized. PR, merge and release delivery remain.
 
-## Third full-workflow acceptance
+## Local acceptance passed; delivery remains
 
-The test-only fixes update the Phase 21 behavior revision pin, the public API
-declaration digest, and the info-claims parser/self-test so MMC2 support text
-does not count as a duplicate MMC3 clause. Directly affected checks passed 8/8;
-the expanded focused set passed 24/24. This is not full acceptance: the second
-workflow never reached packaging, and no corrected-candidate full run has yet
-completed.
+The corrected compatibility checks passed the expanded 24-test focused gate.
+The final source-bound preflight and independent plan/preflight review passed.
+The third workflow ran once at candidate
+`48f6f054ed363ea50b5da0bfe96f960230f673b7`, completed in 460.358 seconds under
+the 1500-second cap, and generated the library, runner and libretro archives.
+Logs, fingerprint evidence and package hashes are in the [30-03 checkpoint](phases/30-mmc2-mainline-compatibility-and-delivery/30-03-SUMMARY.md).
 
-The current Plan 30-03 amendment and throwaway preflight must receive an
-independent review. Then refresh the candidate diff digest, source fingerprint,
-focused inventory and full campaign inventory; run the source-bound preflight.
-If every gate passes, execute exactly one `cmake --workflow --preset ci` in
-this same checkout under the existing 1500-second cap. Preserve the outcome as
-terminal; do not retry a failed workflow.
+Continue with read-only PR triage, revalidate live `main`, and prepare the
+reviewed Conventional Commit PR from this same Phase 30 checkout. Read-only
+triage found no MMC2 PR; provider PR #68 remains separate, open and unmergeable.
+Do not modify it. Do not start
+another local full workflow under the spent one-run authorization. Complete PR
+head CI and resulting-main/release evidence before asking the owner to approve
+any merge or publication step.
 
-**Next actor:** Orchestrator.
-Continue with `$gsd-autonomous --ws mmc2` in this same Phase 30 checkout. No
-checkout switch or new clone is needed. No PR, merge or release has started.
+**Next actor:** Orchestrator. No checkout switch or new clone is needed.
 
 Detailed run and targeted-fix evidence is in the [30-03 checkpoint](phases/30-mmc2-mainline-compatibility-and-delivery/30-03-SUMMARY.md).
 

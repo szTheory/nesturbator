@@ -5,8 +5,8 @@
   "phases": [],
   "next": {
     "command": "$gsd-autonomous --ws mmc2",
-    "label": "Finish amended Plan 30-03 acceptance",
-    "reason": "The owner authorized exactly one third full workflow. The compatibility fixes and 24-test focused gate pass; independent review of the final plan/preflight amendment and fresh source-bound gates must pass before running it. No retry is authorized."
+    "label": "Finish Plan 30-03 delivery gates",
+    "reason": "The one newly authorized full workflow passed all 702 tests, the AccuracyCoin campaign and package stage; the final source review found no blockers. PR #68 is a separate provider route and remains untouched. Revalidate main, prepare the MMC2 PR, and complete exact-head PR/main/release evidence. Do not run another local full workflow without new owner authorization."
   },
-  "updated_at": "2026-11-19T22:11:41Z"
+  "updated_at": "2026-11-19T22:42:03Z"
 }

@@ -3,10 +3,10 @@ gsd_state_version: "1.0"
 milestone: v11
 milestone_name: MMC2 mainline compatibility port
 status: executing
-stopped_at: Final Plan 30-03 review and source-bound preflight before the newly authorized third full workflow
-last_updated: "2026-11-19T22:11:41Z"
+stopped_at: Plan 30-03 local acceptance and code review complete; PR/main/release delivery gates remain
+last_updated: "2026-11-19T22:42:03Z"
 last_activity: 2026-11-19
-last_activity_desc: Follow-on full workflow found seven compatibility-check failures; exact fixes now pass the expanded 24-test focused suite
+last_activity_desc: Third full workflow passed all 702 tests, AccuracyCoin campaign and package step; final source review found no actionable issues
 current_phase: 30
 progress:
   total_phases: 1
@@ -29,13 +29,13 @@ See the [shared project](../../PROJECT.md), [v11 requirements](REQUIREMENTS.md),
 ## Current Position
 
 Phase: 30 — MMC2 mainline compatibility and delivery
-Plan: 30-02 complete; 30-03 final review/preflight before one newly authorized full workflow
-Status: The initial full workflow failed in build on two stale state-format pins. The owner-authorized follow-on completed configure/build and 702 CTest entries, but failed seven legacy compatibility checks before packaging. The campaign passed. Corrected compatibility pins and expanded focused checks now pass. The owner has authorized exactly one additional full workflow, conditional on independent review of the current plan/preflight amendment and passing source-bound gates; no retry is authorized by this decision.
-Last activity: 2026-11-19 — The 24-test compatibility/header/mapper/state/provider/parity/libretro focused set passed after fixing the seven failed checks' causes.
+Plan: 30-02 complete; 30-03 local acceptance and code review passed, delivery gates pending
+Status: The first full workflow failed on two stale header state-format pins. The second passed its campaign but failed seven compatibility checks before packaging. Those test contracts were fixed. The owner-authorized third workflow passed all 702 CTest entries, the AccuracyCoin campaign and activation checks, and generated all three local packages. The frozen commit and 57-input source fingerprint matched after the run. The final standard-depth source review found no blockers or warnings. No PR, merge or release has started; no further local full workflow is authorized by the one-run decision.
+Last activity: 2026-11-19 — Local acceptance and code review passed; library, runner and libretro archives were inspected and hashed.
 
 Progress: 0% — 0 of 1 phases complete; 2 of 3 plans complete
 
-Planning: Plans 30-01 and 30-02 executed and summarized. Plan 30-03 has two owner-reviewed scope amendments: the first passed review; the current compatibility-check expansion and preflight are awaiting independent review.
+Planning: Plans 30-01 and 30-02 executed and summarized. Both Plan 30-03 amendments passed independent review. The final source-bound preflight and one newly authorized full workflow passed. Plan 30-03 delivery remains open.
 
 ## Performance Metrics
 
@@ -59,16 +59,16 @@ acceptance for the mainline port.
 - The current local CI preset does not enable the target's full AccuracyCoin campaign by default. Configure it on before running the unchanged standard workflow, and adapt only the exact source-closure admission needed for MMC2 while preserving historical evidence and same-run source fingerprinting.
 - Plans 30-01 and 30-02 are implemented and summarized in [30-01](phases/30-mmc2-mainline-compatibility-and-delivery/30-01-SUMMARY.md) and [30-02](phases/30-mmc2-mainline-compatibility-and-delivery/30-02-SUMMARY.md). Focused core tests, three-client parity, provider controls and state-format checks passed. Existing-board state payloads matched after a version/revision/CRC transform; other pinned output rows stayed unchanged. No full workflow had run at the time Plan 30-02 completed.
 - The initial Plan 30-03 `cmake --workflow --preset ci` ran on 2026-11-19 and failed during build in 0.971 seconds: `tests/header/header_c.c` and `tests/header/header_cxx.cpp` asserted state format 3 while the public contract is format 4. No full CTest or package stage ran. Evidence is retained in the [30-03 checkpoint](phases/30-mmc2-mainline-compatibility-and-delivery/30-03-SUMMARY.md).
-- The owner authorized one follow-on full workflow. It completed 702 CTest entries in 388.8 seconds, with `accuracycoin.campaign` passing and seven compatibility tests failing: Phase 21 revision pin 9 vs 10; public declaration digest for old macros; and README/header MMC2 facts miscounted as duplicate MMC3 clauses, including one self-test expecting the old error. The test-only causes are fixed. The eight directly affected checks passed 8/8, and the expanded focused set passed 24/24. No packaging ran. The owner has now authorized exactly one third full workflow, conditional on independent review of the current plan/preflight amendment and passing source-bound gates. That third invocation is terminal; no retry is authorized.
+- The owner authorized one follow-on full workflow. It completed 702 CTest entries in 388.8 seconds, with `accuracycoin.campaign` passing and seven compatibility tests failing: Phase 21 revision pin 9 vs 10; public declaration digest for old macros; and README/header MMC2 facts miscounted as duplicate MMC3 clauses, including one self-test expecting the old error. Those test-only causes were fixed; the eight directly affected checks passed 8/8 and the expanded focused set passed 24/24. The owner then authorized one third full workflow after independent plan/preflight review. It passed all 702 CTest entries and AccuracyCoin campaign/activation checks, then generated all three packages in 460.358 seconds. Frozen source commit `48f6f054ed363ea50b5da0bfe96f960230f673b7` and source fingerprint `d45734c098d790da3aad63eb25d1cba37e388e62b7e7f5d00aea5ec7525bbb01` (57 inputs) matched before and after. Package hashes and contents are recorded in the Plan 30-03 summary and local ignored manifest. Final source review covered the 27-file product scope with no blockers or warnings. The one-run authorization is spent; do not retry local full CI without new owner authorization.
 - A fresh public LibFuturo check found no current NES consumer/playback acceptance; its main remains a synthetic-v1 proof and older rev9/state3 create/destroy seam. The 2026-11-19 publisher receipt is still missing and remains a separate gate.
 
 ### Pending Todos
 
-Finish independent review of the current Plan 30-03/preflight amendment, rerun the source-bound fingerprint/control/preflight gates against the fixed candidate, and record the reviewed diff digest. If all gates pass, run the one newly authorized full workflow from this same checkout under its existing 1500-second cap. Preserve its result as terminal; do not retry a failure.
+Read-only triage found no open MMC2 or mapper-9 PR. Provider PR #68 is open and unmergeable on a separate branch; preserve it unchanged. Revalidate live `main`, prepare/open the reviewed Conventional Commit PR for this exact candidate, and verify its required CI and eventual resulting-main/release identities. Do not run another local full workflow under the spent one-run authorization. Prepare all evidence before asking the owner to approve any irreversible merge or publication step.
 
 ### Blockers and Preserved Stops
 
-- Both prior full workflow invocations are terminal failures. The second failed seven compatibility checks before packaging; their causes are fixed and targeted evidence passes. The owner has authorized exactly one third full workflow, only after independent review of the current plan/preflight amendment and passing source-bound gates. Its outcome will be terminal; no retry is authorized. No full acceptance or package gate passed yet; no PR or release started. Preserve the project's 30-minute session limit and all historical stops.
+- The first two full workflow attempts remain terminal failures and their causes are documented. The one newly authorized third workflow passed all 702 tests, the campaign and package step; source and fingerprint were unchanged. That one-run authorization is spent and the run is terminal. Do not start another local full workflow without new explicit owner authorization and independent plan/preflight review. No PR, merge or release has started. Preserve the project's 30-minute limit and all historical stops.
 - The five inherited v10 unverified-prohibition flags remain visible and unwaived; v10 WR-01 remains historical documentation debt. Technical checks may be assessed under the verification policy without converting an old flag into a waiver. Their completed disposition and limits are summarized in the [v10 handoff](V10-HANDOFF.md).
 - Phase 29 CI is complete and must not be repeated for this port. Attempts 01–08 and halted recovery scopes remain terminal; no attempt-09, recovery-wrapper reuse or allowance renewal is authorized.
 - Protected AccuracyCoin baselines, source/evidence bindings and acceptance rules cannot be re-anchored to hide a port mismatch. Diagnose a mismatch before long acceptance; a new material consequence requires its concrete scope decision.
@@ -82,10 +82,10 @@ Inherited audit debt and future direction remain in the [product roadmap](../../
 ## Session Continuity
 
 Last session: 2026-11-19
-Stopped at: Compatibility fixes passed the 24-test focused set; current plan/preflight amendment and fresh source-binding preflight are required before the newly authorized third full workflow.
-Next command: Continue the current `$gsd-autonomous --ws mmc2` run through independent review and preflight, then execute the one authorized full workflow if all gates pass.
+Stopped at: Local acceptance and standard-depth source review passed; delivery to PR/main/release remains.
+Next command: Continue the current `$gsd-autonomous --ws mmc2` run through the existing PR/main/release gates.
 Next actor: Orchestrator.
-Next action: Independently review the current amendment, refresh the candidate diff pin, rerun source-bound fingerprint and preflight, and run the third full workflow exactly once if those gates pass.
-Automatic continuation now: Yes through the one authorized full workflow and its result; do not retry it if it fails.
+Next action: Triage the open related provider PR read-only, recheck live main, prepare and open the exact reviewed feature PR, and verify current-head CI. Ask the owner only after the merge/publication state is concrete and reviewable.
+Automatic continuation now: Yes through PR preparation and required checks; pause for owner approval before merge or publication.
 Resume file: .planning/workstreams/mmc2/V11-HANDOFF.md
-The first full workflow failed during build. The second completed CTest but failed seven compatibility checks before packaging. Their causes are fixed and the expanded focused suite passes. The current plan/preflight amendment is pending independent review and fresh source-bound gates. The owner has authorized one third full workflow after those gates pass; this decision does not authorize a retry. No package, PR or merge has occurred.
+The first full workflow failed during build; the second failed seven compatibility checks before packaging. Their causes are fixed. The owner-authorized third run passed the full workflow, including 702 tests, campaign, and three packages. Source commit and fingerprint matched pre/post-run; the independent 27-file review had no blockers or warnings. The one-run authorization is spent, and no PR/merge/release has started. Continue delivery in the same Phase 30 checkout; do not create another clone or worktree.
