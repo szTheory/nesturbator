@@ -3,7 +3,8 @@
 A NES emulator core in C: a library you can embed, a headless runner for
 automation, and a libretro adapter.
 
-**Status: v3.** The core plays mappers 0, 1, 2, 3, 4 and 7 with battery saves and the soft reset
+**Status: v3.** The core supports mappers 0, 1, 2, 3, 4 and 7, plus only the bounded
+NES 2.0 mapper 9/submapper 0 profile described below, with battery saves and the soft reset
 (`nesturbator_reset()`, which RetroArch's Reset button runs). v3 adds save states in the library
 and the runner (`nesturbator_save_state`, `--state-at-frame`, `--load-state`, `--hash-state`),
 rewind and run-ahead in RetroArch (the core declares the `deterministic` save state level), a
@@ -1592,16 +1593,17 @@ at `build/ci/runner/nesturbator-run`. The public header is
 
 ## The runner
 
-`nesturbator-run` runs the core without a window and accepts a mapper 0, 1, 2, 3, 4 or 7 image
-with `--rom FILE`. The loader validates the entire image before allocating
+`nesturbator-run` runs the core without a window and accepts mapper 0, 1, 2, 3, 4 or 7 images,
+or only the bounded NES 2.0 mapper 9/submapper 0 profile, with `--rom FILE`.
+The loader validates the entire image before allocating
 cartridge state. It rejects unsupported mapper, console, region, RAM and ROM
 geometries, truncation, trailing bytes, and images larger than 64 MiB; the
 runner prints a diagnostic on stderr and exits 1 for rejected content. It names the
 reason: `nesturbator-run: four-screen cartridges are not supported`,
 `nesturbator-run: MMC6 (mapper 4, submapper 1) is not supported`, or
-`nesturbator-run: mapper N is not supported; supported mappers are 0, 1, 2, 3, 4 and 7`.
+`nesturbator-run: mapper N is not supported; supported mappers are 0, 1, 2, 3, 4, 7 and 9`.
 Any other refusal (a supported mapper with a refused size, or a file shorter than the
-16-byte header) gets the generic `malformed or unsupported cartridge` line naming the same six
+16-byte header) gets the generic `malformed or unsupported cartridge` line naming the same seven
 mappers.
 
 ```sh

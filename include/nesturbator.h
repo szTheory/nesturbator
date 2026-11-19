@@ -116,7 +116,8 @@ enum nesturbator_status {
     /* The loaded cartridge executed a JAM opcode; the instance is latched. */
     NESTURBATOR_STOP_JAM = 6,
     /* Cartridge bytes are malformed or outside a supported board profile (mappers 0 NROM, 1 MMC1,
-       2 UxROM, 3 CNROM, 4 MMC3 and 7 AxROM). Every rejected image returns this status with
+       2 UxROM, 3 CNROM, 4 MMC3, 7 AxROM and the bounded 9 MMC2 profile). Every rejected image
+       returns this status with
        the instance unchanged. */
     NESTURBATOR_ERR_CARTRIDGE = 7,
     /* Not a state this library reads: the magic is wrong or the format version is not

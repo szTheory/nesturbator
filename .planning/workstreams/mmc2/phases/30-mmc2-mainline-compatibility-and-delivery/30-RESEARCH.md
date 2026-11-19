@@ -451,4 +451,3 @@ The full-row hardware claim is an inherited explicit policy with a stated eviden
 **Scope of this research:** Read-only source/documentation/tool-availability inspection plus this artifact. No source, plans, protected evidence, tests/CI, commits, release or user contact. The orchestrator retains commit/handoff ownership.
 
 **Valid until:** Source movement, relevant implementation/contract change, or 30 days; revalidate live main immediately before source edits regardless.
-

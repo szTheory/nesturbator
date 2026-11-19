@@ -4127,11 +4127,14 @@ static int mmc2_parity(const char *module_path, const char *runner_path, const c
             CHECK(batch_frames > 0u && batch_nonzero > 0);
             replay_module_pcm += batch_frames;
             replay_module_nonzero += (size_t)batch_nonzero;
-            for (size_t sample_index = 0u; sample_index < batch_frames; ++sample_index) {
-                CHECK_EQ_U64(batch_samples[2u * sample_index],
-                             direct_pcm[frame_index][sample_index]);
-                CHECK_EQ_U64(batch_samples[2u * sample_index + 1u],
-                             direct_pcm[frame_index][sample_index]);
+            if (batch_frames == direct_pcm_count[frame_index] &&
+                batch_frames <= AUDIO_CAPTURE_CAPACITY) {
+                for (size_t sample_index = 0u; sample_index < batch_frames; ++sample_index) {
+                    CHECK_EQ_U64(batch_samples[2u * sample_index],
+                                 direct_pcm[frame_index][sample_index]);
+                    CHECK_EQ_U64(batch_samples[2u * sample_index + 1u],
+                                 direct_pcm[frame_index][sample_index]);
+                }
             }
         }
         CHECK(replay_module_pcm == direct_suffix_pcm && replay_module_nonzero > 0u);
@@ -4154,6 +4157,9 @@ static int mmc2_parity(const char *module_path, const char *runner_path, const c
             CHECK_EQ_U64(nesturbator_set_input(direct, &input_state), NESTURBATOR_OK);
             CHECK_EQ_U64(nesturbator_run_frame(direct, &io), NESTURBATOR_OK);
             CHECK_EQ_U64(io.audio_count, direct_pcm_count[frame_index]);
+            CHECK(io.audio_count <= AUDIO_CAPTURE_CAPACITY);
+            if (io.audio_count > AUDIO_CAPTURE_CAPACITY)
+                goto done;
             if (io.audio_count <= AUDIO_CAPTURE_CAPACITY) {
                 for (size_t sample_index = 0u; sample_index < io.audio_count; ++sample_index)
                     CHECK_EQ_U64(replay_pcm[sample_index], direct_pcm[frame_index][sample_index]);

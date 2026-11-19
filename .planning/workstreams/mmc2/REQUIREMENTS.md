@@ -1,8 +1,8 @@
 # Requirements: nesturbator
 
-**Milestone:** v11 — MMC2 mainline compatibility port  
-**Defined:** 2026-11-19  
-**Workstream:** `mmc2`  
+**Milestone:** v11 — MMC2 mainline compatibility port
+**Defined:** 2026-11-19
+**Workstream:** `mmc2`
 **Core Value:** Console behavior is reproduced identically across platforms by a small MIT-licensed C core.
 
 ## Context

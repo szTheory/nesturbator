@@ -1,7 +1,7 @@
 # Phase 30 discussion log
 
-**Date:** 2026-11-19  
-**Mode:** Autonomous smart discuss; inherited v11 decisions retained.  
+**Date:** 2026-11-19
+**Mode:** Autonomous smart discuss; inherited v11 decisions retained.
 **Result:** Ready for planning; no owner decision remains open.
 
 ## Revalidated facts
@@ -78,4 +78,3 @@ port over whole-branch reuse, checker re-anchoring, or a broader cleanup.
   checks. The broader verification and discussion policies were read in the
   originating workstream checkout; their Phase 30 constraints are preserved in
   `30-CONTEXT.md` and this research record rather than copied wholesale.
-
