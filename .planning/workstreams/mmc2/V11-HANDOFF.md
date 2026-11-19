@@ -5,10 +5,13 @@ full-workflow attempts failed and remain preserved. The owner-authorized third
 local attempt passed all 702 CTest entries, the AccuracyCoin campaign and
 activation, and package generation on commit `48f6f05`; its one-run
 authorization is spent. Exact-head hosted CI then found compiler/format
-diagnostics. Reviewed follow-on commit `6e28aa2` fixes those issues; its current
-source binding, preflight, 24-test focused set and clang-format check pass. PR
-#73 is open on the prior head until the fix is pushed and all exact-head CI and
-Nightly checks pass. Merge and release delivery remain.
+diagnostics, followed by a no-float scanner false positive on “NES 2.0” in
+comments. Reviewed commits `6e28aa2` and `89319af` fix those issues; the current
+source binding, preflight, 24-test focused set, no-float scan and clang-format
+check pass. PR #73 remains on prior head `f79c44c`, whose two no-float jobs
+failed while other CI and Nightly jobs were still running. Push `89319af` after
+those jobs settle and require green checks on the new exact head. Merge and
+release delivery remain.
 
 ## Local acceptance passed; delivery remains
 
@@ -21,12 +24,12 @@ Those packages remain bound to that source and are not final provenance for
 the follow-on. Logs, fingerprint evidence and package hashes are in the [30-03
 checkpoint](phases/30-mmc2-mainline-compatibility-and-delivery/30-03-SUMMARY.md).
 
-Push `6e28aa2` to the existing PR #73 and require all configured CI platform
-jobs and triggered Nightly checks to pass on its exact head. Provider PR #68
-remains separate, open and unmergeable; do not modify it. Do not start another
-local full workflow under the spent one-run authorization. Revalidate live
-`main`, then complete resulting-main and release-source evidence before asking
-the owner to approve merge or publication.
+Push `89319af` to the existing PR #73 after the older head's jobs finish, and
+require all configured CI platform jobs and triggered Nightly checks to pass on
+its exact head. Provider PR #68 remains separate, open and unmergeable; do not
+modify it. Do not start another local full workflow under the spent one-run
+authorization. Revalidate live `main`, then complete resulting-main and
+release-source evidence before asking the owner to approve merge or publication.
 
 **Next actor:** Orchestrator. No checkout switch or new clone is needed.
 
