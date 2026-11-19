@@ -373,7 +373,7 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
     if (inst->mapper.id == 9u) {
         /* Deterministic load policy: selectors zero, FE latches and the
            header-derived mirror bit. The latch choice is not hardware proof. */
-        inst->mapper.reg.mmc2.mirror = (image[6] & 1u) != 0u ? 0u : 1u;
+        inst->mapper.reg.mmc2.mirror = (uint8_t)((image[6] & 1u) != 0u ? 0u : 1u);
         inst->mapper.reg.mmc2.latch[0] = 1u;
         inst->mapper.reg.mmc2.latch[1] = 1u;
     }

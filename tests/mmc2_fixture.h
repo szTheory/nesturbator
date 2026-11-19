@@ -22,6 +22,8 @@
    this generator so they remain independent behavior oracles. */
 static size_t mmc2_fixture_build(uint8_t *out, size_t cap, uint8_t vertical)
 {
+    /* Keep each 6502 instruction grouped with its byte operands and annotation. */
+    // clang-format off
     static const uint8_t boot[] = {
         0x78u,                         /* SEI */
         0xa9u, 0x0cu, 0x8du, 0, 0xa0u, /* LDA #$0C; STA $A000: select PRG bank 12 */
@@ -57,6 +59,7 @@ static size_t mmc2_fixture_build(uint8_t *out, size_t cap, uint8_t vertical)
         0xa9u, 0x0au, 0x8du, 0x01u, 0x20u, /* show background and left edge */
         0x4cu, 0x00u, 0x00u       /* JMP to the fixed idle loop (address patched below) */
     };
+    // clang-format on
     struct ines_spec spec;
     memset(&spec, 0, sizeof spec);
     spec.prg_16k = 8u;

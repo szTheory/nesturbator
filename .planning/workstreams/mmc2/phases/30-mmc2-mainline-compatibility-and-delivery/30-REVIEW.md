@@ -79,6 +79,19 @@ The earlier runtime and evidence conclusions remain supported by the actual sour
 
 The unrelated coordination document visible in the complete Git delta is outside the explicit 27-file plan scope and is not counted as reviewed. Existing stale internal hook comments are inherited documentation debt; they do not alter runtime dispatch or the public support boundary.
 
+## Compiler and formatting follow-up
+
+At 2026-11-19T22:59:13Z, reviewed only the uncommitted three-file follow-on diff against head `146e75c50ddaf825b0ca83e8c8ba95e336619340`: `src/cartridge.c`, `tests/core/test_mapper_mmc2.c` and `tests/mmc2_fixture.h`. The orchestrator supplied the exact remote diagnostics: MSVC C4310 for the complemented masks, GCC stringop-overflow for the potentially underflowing trainer length, a conversion warning for the mirror assignment, and clang-format 18 initializer alignment rejection. The reviewer did not independently retrieve those remote logs or execute compiler, formatting or test checks. No BLOCKER or WARNING was established in these edits.
+
+- `src/cartridge.c:376` explicitly converts a ternary whose only possible values are 0 and 1 to `uint8_t`. The cast is lossless, removes the reported narrowing diagnostic and preserves header-derived mirroring for every input byte.
+- `tests/core/test_mapper_mmc2.c:145-148` replaces `(uint8_t)~0x0cu` with `0xf3u`. Both preserve exactly the same eight-bit mask. This removes the out-of-range constant conversion MSVC rejects without changing the invalid iNES/archaic fixtures or their refusal assertions.
+- `tests/core/test_mapper_mmc2.c:139-141` rejects lengths below the 16-byte header and lengths whose required trainer/trailing capacity calculation would overflow before evaluating that addition. The trainer `memmove` length can therefore no longer underflow, and its destination fits the checked capacity. The actual caller supplies the same fixed valid fixture and sufficient capacity; every existing negative case still proceeds to its original assertion.
+- `tests/mmc2_fixture.h:25-62` limits clang-format exclusion to the instruction/operand/comment table, restores formatting immediately afterward and changes no initializer bytes. C17 supports these line comments. The exclusion preserves useful instruction grouping; it does not remove the file from repository format checks or alter a behavior assertion.
+
+Independently verified the subsequent binding edit changes only `current_input_hashes.src/cartridge.c`, its SHA-256 matches the current source, and all historical binding fields remain unchanged.
+
+These are source-level remedies for the supplied diagnostics, not proof that hosted jobs now pass. The production cast changes measured source bytes even though its behavior is identical; the orchestrator must refresh the exact current-source admission and candidate identity through the existing evidence process before relying on new acceptance. The prior accepted candidate's evidence remains bound to its original source.
+
 ---
 
 Reviewed read-only; only this report was created. Product and evidence source files were not modified by the reviewer.

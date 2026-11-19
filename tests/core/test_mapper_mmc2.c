@@ -136,15 +136,16 @@ static void check_rejected_without_change(struct nesturbator *nes, const uint8_t
 static size_t build_invalid(enum invalid_profile which, const uint8_t *valid, size_t valid_size,
                             uint8_t *out, size_t cap)
 {
-    if (cap < valid_size + INES_TRAINER_SIZE + 1u)
+    if (valid_size < 16u || valid_size > SIZE_MAX - INES_TRAINER_SIZE - 1u ||
+        cap < valid_size + INES_TRAINER_SIZE + 1u)
         return 0u;
     memcpy(out, valid, valid_size);
     switch (which) {
     case INVALID_INES:
-        out[7] &= (uint8_t)~0x0cu;
+        out[7] &= 0xf3u;
         break;
     case INVALID_ARCHAIC:
-        out[7] = (uint8_t)((out[7] & (uint8_t)~0x0cu) | 0x04u);
+        out[7] = (uint8_t)((out[7] & 0xf3u) | 0x04u);
         break;
     case INVALID_SUBMAPPER:
         out[8] = 0x10u;
