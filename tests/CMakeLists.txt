@@ -1783,7 +1783,8 @@ add_test(NAME libretro.vendored
 # RetroArch does, and compares its frame with the runner's image (fixture
 # testframe_ppm) and with four hard-coded pixels (D-05). The module is a
 # run-time input, so the test program depends on it to build it first.
-add_executable(libretro.host libretro/libretro_host.c ${PROJECT_SOURCE_DIR}/runner/movie.c)
+add_executable(libretro.host libretro/libretro_host.c ${PROJECT_SOURCE_DIR}/runner/movie.c
+  ${PROJECT_SOURCE_DIR}/runner/audio_hash.c ${PROJECT_SOURCE_DIR}/runner/sha256.c)
 target_include_directories(libretro.host PRIVATE ${PROJECT_SOURCE_DIR}/libretro
   ${PROJECT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/runner)
 target_link_libraries(libretro.host PRIVATE nesturbator ${CMAKE_DL_LIBS})
@@ -1796,6 +1797,14 @@ add_test(NAME libretro.host
     ${NESTURBATOR_TESTFRAME_PPM} ${CMAKE_CURRENT_BINARY_DIR}/nrom-tracer.ppm
     $<TARGET_FILE:nesturbator-run> ${CMAKE_CURRENT_BINARY_DIR}/nrom-tracer.nes)
 set_tests_properties(libretro.host PROPERTIES FIXTURES_REQUIRED testframe_ppm)
+
+# Exercise the owned MMC2 fixture through the public library, runner and actual module.
+set(NESTURBATOR_MMC2_PARITY_DIR ${CMAKE_CURRENT_BINARY_DIR}/libretro-mmc2-parity)
+file(MAKE_DIRECTORY ${NESTURBATOR_MMC2_PARITY_DIR})
+add_test(NAME libretro.mmc2.parity
+  COMMAND libretro.host --mmc2-parity $<TARGET_FILE:nesturbator_libretro>
+    $<TARGET_FILE:nesturbator-run> ${NESTURBATOR_MMC2_PARITY_DIR})
+set_tests_properties(libretro.mmc2.parity PROPERTIES TIMEOUT 30)
 
 # Pin the full-path selector boundary before authenticating fixture bytes.
 add_test(NAME libretro.fixture_roles

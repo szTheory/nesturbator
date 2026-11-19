@@ -665,17 +665,17 @@ static void describe_rejection(const uint8_t *b, size_t len, int status)
             return;
         }
         if (mapper != 0u && mapper != 1u && mapper != 2u && mapper != 3u && mapper != 4u &&
-            mapper != 7u) {
+            mapper != 7u && mapper != 9u) {
             fprintf(stderr,
                     "nesturbator-run: mapper %u is not supported; supported mappers are 0, 1, 2, "
-                    "3, 4 and 7\n",
+                    "3, 4, 7 and 9\n",
                     (unsigned)mapper);
             return;
         }
     }
     fprintf(stderr,
             "nesturbator-run: malformed or unsupported cartridge (status %d); supported "
-            "mappers are 0, 1, 2, 3, 4 and 7\n",
+            "mappers are 0, 1, 2, 3, 4, 7 and 9\n",
             status);
 }
 
