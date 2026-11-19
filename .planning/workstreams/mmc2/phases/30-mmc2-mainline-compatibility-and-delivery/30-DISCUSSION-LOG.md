@@ -72,9 +72,10 @@ port over whole-branch reuse, checker re-anchoring, or a broader cleanup.
   · <https://github.com/szTheory/libfuturo/blob/fa1908a9831354cb325f9480be0559d7c5dca687/docs/nesturbator-seams.md>
 - Official CMake 3.25 command-line reference:
   <https://cmake.org/cmake/help/v3.25/manual/cmake.1.html>
-- Local governing sources: `.planning/workstreams/mmc2/STATE.md`,
-  `V10-HANDOFF.md`, `V11-HANDOFF.md`, `ROADMAP.md`, `REQUIREMENTS.md`,
-  `.planning/VERIFICATION-POLICY.md`, `.planning/DISCUSSION-POLICY.md`,
-  `.planning/preparation/README.md`, `src/mapper.h`, `src/cartridge.c`,
-  `src/ppu.c`, and existing AccuracyCoin checks.
+- Local source files: `.planning/workstreams/mmc2/STATE.md`, `V10-HANDOFF.md`,
+  `V11-HANDOFF.md`, `ROADMAP.md`, `REQUIREMENTS.md`, the preparation index,
+  `src/mapper.h`, `src/cartridge.c`, `src/ppu.c`, and existing AccuracyCoin
+  checks. The broader verification and discussion policies were read in the
+  originating workstream checkout; their Phase 30 constraints are preserved in
+  `30-CONTEXT.md` and this research record rather than copied wholesale.
 

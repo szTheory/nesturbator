@@ -86,8 +86,10 @@ commercial titles, a LibFuturo consumer or Playstead.
   tier and transfer audit; do not reuse its incompatible version values.
 - `.planning/workstreams/mmc2/ROADMAP.md` and
   `.planning/workstreams/mmc2/REQUIREMENTS.md` — Phase 30 scope and acceptance.
-- `.planning/VERIFICATION-POLICY.md` and
-  `.planning/DISCUSSION-POLICY.md` — evidence, CI, release and re-entry rules.
+- Phase-specific verification and discussion rules are recorded in this
+  context and `30-RESEARCH.md`; the broader governing policies were consulted
+  in the originating workstream checkout and are not copied into the release
+  branch.
 - `.planning/preparation/README.md` — index to owned hardware references.
 - `src/mapper.h`, `src/cartridge.c`, `src/ppu.c`, `src/state.h` and
   `src/state.c` — live mainline mapper dispatch, PPU hook, state layout and
