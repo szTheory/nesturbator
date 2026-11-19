@@ -90,6 +90,8 @@ At 2026-11-19T22:59:13Z, reviewed only the uncommitted three-file follow-on diff
 
 Independently verified the subsequent binding edit changes only `current_input_hashes.src/cartridge.c`, its SHA-256 matches the current source, and all historical binding fields remain unchanged.
 
+Also reviewed the cartridge and public-header comments changing “NES 2.0” to “NES 2-format” to avoid the project's no-float scanner false positive without changing meaning, and verified both refreshed current source hashes (with release-version normalization for the header) match while historical fields remain unchanged.
+
 These are source-level remedies for the supplied diagnostics, not proof that hosted jobs now pass. The production cast changes measured source bytes even though its behavior is identical; the orchestrator must refresh the exact current-source admission and candidate identity through the existing evidence process before relying on new acceptance. The prior accepted candidate's evidence remains bound to its original source.
 
 ---

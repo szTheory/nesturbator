@@ -101,7 +101,7 @@ static int board_profile_ok(uint16_t mapper, uint8_t submapper, size_t prg_size,
         return chr_is_ram && submapper <= 2u && prg_size >= 32768u && prg_size <= 262144u &&
                prg_size % 32768u == 0u;
     case 9u:
-        /* This port admits only NES 2.0 mapper 9/submapper 0, with 128 KiB
+        /* This port admits only NES 2-format mapper 9/submapper 0, with 128 KiB
            each of PRG and CHR ROM; all RAM forms are refused above. */
         return submapper == 0u && !chr_is_ram && prg_size == 131072u && chr_size == 131072u;
     case 1u: {

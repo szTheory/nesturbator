@@ -336,12 +336,12 @@ void nesturbator_destroy(nesturbator *inst);
    ignoring the header mirroring bit; ANDed with the ROM byte under the write
    for submapper 2 only; at power-on the reset vector is read from bank 0, and
    nesturbator_reset keeps the bank register, so a soft reset reads it from the
-   selected bank). Mapper 9 (MMC2) is limited to NES 2.0 submapper 0 with
-   exactly 128 KiB of PRG ROM and 128 KiB of CHR ROM, no trainer or RAM; its
-   PRG and CHR registers select 8 KiB and 4 KiB banks, and PPU pattern reads
-   switch between the two CHR selectors per half. NROM and UxROM
+   selected bank). Mapper 9 (MMC2) is limited to NES 2-format headers with
+   submapper 0 and exactly 128 KiB of PRG ROM and 128 KiB of CHR ROM, no
+   trainer or RAM; its PRG and CHR registers select 8 KiB and 4 KiB banks, and
+   PPU pattern reads switch between the two CHR selectors per half. NROM and UxROM
    take either 8 KiB CHR ROM or 8 KiB declared CHR RAM.
-   Supported NTSC MMC2: mapper 9, NES 2.0 submapper 0 only, 128 KiB PRG
+   Supported NTSC MMC2: mapper 9, NES 2-format submapper 0 only, 128 KiB PRG
    and CHR ROM, with no trainer, RAM or four-screen.
    Supported NTSC MMC3: mapper 4, submappers 0/4; MMC6=no; four-screen=no.
    Metadata checks require exactly one canonical MMC3 support clause in this
