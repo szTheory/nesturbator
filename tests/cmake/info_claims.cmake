@@ -149,7 +149,7 @@ function(nesturbator_info_check path out_error)
 endfunction()
 
 # D-15: inspect only the localized support fact clause, leaving surrounding prose free to change.
-function(nesturbator_info__support_text text source out_error)
+function(nesturbator_info__support_text_mmc3 text source out_error)
   set(${out_error} "" PARENT_SCOPE)
   string(REGEX MATCHALL "Supported NTSC MMC3: " support_prefixes "${text}")
   list(LENGTH support_prefixes support_count)
@@ -222,6 +222,77 @@ function(nesturbator_info__support_text text source out_error)
   if(NOT fact_count EQUAL 3)
     set(${out_error} "${source}: unexpected fact in MMC3 support clause" PARENT_SCOPE)
   endif()
+endfunction()
+
+function(nesturbator_info__support_text_mmc2 text source out_error)
+  set(${out_error} "" PARENT_SCOPE)
+  string(REGEX MATCHALL "Supported NTSC MMC2: " support_prefixes "${text}")
+  list(LENGTH support_prefixes support_count)
+  if(support_count GREATER 1)
+    set(${out_error} "${source}: duplicate localized MMC2 support clause" PARENT_SCOPE)
+    return()
+  endif()
+  string(FIND "${text}" "Supported NTSC MMC2: " start)
+  if(start LESS 0)
+    set(${out_error} "${source}: missing localized MMC2 support clause" PARENT_SCOPE)
+    return()
+  endif()
+
+  string(SUBSTRING "${text}" ${start} -1 tail)
+  string(FIND "${tail}" "." period)
+  if(period LESS 0)
+    set(${out_error} "${source}: malformed localized MMC2 support clause" PARENT_SCOPE)
+    return()
+  endif()
+  string(LENGTH "${tail}" tail_length)
+  math(EXPR after_period_index "${period} + 1")
+  if(after_period_index LESS tail_length)
+    string(SUBSTRING "${tail}" ${period} 2 decimal_point)
+  else()
+    set(decimal_point "")
+  endif()
+  if(decimal_point STREQUAL ".0")
+    math(EXPR after_decimal_start "${period} + 1")
+    string(SUBSTRING "${tail}" ${after_decimal_start} -1 after_decimal)
+    string(FIND "${after_decimal}" "." next_period)
+    if(next_period LESS 0)
+      set(${out_error} "${source}: malformed localized MMC2 support clause" PARENT_SCOPE)
+      return()
+    endif()
+    math(EXPR period "${after_decimal_start} + ${next_period}")
+  endif()
+  string(SUBSTRING "${tail}" 0 ${period} clause)
+  string(ASCII 10 line_feed)
+  string(ASCII 13 carriage_return)
+  string(ASCII 9 horizontal_tab)
+  string(REPLACE "${carriage_return}" " " clause "${clause}")
+  string(REPLACE "${line_feed}" " " clause "${clause}")
+  string(REPLACE "${horizontal_tab}" " " clause "${clause}")
+  string(REGEX REPLACE " +" " " clause "${clause}")
+  string(STRIP "${clause}" clause)
+
+  if(source MATCHES "(nesturbator\\.h|-header\\.h)$")
+    set(expected
+      "Supported NTSC MMC2: mapper 9, NES 2-format submapper 0 only, 128 KiB PRG and CHR ROM, with no trainer, RAM or four-screen")
+  else()
+    set(expected
+      "Supported NTSC MMC2: mapper 9, NES 2.0 submapper 0 only; exactly 128 KiB PRG and CHR ROM; no trainer, RAM or four-screen")
+  endif()
+  if(NOT clause STREQUAL expected)
+    set(${out_error}
+      "${source}: unsupported MMC2 support clause [${clause}]; expected [${expected}]"
+      PARENT_SCOPE)
+  endif()
+endfunction()
+
+function(nesturbator_info__support_text text source out_error)
+  nesturbator_info__support_text_mmc3("${text}" "${source}" error)
+  if(error)
+    set(${out_error} "${error}" PARENT_SCOPE)
+    return()
+  endif()
+  nesturbator_info__support_text_mmc2("${text}" "${source}" error)
+  set(${out_error} "${error}" PARENT_SCOPE)
 endfunction()
 
 function(nesturbator_info_support_check info_path readme_path header_path out_error)
@@ -340,7 +411,7 @@ if(SUPPORT_PROBE)
   if(error)
     message(FATAL_ERROR "info support: ${error}")
   endif()
-  message(STATUS "info support: localized MMC3 support clauses present")
+  message(STATUS "info support: localized MMC2 and MMC3 support clauses present")
   return()
 endif()
 
@@ -348,12 +419,14 @@ if(NOT SELFTEST)
   if(NOT DEFINED INFO)
     message(FATAL_ERROR "info_claims: -DINFO=<path> is required")
   endif()
-  nesturbator_info_check("${INFO}" error)
+  set(source_root "${CMAKE_CURRENT_LIST_DIR}/../..")
+  nesturbator_info_support_check("${INFO}" "${source_root}/README.md"
+    "${source_root}/include/nesturbator.h" error)
   if(error)
-    message(FATAL_ERROR "info_claims: ${INFO}: ${error}")
+    message(FATAL_ERROR "info_claims: ${error}")
   endif()
   nesturbator_info_level("${INFO}" level error)
-  message(STATUS "info_claims: ok, savestate level ${level}")
+  message(STATUS "info_claims: ok, MMC2/MMC3 profile and savestate level ${level}")
   return()
 endif()
 
@@ -452,7 +525,7 @@ file(READ "${source_root}/include/nesturbator.h" valid_header)
 nesturbator_info_support_check("${source_root}/libretro/nesturbator_libretro.info"
   "${source_root}/README.md" "${source_root}/include/nesturbator.h" error)
 if(error)
-  message(FATAL_ERROR "info_claims self-test: current MMC3 support facts failed: ${error}")
+  message(FATAL_ERROR "info_claims self-test: current MMC2/MMC3 support facts failed: ${error}")
 endif()
 
 function(expect_support_error name info_content readme_content header_content wanted)
@@ -485,6 +558,8 @@ function(expect_support_ok name info_content readme_content header_content)
 endfunction()
 
 set(support_clause "Supported NTSC MMC3: mapper 4, submappers 0/4; MMC6=no; four-screen=no.")
+set(mmc2_clause
+  "Supported NTSC MMC2: mapper 9, NES 2.0 submapper 0 only; exactly 128 KiB PRG and CHR ROM; no trainer, RAM or four-screen.")
 set(contradictory_clause
   "Supported NTSC MMC3: mapper 4, submappers 0/4; MMC6=yes; four-screen=no.")
 string(REPLACE "${support_clause}" "" no_support_info "${valid_info}")
@@ -523,6 +598,20 @@ string(REPLACE "${support_clause}" "${support_clause}\n * ${contradictory_clause
   later_header_contradiction "${valid_header}")
 expect_support_error(later_header_contradiction "${valid_info}" "${valid_readme}"
   "${later_header_contradiction}" "duplicate localized MMC3 support clause")
+string(REPLACE "${mmc2_clause}" "" missing_mmc2_info "${valid_info}")
+expect_support_error(missing_mmc2_clause "${missing_mmc2_info}" "${valid_readme}"
+  "${valid_header}" "missing localized MMC2 support clause")
+string(REPLACE "submapper 0 only" "submapper 0 or 1" broad_mmc2_submapper "${valid_info}")
+expect_support_error(broader_mmc2_submapper "${broad_mmc2_submapper}" "${valid_readme}"
+  "${valid_header}" "unsupported MMC2 support clause")
+string(REPLACE "${mmc2_clause}" "${mmc2_clause} ${mmc2_clause}" duplicate_mmc2
+  "${valid_info}")
+expect_support_error(duplicate_mmc2_clause "${duplicate_mmc2}" "${valid_readme}"
+  "${valid_header}" "duplicate localized MMC2 support clause")
+string(REPLACE "no trainer, RAM or four-screen" "no trainer or RAM" altered_mmc2_exclusion
+  "${valid_info}")
+expect_support_error(altered_mmc2_exclusion "${altered_mmc2_exclusion}" "${valid_readme}"
+  "${valid_header}" "unsupported MMC2 support clause")
 set(duplicate_description "${valid_info}description = \"duplicate\"\n")
 expect_support_error(duplicate_description "${duplicate_description}" "${valid_readme}"
   "${valid_header}" "duplicate key description")
@@ -531,7 +620,7 @@ set(harmless_readme "${valid_readme}\nSurrounding product prose may change.\n")
 set(harmless_header "${valid_header}\nSurrounding product prose may change.\n")
 expect_support_ok(harmless_surrounding_prose "${harmless_info}" "${harmless_readme}"
   "${harmless_header}")
-message(STATUS "info_claims self-test: MMC3 support controls passed (13 cases)")
+message(STATUS "info_claims self-test: MMC2 and MMC3 support controls passed")
 
 # The configure-time guard in a scratch project: all the tests registered configures, and with
 # one of the claim's tests omitted it fails and names the level and the test.

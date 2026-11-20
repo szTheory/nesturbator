@@ -124,6 +124,18 @@ if(NOT PROJECT_IS_TOP_LEVEL)
   return()
 endif()
 
+# Publish the provider contract with the library component only when this is
+# the top-level build. Embedded clients retain the library's existing install
+# surface without inheriting Nesturbator's provider documentation.
+install(FILES
+    docs/provider-ntsc.md
+    docs/nrom-gameplay.md
+    docs/provider-ntsc.json
+  DESTINATION docs COMPONENT library)
+install(FILES THIRD-PARTY-NOTICES.md DESTINATION . COMPONENT library)
+install(FILES tests/roms/licenses/DABG-ZLIB-LICENSE.txt
+  DESTINATION docs/licenses COMPONENT library)
+
 enable_language(CXX)
 
 # D-15: the native-to-XRGB8888 conversion the runner and the libretro adapter

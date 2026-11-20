@@ -323,6 +323,50 @@ function(nesturbator_archive_info_check zip source_info readme header work out_e
   file(REMOVE_RECURSE "${work}")
 endfunction()
 
+function(nesturbator_archive_library_contract_check zip source_root work out_error)
+  set(${out_error} "" PARENT_SCOPE)
+  set(contract_members
+    "docs/provider-ntsc.md|docs/provider-ntsc.md"
+    "docs/nrom-gameplay.md|docs/nrom-gameplay.md"
+    "docs/provider-ntsc.json|docs/provider-ntsc.json"
+    "THIRD-PARTY-NOTICES.md|THIRD-PARTY-NOTICES.md"
+    "docs/licenses/DABG-ZLIB-LICENSE.txt|tests/roms/licenses/DABG-ZLIB-LICENSE.txt")
+
+  file(REMOVE_RECURSE "${work}")
+  file(MAKE_DIRECTORY "${work}")
+  foreach(pair IN LISTS contract_members)
+    string(REPLACE "|" ";" pair_fields "${pair}")
+    list(GET pair_fields 0 archive_member)
+    list(GET pair_fields 1 source_member)
+    set(source_file "${source_root}/${source_member}")
+    if(NOT EXISTS "${source_file}")
+      file(REMOVE_RECURSE "${work}")
+      set(${out_error} "library source contract is missing ${source_member}" PARENT_SCOPE)
+      return()
+    endif()
+
+    execute_process(COMMAND "${CMAKE_COMMAND}" -E tar xf "${zip}" "${archive_member}"
+      WORKING_DIRECTORY "${work}" OUTPUT_VARIABLE extract_out ERROR_VARIABLE extract_err
+      RESULT_VARIABLE extract_rc)
+    if(NOT extract_rc EQUAL 0 OR NOT EXISTS "${work}/${archive_member}")
+      file(REMOVE_RECURSE "${work}")
+      set(${out_error} "library archive is missing required member ${archive_member}: ${extract_err}${extract_out}"
+        PARENT_SCOPE)
+      return()
+    endif()
+
+    file(SHA256 "${source_file}" source_sha)
+    file(SHA256 "${work}/${archive_member}" archive_sha)
+    if(NOT source_sha STREQUAL archive_sha)
+      file(REMOVE_RECURSE "${work}")
+      set(${out_error} "library archive member ${archive_member} differs from its release source"
+        PARENT_SCOPE)
+      return()
+    endif()
+  endforeach()
+  file(REMOVE_RECURSE "${work}")
+endfunction()
+
 function(nesturbator_archive_contents_check zip component out_error)
   set(${out_error} "" PARENT_SCOPE)
   nesturbator_archive_inventory_check("${zip}" inventory_error member_hexes)
@@ -396,6 +440,17 @@ function(nesturbator_archive_contents_check zip component out_error)
       return()
     endif()
   endforeach()
+
+  if(component STREQUAL "library")
+    string(RANDOM LENGTH 8 ALPHABET 0123456789abcdef archive_nonce)
+    set(contract_work "${CMAKE_CURRENT_BINARY_DIR}/.nesturbator-archive-library-${archive_nonce}")
+    nesturbator_archive_library_contract_check("${zip}" "${NESTURBATOR_ARCHIVE_SOURCE_ROOT}"
+      "${contract_work}" contract_error)
+    if(contract_error)
+      set(${out_error} "${contract_error}" PARENT_SCOPE)
+      return()
+    endif()
+  endif()
 endfunction()
 
 # Every file and directory in each archive must match its component allowlist.
@@ -411,6 +466,11 @@ set(want_runner
 set(want_library
   "^LICENSE$"
   "^include/nesturbator\\.h$"
+  "^docs/provider-ntsc\\.md$"
+  "^docs/nrom-gameplay\\.md$"
+  "^docs/provider-ntsc\\.json$"
+  "^THIRD-PARTY-NOTICES\\.md$"
+  "^docs/licenses/DABG-ZLIB-LICENSE\\.txt$"
   "^lib(64)?/(libnesturbator\\.a|nesturbator\\.lib)$"
   "^lib(64)?/cmake/nesturbator/nesturbatorConfig\\.cmake$"
   "^lib(64)?/cmake/nesturbator/nesturbatorConfigVersion\\.cmake$"
@@ -421,6 +481,8 @@ set(want_libretro_directories "^cores/$" "^info/$")
 set(want_runner_directories "^bin/$")
 set(want_library_directories
   "^include/$"
+  "^docs/$"
+  "^docs/licenses/$"
   "^lib(64)?/$"
   "^lib(64)?/cmake/$"
   "^lib(64)?/cmake/nesturbator/$"
@@ -444,6 +506,71 @@ if(SELFTEST)
   endforeach()
   file(REMOVE_RECURSE "${selftest_work}")
   file(MAKE_DIRECTORY "${selftest_work}")
+
+  function(create_library_archive_control name omit_member alter_member)
+    set(root "${selftest_work}/${name}-library-root")
+    file(MAKE_DIRECTORY
+      "${root}/include"
+      "${root}/docs/licenses"
+      "${root}/lib/cmake/nesturbator"
+      "${root}/lib/pkgconfig")
+    file(COPY_FILE "${source_root}/LICENSE" "${root}/LICENSE")
+    file(COPY_FILE "${source_root}/include/nesturbator.h" "${root}/include/nesturbator.h")
+    file(WRITE "${root}/lib/libnesturbator.a" "synthetic library archive\n")
+    file(WRITE "${root}/lib/cmake/nesturbator/nesturbatorConfig.cmake" "synthetic config\n")
+    file(WRITE "${root}/lib/cmake/nesturbator/nesturbatorConfigVersion.cmake" "synthetic version\n")
+    file(WRITE "${root}/lib/cmake/nesturbator/nesturbatorTargets.cmake" "synthetic targets\n")
+    file(WRITE "${root}/lib/cmake/nesturbator/nesturbatorTargets-release.cmake" "synthetic release target\n")
+    file(WRITE "${root}/lib/pkgconfig/nesturbator.pc" "synthetic pkg-config file\n")
+
+    set(contract_source_members
+      "docs/provider-ntsc.md|docs/provider-ntsc.md"
+      "docs/nrom-gameplay.md|docs/nrom-gameplay.md"
+      "docs/provider-ntsc.json|docs/provider-ntsc.json"
+      "THIRD-PARTY-NOTICES.md|THIRD-PARTY-NOTICES.md"
+      "docs/licenses/DABG-ZLIB-LICENSE.txt|tests/roms/licenses/DABG-ZLIB-LICENSE.txt")
+    set(archive_paths
+      LICENSE include/nesturbator.h lib/libnesturbator.a
+      lib/cmake/nesturbator/nesturbatorConfig.cmake
+      lib/cmake/nesturbator/nesturbatorConfigVersion.cmake
+      lib/cmake/nesturbator/nesturbatorTargets.cmake
+      lib/cmake/nesturbator/nesturbatorTargets-release.cmake
+      lib/pkgconfig/nesturbator.pc)
+    foreach(pair IN LISTS contract_source_members)
+      string(REPLACE "|" ";" pair_fields "${pair}")
+      list(GET pair_fields 0 archive_member)
+      list(GET pair_fields 1 source_member)
+      if(archive_member STREQUAL omit_member)
+        continue()
+      endif()
+      if(archive_member STREQUAL alter_member)
+        file(WRITE "${root}/${archive_member}" "changed archived bytes\n")
+      else()
+        file(COPY_FILE "${source_root}/${source_member}" "${root}/${archive_member}")
+      endif()
+      list(APPEND archive_paths "${archive_member}")
+    endforeach()
+    file(ARCHIVE_CREATE OUTPUT "${selftest_work}/${name}-library.zip"
+      PATHS ${archive_paths} FORMAT zip WORKING_DIRECTORY "${root}")
+  endfunction()
+
+  create_library_archive_control(library-current "" "")
+  nesturbator_archive_contents_check("${selftest_work}/library-current-library.zip" library error)
+  if(error)
+    message(FATAL_ERROR "check_archives self-test: current library contract failed: ${error}")
+  endif()
+
+  create_library_archive_control(library-omitted "docs/provider-ntsc.md" "")
+  nesturbator_archive_contents_check("${selftest_work}/library-omitted-library.zip" library error)
+  if(NOT error STREQUAL "archive lacks an entry matching ^docs/provider-ntsc\\.md$")
+    message(FATAL_ERROR "check_archives self-test: omitted provider guide failed for the wrong reason: ${error}")
+  endif()
+
+  create_library_archive_control(library-altered "" "THIRD-PARTY-NOTICES.md")
+  nesturbator_archive_contents_check("${selftest_work}/library-altered-library.zip" library error)
+  if(NOT error STREQUAL "library archive member THIRD-PARTY-NOTICES.md differs from its release source")
+    message(FATAL_ERROR "check_archives self-test: changed library member failed for the wrong reason: ${error}")
+  endif()
   file(READ "${source_info}" current_info)
   string(REPLACE "battery saves." "battery saves (stale)." stale_info "${current_info}")
   if(stale_info STREQUAL current_info)
@@ -628,7 +755,7 @@ if(SELFTEST)
   endforeach()
 
   message(STATUS
-    "check_archives self-test: metadata and archive inventory controls passed")
+    "check_archives self-test: library contract, metadata and archive inventory controls passed")
   return()
 endif()
 

@@ -53,7 +53,7 @@ with no enclosing top-level directory. Release targets use OS values `linux`,
 |---|---|
 | `nesturbator-VERSION-libretro-OS-ARCH.zip` | `cores/nesturbator_libretro.{so,dylib,dll}`, `info/nesturbator_libretro.info`, `LICENSE`, `THIRD-PARTY-NOTICES.md` |
 | `nesturbator-VERSION-runner-OS-ARCH.zip` | `bin/nesturbator-run` (`.exe` on Windows), `LICENSE` |
-| `nesturbator-VERSION-library-OS-ARCH.zip` | `include/nesturbator.h`, the static library and relocatable package files under `lib/`, `LICENSE` |
+| `nesturbator-VERSION-library-OS-ARCH.zip` | `include/nesturbator.h`, the static library and relocatable package files under `lib/`, `docs/provider-ntsc.md`, `docs/nrom-gameplay.md`, `docs/provider-ntsc.json`, `docs/licenses/DABG-ZLIB-LICENSE.txt`, `LICENSE`, `THIRD-PARTY-NOTICES.md` |
 
 The install components and archive names are defined in
 [`cmake/packaging.cmake`](../cmake/packaging.cmake). The source build writes
@@ -74,8 +74,9 @@ required pattern must match exactly once; raw names must agree with the
 listed names, so Unicode path aliases cannot substitute for an allowed name.
 The packaged libretro metadata must match the source metadata and its checked
 support claim. Existing negative controls also exercise archive metadata and
-inventory rejection. Guides remain in the repository and are not added to any
-archive component.
+inventory rejection. The library archive carries the provider and gameplay
+guides, machine profile, third-party notice and matching unmodified DABG license
+at the paths shown above. The archive omits the ROM bytes.
 
 Unzip the libretro archive into RetroArch's data directory to place its core
 and information file in `cores` and `info`. The player-facing installation
@@ -163,6 +164,33 @@ The release list and each release's archive assets are maintained on the
 Current availability is time-dependent; do not reuse an earlier lookup as a
 current release observation.
 
+## Finding the NTSC provider contract and receipt
+
+Use the same release tag for the downloaded library archive and the source
+checkout. The installed header's `NESTURBATOR_VERSION_MAJOR`,
+`NESTURBATOR_VERSION_MINOR` and `NESTURBATOR_VERSION_PATCH` macros, and the
+`Version` field in `lib/pkgconfig/nesturbator.pc`, identify the package version.
+Confirm that version against the published Release Please tag and release
+metadata; do not infer an archive version from the current `main` branch.
+
+The library archive contains `docs/provider-ntsc.md`, `docs/nrom-gameplay.md`
+and `docs/provider-ntsc.json`. It also carries `THIRD-PARTY-NOTICES.md` at its
+root and the unchanged DABG license at
+`docs/licenses/DABG-ZLIB-LICENSE.txt`. The source manifest and original license
+remain under `tests/roms/` in the matching tag. Verify the archive checksums
+and attestations as described above before using these files as release
+evidence.
+
+The publisher receipt is a separate source overlay at
+`docs/provider-ntsc-release.json` in the exact published source tag. It is not
+inside a component archive or the fixed release asset set. The overlay binds
+the tag, source, profile, both guides, DABG ROM identity and rights evidence to
+the published archive checksums, attestations, native replay and required CI
+runs. Its `attempt` object identifies the fresh publishing invocation, and its
+`scope` limits the result to the Nesturbator NTSC provider and the existing
+DABG route. LibFuturo installed-consumer, NES-host, gameplay and Playstead
+acceptance remain downstream-owned.
+
 ## Version markers and release policy
 
 Release Please updates the version numbers in the public header, the
@@ -211,6 +239,41 @@ hash artifacts; its existing CI dependency and publication checks remain in
 force. Release pull requests and ordinary CI events keep their validation.
 Nightly continues to run on the main push, including the generated release
 merge commit.
+
+## Internal Phase 31 verification routes
+
+Use these commands only from the isolated Phase 31 candidate checkout. SOURCE
+must resolve to its Git repository root, and HEAD must descend from pinned
+provider base bf9aacb3244ea40b2c2afb62651ef063c7452c1f. The checker resolves
+the full base and HEAD with bounded Git reads before dispatch. phase31-local
+rejects STAGE and every legacy reset variable, then invokes the existing local
+acceptance producer:
+
+    cmake "-DSOURCE_DIR=$SOURCE" \
+      -DMODE=phase31-local \
+      "-DBINARY_DIR=$SOURCE/build/ci" \
+      "-DACCEPTANCE=$EVIDENCE/local-acceptance.json" \
+      "-DACCEPTANCE_MARKDOWN=$EVIDENCE/local-acceptance.md" \
+      "-DWORK=$EVIDENCE/local-work" \
+      -P "$SOURCE/tests/cmake/provider_receipt.cmake"
+
+Hosted candidate and resulting-main observations use separate STAGE values,
+require the same pinned ancestry and require REQUIRE_TITLE_PROOF=ON. They
+reuse the existing hosted evidence validator and do not start a workflow:
+
+    cmake "-DSOURCE_DIR=$SOURCE" \
+      -DMODE=phase31-hosted -DSTAGE=candidate -DREQUIRE_TITLE_PROOF=ON \
+      "-DRELEASE_EVIDENCE=$EVIDENCE/release-evidence.json" \
+      -P "$SOURCE/tests/cmake/provider_receipt.cmake"
+    cmake "-DSOURCE_DIR=$SOURCE" \
+      -DMODE=phase31-hosted -DSTAGE=main -DREQUIRE_TITLE_PROOF=ON \
+      "-DRELEASE_EVIDENCE=$EVIDENCE/release-evidence.json" \
+      -P "$SOURCE/tests/cmake/provider_receipt.cmake"
+
+After publication, use the established MODE=hosted STAGE=release reader for
+the tagged source, release PR, archives and attestations. That route remains
+separate from the Phase 31 candidate/main modes. Historical hosted commands
+below remain tied to their original reset rules.
 
 ## PR title checks in the normal release path
 
