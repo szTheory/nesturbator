@@ -216,7 +216,7 @@ function(accuracycoin_validate_input_binding current_source out_error)
     "campaign_report_sha256|STRING|56ebd01adb97b3916fde36f8739602284d951a1fd00d84285bb4ef441fb463a3"
     "scoreboard_sha256|STRING|059d7c7558bd9f4785ab384c589f04e16f330ef3ba477393a8492b59e086dbbf"
     "original_tests_cmake_sha256|STRING|c656956571e96aedbb75ffec6fa47a1035faa5a45767734f1c89888919ab06e7"
-    "current_tests_cmake_sha256|STRING|5a6f4fe4cafe1b401278f3ecc6921578147067705ff0888401cc7c5bd1ad188a")
+    "current_tests_cmake_sha256|STRING|1a56831cd87ef62d1ab6941ab7d40f8254a20093b1ecb393c771b0ec2cc06927")
   foreach(item IN LISTS expectations)
     string(REPLACE "|" ";" parts "${item}")
     list(GET parts 0 field)
@@ -311,7 +311,7 @@ function(accuracycoin_validate_input_binding current_source out_error)
 
   set(current_cmake_file "${current_source_real}/tests/CMakeLists.txt")
   file(SHA256 "${current_cmake_file}" actual_current_cmake_sha)
-  if(NOT actual_current_cmake_sha STREQUAL "5a6f4fe4cafe1b401278f3ecc6921578147067705ff0888401cc7c5bd1ad188a")
+  if(NOT actual_current_cmake_sha STREQUAL "1a56831cd87ef62d1ab6941ab7d40f8254a20093b1ecb393c771b0ec2cc06927")
     accuracycoin_binding_fail("${out_error}" "current registration CMake bytes differ from the exact reviewed MMC2 delta")
     return()
   endif()
