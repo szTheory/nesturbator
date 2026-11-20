@@ -240,6 +240,41 @@ force. Release pull requests and ordinary CI events keep their validation.
 Nightly continues to run on the main push, including the generated release
 merge commit.
 
+## Internal Phase 31 verification routes
+
+Use these commands only from the isolated Phase 31 candidate checkout. SOURCE
+must resolve to its Git repository root, and HEAD must descend from pinned
+provider base bf9aacb3244ea40b2c2afb62651ef063c7452c1f. The checker resolves
+the full base and HEAD with bounded Git reads before dispatch. phase31-local
+rejects STAGE and every legacy reset variable, then invokes the existing local
+acceptance producer:
+
+    cmake "-DSOURCE_DIR=$SOURCE" \
+      -DMODE=phase31-local \
+      "-DBINARY_DIR=$SOURCE/build/ci" \
+      "-DACCEPTANCE=$EVIDENCE/local-acceptance.json" \
+      "-DACCEPTANCE_MARKDOWN=$EVIDENCE/local-acceptance.md" \
+      "-DWORK=$EVIDENCE/local-work" \
+      -P "$SOURCE/tests/cmake/provider_receipt.cmake"
+
+Hosted candidate and resulting-main observations use separate STAGE values,
+require the same pinned ancestry and require REQUIRE_TITLE_PROOF=ON. They
+reuse the existing hosted evidence validator and do not start a workflow:
+
+    cmake "-DSOURCE_DIR=$SOURCE" \
+      -DMODE=phase31-hosted -DSTAGE=candidate -DREQUIRE_TITLE_PROOF=ON \
+      "-DRELEASE_EVIDENCE=$EVIDENCE/release-evidence.json" \
+      -P "$SOURCE/tests/cmake/provider_receipt.cmake"
+    cmake "-DSOURCE_DIR=$SOURCE" \
+      -DMODE=phase31-hosted -DSTAGE=main -DREQUIRE_TITLE_PROOF=ON \
+      "-DRELEASE_EVIDENCE=$EVIDENCE/release-evidence.json" \
+      -P "$SOURCE/tests/cmake/provider_receipt.cmake"
+
+After publication, use the established MODE=hosted STAGE=release reader for
+the tagged source, release PR, archives and attestations. That route remains
+separate from the Phase 31 candidate/main modes. Historical hosted commands
+below remain tied to their original reset rules.
+
 ## PR title checks in the normal release path
 
 Title evidence selects the unique newest run by GitHub's workflow-local
