@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.15](https://github.com/szTheory/nesturbator/compare/v0.1.14...v0.1.15) (2026-11-20)
+
+
+### Bug Fixes
+
+* **release:** align the NTSC provider package and MMC2 metadata ([59b458f](https://github.com/szTheory/nesturbator/commit/59b458f2e0d1ed611571ba440fb0acecf3c4abe4))
+
 ## [0.1.14](https://github.com/szTheory/nesturbator/compare/v0.1.13...v0.1.14) (2026-11-20)
 
 
