@@ -79,7 +79,7 @@
   "scenario": {
     "game": "DABG",
     "guide": "docs/nrom-gameplay.md",
-    "guide_sha256": "edf72c31bf318600f9e5d4d5a0c3515e19a96b65be8953eebd79aa37d929c436",
+    "guide_sha256": "048cfb776de36383ad56b89296db75fc62c9cc926aa33791f5b9bee50996f3fc",
     "rom": "tests/roms/dabg.nes",
     "rom_sha256": "eca79b9d0b546e96c1bc73099e239539fb9c7773ff10a431bb3a9cd6763208ca",
     "positive_frames": 110,

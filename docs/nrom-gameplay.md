@@ -2,34 +2,49 @@
 
 This guide records the upstream C package scenario used by `install.gameplay`.
 It proves a bounded DABG transition through a newly configured consumer after
-the installed prefix has been moved. The package-only reset requalified this scenario on the fixed NTSC base
-(source version 0.1.12, ABI 1, behavior revision 9, state format 3). The consumer
-port source is recorded in its plan summary; this remains unpublished candidate
-evidence for this source tree; it does not identify a published package or establish a LibFuturo host
-result.
+the installed prefix has been moved. It is provider-side evidence for ABI 1,
+behavior revision 10, native state format 4 and the NTSC route in the
+accompanying machine profile. Read the semantic version from the installed
+header macros and `lib/pkgconfig/nesturbator.pc`; for a published package,
+confirm it against the Release Please tag and the separate provider receipt.
+The scenario establishes no LibFuturo host result.
+
+The library archive stores this guide as `docs/nrom-gameplay.md`, the provider
+guide and machine profile under `docs/`, the project notice at its root, and
+the verbatim license at `docs/licenses/DABG-ZLIB-LICENSE.txt`. In the matching
+tagged source, the [ROM manifest](../tests/roms/manifest.txt),
+[DABG notice](../THIRD-PARTY-NOTICES.md),
+[verbatim license](../tests/roms/licenses/DABG-ZLIB-LICENSE.txt),
+[public API guide](api.md), [consumer driver](../tests/cmake/qualified_consumer.cmake)
+and [profile checker](../tests/cmake/provider_profile.cmake) provide source
+navigation and implementation details. These source-only files and recipes
+are not part of the ROM-free binary package; the DABG image remains a
+manifest-listed test fixture.
+
+The DABG Zlib license permits use, including commercial use, and
+redistribution subject to its conditions: preserve the origin, mark altered
+source as altered, and do not remove or change the notice from a source
+distribution. The installed notice and verbatim license above carry those
+terms with the provider documents.
 
 ## Selected ROM and source-to-RAM proof
 
-The selected image is `tests/roms/dabg.nes`, already admitted by
-[`tests/roms/manifest.txt`](../tests/roms/manifest.txt): source commit
+The selected image is `tests/roms/dabg.nes`, already admitted by the
+[ROM manifest](../tests/roms/manifest.txt): source commit
 `5ecc60b6af3f726851bfeb1c2555388c5953e0c0`, Zlib license, SHA-256
 `eca79b9d0b546e96c1bc73099e239539fb9c7773ff10a431bb3a9cd6763208ca`. The
-driver verifies that digest before invoking the consumer. The image is an
-NROM-256 with CHR RAM; its pinned source and linker configuration are available
-at [DABG](https://github.com/NovaSquirrel/DABG/tree/5ecc60b6af3f726851bfeb1c2555388c5953e0c0).
+consumer verifies that digest before execution. The image is an NROM-256 with
+CHR RAM; its pinned [DABG source](https://github.com/NovaSquirrel/DABG/tree/5ecc60b6af3f726851bfeb1c2555388c5953e0c0)
+and linker configuration are available at that exact commit.
 
-Nesteroids was investigated first because it was the preferred MIT candidate.
-Its pinned source is `ae65d78048af68f3e735c49d77a7f37e976a7afe` (source archive
-SHA-256 `a5010fbaf75071041543aa28b974c4ab3f9251e29f35ef4f04f1544e76076142`).
-The environment had no compatible `ca65` or `ld65`, so the official cc65
-`V2.19` source tag was built in isolated scratch: commit
-`555282497c3ecf8b313d87d5973093af19c35bd5`, tree
-`752d8e4c5492cd6c77cb5ddec0561ace5ead72dc`, source archive SHA-256
-`3d51ab140c1f15e06c3ae5c49934a4c291c3314e3e440ef42a99bbe9a1f73d02`, Zlib
-license. The resulting tools identify themselves as `V2.18 - Git 5552824`.
-The tool source and failed preferred-game route can be reconstructed with
-these bounded, one-time commands. Keep all checkouts and generated files in
-an external or ignored scratch directory:
+The bounded source-to-RAM mapping was reproduced from the pinned DABG tree
+with cc65 commit `555282497c3ecf8b313d87d5973093af19c35bd5`, tree
+`752d8e4c5492cd6c77cb5ddec0561ace5ead72dc`, archive SHA-256
+`3d51ab140c1f15e06c3ae5c49934a4c291c3314e3e440ef42a99bbe9a1f73d02`.
+Keep tool checkouts and generated files in external or ignored scratch. The
+following commands build the tools, verify the DABG source pin and add debug
+mapping to its canonical [`mk.bat`](https://github.com/NovaSquirrel/DABG/blob/5ecc60b6af3f726851bfeb1c2555388c5953e0c0/mk.bat)
+recipe:
 
 ```sh
 SCRATCH=/path/to/build-owned-scratch
@@ -41,31 +56,6 @@ make -C cc65/src ca65 ld65
 cc65/bin/ca65 --version
 cc65/bin/ld65 --version
 
-# Nesteroids compile.bat recipe, repeated from a second fresh source copy.
-git clone --no-checkout https://github.com/battlelinegames/nesteroids.git nesteroids
-git -C nesteroids checkout ae65d78048af68f3e735c49d77a7f37e976a7afe
-git -C nesteroids archive --format=tar ae65d78048af68f3e735c49d77a7f37e976a7afe | shasum -a 256
-cd "$SCRATCH/nesteroids"
-"$SCRATCH/cc65/bin/ca65" ./src/nesteroids.asm -g -o nesteroids.o
-"$SCRATCH/cc65/bin/ld65" -o nesteroids.nes -C nesteroids.cfg nesteroids.o \
-  -m nesteroids.map.txt -Ln nesteroids.labels.txt --dbgfile nesteroids.nes.dbg
-```
-
-Both ROMs reproduced each other, but their SHA-256
-`6c9c2e3a587b1ed81c3448dea52048a5bdbbb4641a066fe01b959ae7dba28259` does not
-match the manifest image (`a30dcfb12c1447dc121619c93b4083d2b83c7405a883ed490c3a59e52ce74f36`).
-The checked-in symbol files also disagree: `game_screen` is reported at
-`$A962` and `$A64D`, while `player_shot_count` is reported at `$0594` and
-`$0595`. No Nesteroids address was used as an oracle.
-
-The DABG source was then rebuilt twice from the pinned tree with the identified
-cc65 tools. The source recipe is
-[`mk.bat`](https://github.com/NovaSquirrel/DABG/blob/5ecc60b6af3f726851bfeb1c2555388c5953e0c0/mk.bat);
-the bounded mapping builds added debug output:
-
-```sh
-SCRATCH=/path/to/build-owned-scratch
-cd "$SCRATCH"
 git clone --no-checkout https://github.com/NovaSquirrel/DABG.git dabg
 git -C dabg checkout 5ecc60b6af3f726851bfeb1c2555388c5953e0c0
 git -C dabg archive --format=tar 5ecc60b6af3f726851bfeb1c2555388c5953e0c0 | shasum -a 256
@@ -75,28 +65,25 @@ cd "$SCRATCH/dabg"
   -m dabg.map.txt -Ln dabg.labels.txt --dbgfile dabg.nes.dbg
 ```
 
-Both builds produced identical ROM, map and debug files. The rebuilt ROM digest
-matches the permitted fixture exactly. The linker map places `ZEROPAGE` at
-`$0010..$00FA` and `BSS` at `$0300..$04F8`; the debug labels put
-`AttractMode=$0011`, `PlayerEnabled=$0044` (four entries in this build),
-`PlayerPX=$0048` (four entries), `PlayerPYH=$004C` (four entries), and
-`LevelNumber=$00DD`. These values match the allocation order in pinned
-[`memory.s`](https://github.com/NovaSquirrel/DABG/blob/5ecc60b6af3f726851bfeb1c2555388c5953e0c0/memory.s#L1-L34)
-and its later `LevelNumber` declaration. The assembled bytes at offsets `$07AA`
-and `$07DB` (after the 16-byte iNES header) are `95 48`, the zero-page indexed
-`STA $48,X` operands used by the source's
+Two builds produced identical ROM, map and debug files, and the rebuilt ROM
+matches the manifest digest above. The linker map places `ZEROPAGE` at
+`$0010..$00FA` and `BSS` at `$0300..$04F8`. The debug labels place
+`AttractMode=$0011`, `PlayerEnabled=$0044`, `PlayerPX=$0048`,
+`PlayerPYH=$004C` (four entries each), and `LevelNumber=$00DD`. The assembled
+bytes at offsets `$07AA` and `$07DB` after the 16-byte iNES header are `95 48`,
+the zero-page indexed `STA $48,X` operands used by DABG's
 [`RunPlayer`](https://github.com/NovaSquirrel/DABG/blob/5ecc60b6af3f726851bfeb1c2555388c5953e0c0/player.s#L98-L145)
 right-movement update. Its
 [`DispPlayer`](https://github.com/NovaSquirrel/DABG/blob/5ecc60b6af3f726851bfeb1c2555388c5953e0c0/player.s#L777-L879)
-also derives sprite X positions from `PlayerPX` and Y positions from
-`PlayerPYH`. The scenario reads only those mapped bytes, `AttractMode`, and
-`LevelNumber` through `nesturbator_peek_cpu_ram`.
+derives sprite X positions from `PlayerPX` and Y positions from `PlayerPYH`.
+The scenario reads only those mapped bytes, `AttractMode`, and `LevelNumber`
+through `nesturbator_peek_cpu_ram`.
 
 `LevelNumber` alone is not a gameplay oracle: the title/menu code initializes
 it and level setup increments it. The accepted state requires all of
 `AttractMode == 0`, `PlayerEnabled[0] == 1`, and `LevelNumber == 1`, followed
-by a right-input-caused `PlayerPX[0]` increase. That final requirement makes a
-startup counter change insufficient.
+by a right-input-caused increase in `PlayerPX[0]`. That final requirement
+makes a startup counter change insufficient.
 
 ## Reproducible route and measurements
 
@@ -115,6 +102,11 @@ Six exploratory replays were used, all within the plan's 600-frame and
 the first stable movement window without relying on the earlier unverified
 60-frame neutral guess. The final 110-frame route is below the cap.
 
+The numeric measurements below are historical observations from the pinned
+`bf9aacb3244ea40b2c2afb62651ef063c7452c1f` source. Each current runtime report
+supplies the identity and measured predicates for the package it actually
+tests; these historical values are explanatory and do not replace that report.
+
 The fresh reset measurement reaches `LevelNumber == 1` at frame 59. At frame 80 the
 player is enabled at X=40; with Right held, X advances by two each frame,
 reaching X=70 at frame 95. The native-pixel check compares frames 80 and 95 in
@@ -132,9 +124,8 @@ nonzero peak. Rates come from `nesturbator_get_info`: NTSC video
 second. The observed native output is 256×240.
 
 The retained runtime JSON records the header and library version/ABI/behavior
-and state-format values, the `ntsc-only-base-api` route and rates, exact frame count, RAM
-predicates, movement, selected pixel region and PCM summary. It labels this
-source build `unpublished`.
+and state-format values, the `ntsc-only-base-api` route and rates, exact frame
+count, RAM predicates, movement, selected pixel region and PCM summary.
 
 ## Negative controls and continued play
 

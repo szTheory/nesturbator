@@ -7,15 +7,27 @@ installed library package. The machine-readable facts are in
 the public header, NTSC clock/sample arithmetic, the DABG guide digest, and an
 optional installed-runtime report.
 
-**Qualification status: candidate only.** This profile is not bound to a
-published package. The release version, exact source commit, archive digests,
-and attestations remain pending in
-[`provider-ntsc-release.json`](provider-ntsc-release.json), which is written
-only after the later live release check succeeds. The current header's version
-is not a promise of the next Release Please version. ABI, emulation behavior
-revision, and native state format are separate compatibility fields. This
-reset uses ABI 1, behavior revision 9 and native state format 3; snapshots from
-later behavior/state-format branches are not qualified by this evidence.
+## Package and release identity
+
+The library archive installs this guide, [the gameplay guide](nrom-gameplay.md)
+and [the machine profile](provider-ntsc.json) under `docs/`. It also installs
+[`THIRD-PARTY-NOTICES.md`](../THIRD-PARTY-NOTICES.md) at the archive root and
+the verbatim DABG license at `docs/licenses/DABG-ZLIB-LICENSE.txt`.
+
+Read the semantic version from the installed
+`NESTURBATOR_VERSION_MAJOR`, `NESTURBATOR_VERSION_MINOR` and
+`NESTURBATOR_VERSION_PATCH` macros and the `Version` field in
+`lib/pkgconfig/nesturbator.pc`; they must agree. For a published package,
+confirm that version against its Release Please tag, then use
+[`provider-ntsc-release.json`](provider-ntsc-release.json) to bind that tag to
+its exact source, archives and publisher evidence. This avoids a manually
+maintained version claim in prose. The profile's `candidate-only`/`pending`
+fields record its prepublication qualification and remain unchanged in the
+package. The separate receipt is the publisher binding.
+
+The qualified compatibility values are ABI 1, behavior revision 10 and native
+state format 4. Those are separate fields. A state-format version does not
+identify the library's semantic version or its ABI.
 
 ## Route admission and lifecycle
 
@@ -32,8 +44,9 @@ For this route, call `nesturbator_load_cartridge()` and query
 `nesturbator_get_info()` on that instance. This source has no region preference
 or runtime region-query API. Its loader requires NES 2.0 timing byte 12 to be
 zero, or legacy iNES bytes 8 through 15 to be zero, alongside its other
-mapper/layout checks. Only the pinned NTSC DABG image is qualified here.
-These accepted metadata shapes do not establish another regional route.
+mapper/layout checks. The qualified content is the manifest-pinned NTSC DABG
+NROM-256 image with 32 KiB PRG ROM and CHR RAM. These accepted metadata shapes
+do not establish another regional route or qualify other content.
 
 A successful load establishes the cartridge. Reset is a soft console reset;
 unload removes the cartridge. A malformed or unsupported replacement returns
