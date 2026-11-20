@@ -54,7 +54,8 @@ extern "C" {
 #define NESTURBATOR_ABI_VERSION 1
 
 /* Raised whenever emulated behaviour changes the frame or audio output for
-   the same inputs. Revision 9 retains an accepted IRQ at the instruction's
+   the same inputs. Revision 10 adds the bounded NTSC MMC2 profile. Revision 9
+   retains an accepted IRQ at the instruction's
    hardware poll point, using the old I flag for CLI, SEI and PLP. Branches
    preserve their first poll across later cycles and add the page-cross poll;
    a captured acceptance survives later source clearing until entry arbitration.
@@ -78,7 +79,7 @@ extern "C" {
    an NMI only when bit 7 changes from 0 to 1 while the vblank flag is set, so a
    game that rewrites $2000 inside its NMI handler no longer re-enters NMI.
    Revision 5 was the PPU fetch pipeline. */
-#define NESTURBATOR_BEHAVIOUR_REVISION 9
+#define NESTURBATOR_BEHAVIOUR_REVISION 10
 
 /* The layout of the bytes nesturbator_save_state writes, and the only layout
    nesturbator_load_state reads. Any other version is refused with
@@ -87,18 +88,17 @@ extern "C" {
    bytes (a field added, removed, reordered or resized, or its meaning changed) raises it in the
    same commit. Version 3 records the CPU's sampled NMI-line, captured-request and instruction-poll
    histories, retained close-edge IRQ level, accepted IRQ history, and the CPU entry origin,
-   next unperformed bus action, selected vector pair and partial vector-low byte; version 1 and 2
-   states are refused with NESTURBATOR_ERR_STATE_FORMAT. Completed interrupt-entry actions form
-   internal load cutpoints; ordinary instruction and frame execution drains a restored entry before
-   returning to the next instruction boundary. Public frame calls remain synchronous and do not
-   expose a mid-entry stop. Derived sprite eligibility is rebuilt on load;
-   the first CPU clock also reconciles restored synthesis history with channel
-   levels, even without an oscillator event. These caches add no saved bytes.
-   A fix that changes
-   only emulated output raises NESTURBATOR_BEHAVIOUR_REVISION instead, which a state records but a
-   load does not enforce. Raising it is not a breaking change to the C interface and leaves
-   NESTURBATOR_ABI_VERSION as it is. */
-#define NESTURBATOR_STATE_FORMAT_VERSION 3
+   next unperformed bus action, selected vector pair and partial vector-low byte. Version 4 adds
+   MMC2's eight bounded selector, mirror and latch bytes. Formats 1 through 3 are refused with
+   NESTURBATOR_ERR_STATE_FORMAT. Completed interrupt-entry actions form internal load cutpoints;
+   ordinary instruction and frame execution drains a restored entry before returning to the next
+   instruction boundary. Public frame calls remain synchronous and do not expose a mid-entry stop.
+   Derived sprite eligibility is rebuilt on load; the first CPU clock also reconciles restored
+   synthesis history with channel levels, even without an oscillator event. These caches add no
+   saved bytes. A fix that changes only emulated output raises NESTURBATOR_BEHAVIOUR_REVISION
+   instead, which a state records but a load does not enforce. Raising it is not a breaking change
+   to the C interface and leaves NESTURBATOR_ABI_VERSION as it is. */
+#define NESTURBATOR_STATE_FORMAT_VERSION 4
 
 /* Result of a call. Values are fixed and only appended. */
 enum nesturbator_status {
@@ -116,7 +116,8 @@ enum nesturbator_status {
     /* The loaded cartridge executed a JAM opcode; the instance is latched. */
     NESTURBATOR_STOP_JAM = 6,
     /* Cartridge bytes are malformed or outside a supported board profile (mappers 0 NROM, 1 MMC1,
-       2 UxROM, 3 CNROM, 4 MMC3 and 7 AxROM). Every rejected image returns this status with
+       2 UxROM, 3 CNROM, 4 MMC3, 7 AxROM and the bounded 9 MMC2 profile). Every rejected image
+       returns this status with
        the instance unchanged. */
     NESTURBATOR_ERR_CARTRIDGE = 7,
     /* Not a state this library reads: the magic is wrong or the format version is not
@@ -335,8 +336,13 @@ void nesturbator_destroy(nesturbator *inst);
    ignoring the header mirroring bit; ANDed with the ROM byte under the write
    for submapper 2 only; at power-on the reset vector is read from bank 0, and
    nesturbator_reset keeps the bank register, so a soft reset reads it from the
-   selected bank). NROM and UxROM
+   selected bank). Mapper 9 (MMC2) is limited to NES 2-format headers with
+   submapper 0 and exactly 128 KiB of PRG ROM and 128 KiB of CHR ROM, no
+   trainer or RAM; its PRG and CHR registers select 8 KiB and 4 KiB banks, and
+   PPU pattern reads switch between the two CHR selectors per half. NROM and UxROM
    take either 8 KiB CHR ROM or 8 KiB declared CHR RAM.
+   Supported NTSC MMC2: mapper 9, NES 2-format submapper 0 only, 128 KiB PRG
+   and CHR ROM, with no trainer, RAM or four-screen.
    Supported NTSC MMC3: mapper 4, submappers 0/4; MMC6=no; four-screen=no.
    Metadata checks require exactly one canonical MMC3 support clause in this
    header, the README and each checked information file, rejecting duplicate
@@ -344,7 +350,7 @@ void nesturbator_destroy(nesturbator *inst);
    duplicate ZIP members, allow only component directories, and require each
    file pattern to match once. Listed names must agree with raw ZIP names;
    Unicode path aliases cannot substitute allowed names.
-   The supported mappers are 0, 1, 2, 3, 4 and 7. Mapper 4 is the MMC3 in its
+   The supported mappers are 0, 1, 2, 3, 4, 7 and 9. Mapper 4 is the MMC3 in its
    Sharp (submapper 0, and every iNES 1 image) or NEC (submapper 4) revision:
    PRG a power of two from 16 to 512 KiB; 8 to 256 KiB CHR ROM or 8 KiB CHR
    RAM; PRG RAM none, 8 KiB work or 8 KiB battery, the battery bit equal to
@@ -363,7 +369,7 @@ void nesturbator_destroy(nesturbator *inst);
    A trainer initializes the writable 8 KiB PRG RAM at CPU $7000-$71FF
    (on a mapper 1 image with no declared RAM the trainer's 8 KiB is work RAM
    with no save span); other addresses in $6000-$7FFF start at zero. Mappers
-   0, 2, 3 and 7 refuse the battery bit and every RAM size. Other mappers, unsupported
+   0, 2, 3, 7 and 9 refuse the battery bit and every RAM size. Other mappers, unsupported
    console/region/RAM profiles, malformed headers, truncation, extra payload, and images above 64
    MiB return NESTURBATOR_ERR_CARTRIDGE before cartridge allocation and leave a previously loaded
    cartridge untouched. Allocation failure returns NESTURBATOR_ERR_NO_MEMORY. A loaded image starts

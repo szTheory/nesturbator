@@ -1,0 +1,12 @@
+{
+  "contract": "1.0.0",
+  "flavor": "core",
+  "milestone": "v11",
+  "phases": [],
+  "next": {
+    "command": "$gsd-autonomous --ws mmc2",
+    "label": "Finish Plan 30-03 delivery gates",
+    "reason": "The one newly authorized full workflow passed all 702 tests, the AccuracyCoin campaign and package stage; the final source review found no blockers. PR #68 is a separate provider route and remains untouched. Revalidate main, prepare the MMC2 PR, and complete exact-head PR/main/release evidence. Do not run another local full workflow without new owner authorization."
+  },
+  "updated_at": "2026-11-19T22:42:03Z"
+}

@@ -13,7 +13,8 @@
  * prints the same text to stderr and exits 2. --version prints "nesturbator-run X.Y.Z" from
  * nesturbator_get_version and exits 0.
  *
- * Runs N frames, with optional cartridge content (mappers 0, 1, 2, 3, 4 and 7). A movie supplies
+ * Runs N frames with mappers 0, 1, 2, 3, 4 and 7, plus the bounded NES 2.0 mapper 9,
+ * submapper 0 profile. A movie supplies
  * the two port masks for every frame and prints the native hash of every replayed frame. For each
  * --hash-frame N it prints, after frame N has run:
  *
@@ -98,7 +99,7 @@ static void print_usage(FILE *out)
         "stderr; needs --rom\n"
         "  --bench-state        with --bench, also save and load the state after every frame and "
         "time each\n"
-        "  --rom FILE           load an iNES image (mapper 0, 1, 2, 3, 4 or 7)\n"
+        "  --rom FILE           load mapper 0, 1, 2, 3, 4 or 7; NES 2.0 mapper 9/submapper 0 only\n"
         "  --hash-frame N       print the SHA-256 of frame N (1 <= N <= --frames)\n"
         "  --hash-audio         print SHA-256 of canonical transitions and signed PCM\n"
         "  --dump-frame N:FILE  write frame N to FILE as a binary PPM (P6)\n"
@@ -665,17 +666,17 @@ static void describe_rejection(const uint8_t *b, size_t len, int status)
             return;
         }
         if (mapper != 0u && mapper != 1u && mapper != 2u && mapper != 3u && mapper != 4u &&
-            mapper != 7u) {
+            mapper != 7u && mapper != 9u) {
             fprintf(stderr,
                     "nesturbator-run: mapper %u is not supported; supported mappers are 0, 1, 2, "
-                    "3, 4 and 7\n",
+                    "3, 4, 7 and 9\n",
                     (unsigned)mapper);
             return;
         }
     }
     fprintf(stderr,
             "nesturbator-run: malformed or unsupported cartridge (status %d); supported "
-            "mappers are 0, 1, 2, 3, 4 and 7\n",
+            "mappers are 0, 1, 2, 3, 4, 7 and 9\n",
             status);
 }
 

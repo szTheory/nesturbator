@@ -10,13 +10,24 @@
   "campaign_report_sha256": "56ebd01adb97b3916fde36f8739602284d951a1fd00d84285bb4ef441fb463a3",
   "scoreboard_sha256": "059d7c7558bd9f4785ab384c589f04e16f330ef3ba477393a8492b59e086dbbf",
   "original_tests_cmake_sha256": "c656956571e96aedbb75ffec6fa47a1035faa5a45767734f1c89888919ab06e7",
-  "current_tests_cmake_sha256": "a4179a215765f1b783e7a408f55d2eb9f9264c0cb315215c9da09e0336624ea2",
+  "current_tests_cmake_sha256": "5a6f4fe4cafe1b401278f3ecc6921578147067705ff0888401cc7c5bd1ad188a",
   "allowed_registration_names": [
     "install.gameplay",
     "provider.profile",
     "provider.profile.controls",
-    "provider.receipt.controls"
+    "provider.receipt.controls",
+    "core.mapper_mmc2",
+    "libretro.mmc2.parity"
   ],
-  "accuracycoin_activation_sha256": "559f02a8367c3d1220cdf93a0152c098f118cc3b12745e47a27cb5890a595e1a",
-  "accuracycoin_input_fingerprint_sha256": "c755dbbb72744c1e5ce79eee00e84ecfa76222004804b85ca3bbe6cd3ed5c6c3"
+  "accuracycoin_activation_sha256": "1aa7319a403e7accdca82c649c7c9f17a585fe93230a72a05e87c7cf3ed6d430",
+  "accuracycoin_input_fingerprint_sha256": "bd81df090e55f52ec4315ce630631c5411bcbfebff645b7af51229fd507bd875",
+  "current_input_hashes": {
+    "CMakeLists.txt": "909b5a33a27c0fa6c31e884547531513ab824766e8a2fde17ace1cfb5b378780",
+    "include/nesturbator.h": "8e79cbda640ec5f5ff9eb7e78744076325f5bf03609f132dfcff71e0ef189133",
+    "runner/main.c": "7de4d634c9b111bf22eecf567d758fe2c97bd5e314d25965d51d53d1133d0539",
+    "src/cartridge.c": "11ccfc57c330eeb99f20852faf911e4cf4d6ba3bf4f8a586996eff2034e7c37d",
+    "src/mapper.h": "77721096722445fe507ee30e19b8ac0023bae2f03022d5674d1338cf9ff247c9",
+    "src/mapper_mmc2.c": "fc203605a645dc0c09f3333c4fd467fbae5dd687baa00dc92c442c759dd77414",
+    "src/ppu.c": "4c11052ac42b8069b08c1e24a224b4d18c63bebb4142b533523bace34aa37bf5"
+  }
 }

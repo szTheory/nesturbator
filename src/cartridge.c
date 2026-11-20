@@ -100,6 +100,10 @@ static int board_profile_ok(uint16_t mapper, uint8_t submapper, size_t prg_size,
         /* AxROM: 32 to 256 KiB of PRG in 32 KiB banks and 8 KiB of CHR RAM. */
         return chr_is_ram && submapper <= 2u && prg_size >= 32768u && prg_size <= 262144u &&
                prg_size % 32768u == 0u;
+    case 9u:
+        /* This port admits only NES 2-format mapper 9/submapper 0, with 128 KiB
+           each of PRG and CHR ROM; all RAM forms are refused above. */
+        return submapper == 0u && !chr_is_ram && prg_size == 131072u && chr_size == 131072u;
     case 1u: {
         /* MMC1: 32 to 512 KiB of PRG (512 KiB only with 8 KiB of CHR), 8 to
            128 KiB of CHR ROM or 8 KiB of CHR RAM, and 0, 8, 16 or 32 KiB of
@@ -217,6 +221,8 @@ static int validate_image(const uint8_t *image, size_t size, struct cartridge_la
         }
     }
     layout->battery = (image[6] & 2u) != 0u;
+    if (mapper == 9u && (!nes2 || layout->trainer_size != 0u))
+        return 0;
     if (!board_profile_ok(mapper, submapper, layout->prg_size, layout->chr_size, layout->chr_is_ram,
                           layout->ram_work, layout->ram_nv, layout->chr_nv, layout->battery))
         return 0;
@@ -265,6 +271,9 @@ int nesturbator__mapper_ops_for(uint16_t id, struct nesturbator__mapper_ops *out
         return 1;
     case 7u:
         nesturbator__mapper_axrom_ops(out);
+        return 1;
+    case 9u:
+        nesturbator__mapper_mmc2_ops(out);
         return 1;
     default:
         return 0;
@@ -360,6 +369,13 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
     if ((image[7] & 0x0cu) == 0x08u) {
         inst->mapper.id = (uint16_t)(inst->mapper.id | ((image[8] & 0x0fu) << 8));
         inst->mapper.submapper = (uint8_t)(image[8] >> 4);
+    }
+    if (inst->mapper.id == 9u) {
+        /* Deterministic load policy: selectors zero, FE latches and the
+           header-derived mirror bit. The latch choice is not hardware proof. */
+        inst->mapper.reg.mmc2.mirror = (uint8_t)((image[6] & 1u) != 0u ? 0u : 1u);
+        inst->mapper.reg.mmc2.latch[0] = 1u;
+        inst->mapper.reg.mmc2.latch[1] = 1u;
     }
     /* The ROM's identity for save states: the header, PRG ROM and CHR ROM, computed once from
        bytes that never change. The trainer only seeds RAM and CHR RAM starts zeroed, so neither

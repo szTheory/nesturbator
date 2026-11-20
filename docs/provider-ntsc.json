@@ -8,8 +8,8 @@
   },
   "compatibility": {
     "abi": 1,
-    "behaviour_revision": 9,
-    "state_format": 3
+    "behaviour_revision": 10,
+    "state_format": 4
   },
   "region": {
     "route": "ntsc-only-base-api",

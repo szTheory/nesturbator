@@ -474,6 +474,8 @@ uint8_t nesturbator__ppu_read(struct nesturbator *nes, uint16_t addr)
 {
     addr &= 0x3fffu;
     if (addr < 0x2000u) {
+        if ((nes->map.watch & NESTURBATOR_WATCH_PPU_READ) != 0u)
+            return nes->map.ops.ppu_read(nes, addr);
         const uint8_t *page = nes->map.chr_r[addr >> 10];
         return page != NULL ? page[addr & 0x3ffu] : 0u;
     }

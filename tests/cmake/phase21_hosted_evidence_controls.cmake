@@ -14,7 +14,7 @@ include("${SOURCE_DIR}/tests/cmake/phase21_hosted_evidence.cmake")
 list(LENGTH NESTURBATOR_PHASE20_REQUIRED_TARGET_KEYS target_count)
 if(NOT NESTURBATOR_PHASE20_PROTECTED_MINIMUM EQUAL 114 OR
    NOT target_count EQUAL 11 OR
-   NOT NESTURBATOR_PHASE20_BEHAVIOUR_REVISION EQUAL 9 OR
+   NOT NESTURBATOR_PHASE20_BEHAVIOUR_REVISION EQUAL 10 OR
    NOT NESTURBATOR_PHASE20_LIBRARY_VERSION MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
   message(FATAL_ERROR "Phase 21 wrapper did not select the exact current-source contract")
 endif()

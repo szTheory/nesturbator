@@ -22,6 +22,7 @@
 
 #include "../check.h"
 #include "../ines.h"
+#include "../mmc2_fixture.h"
 #include "../nmi_fixture.h"
 #include "../runahead_model.h"
 #include "../state_test.h"
@@ -31,6 +32,7 @@
 #include "movie_fixture.h"
 #include "../test_process.h"
 #include "../../runner/movie.h"
+#include "../../runner/audio_hash.h"
 
 #define W 256u
 #define H 240u
@@ -3715,6 +3717,543 @@ static int fixture_argv_capture(int argc, char **argv, const char *path)
     return 0;
 }
 
+struct runner_presentation_hashes {
+    uint64_t ticks;
+    char frame[65];
+    char transitions[65];
+    char pcm[65];
+};
+
+static bool runner_record_ending_is_exact(const char *line, int consumed)
+{
+    size_t length;
+    size_t prefix;
+    if (line == NULL || consumed <= 0)
+        return false;
+    length = strlen(line);
+    prefix = (size_t)consumed;
+    if (prefix >= length)
+        return false;
+    if (length == prefix + 1u && line[prefix] == '\n')
+        return true;
+    return length == prefix + 2u && line[prefix] == '\r' && line[prefix + 1u] == '\n';
+}
+
+static void hash_native_presentation_frame(const uint16_t *pixels, char hex[65])
+{
+    nesturbator_run_sha256 hash;
+    uint8_t row[W * 2u];
+    uint8_t digest[32];
+    nesturbator_run_sha256_init(&hash);
+    for (uint32_t y = 0u; y < H; ++y) {
+        for (uint32_t x = 0u; x < W; ++x) {
+            const uint16_t pixel = pixels[y * W + x];
+            row[2u * x] = (uint8_t)pixel;
+            row[2u * x + 1u] = (uint8_t)(pixel >> 8u);
+        }
+        nesturbator_run_sha256_update(&hash, row, sizeof row);
+    }
+    nesturbator_run_sha256_final(&hash, digest);
+    nesturbator_run_sha256_hex(digest, hex);
+}
+
+static bool read_runner_presentation_hashes(const char *path, unsigned expected_frame,
+                                            struct runner_presentation_hashes *hashes)
+{
+    FILE *file = fopen(path, "rb");
+    char line[512];
+    unsigned frame_records = 0u;
+    unsigned transition_records = 0u;
+    unsigned pcm_records = 0u;
+    bool valid = file != NULL && hashes != NULL;
+
+    if (!valid) {
+        if (file != NULL)
+            fclose(file);
+        return false;
+    }
+    memset(hashes, 0, sizeof *hashes);
+    while (fgets(line, sizeof line, file) != NULL) {
+        unsigned frame_number;
+        unsigned long long ticks;
+        char value[65];
+        int consumed = 0;
+        if (sscanf(line, "frame %u ticks %llu sha256 %64s%n", &frame_number, &ticks, value,
+                   &consumed) == 3) {
+            if (frame_number != expected_frame || strlen(value) != 64u ||
+                !runner_record_ending_is_exact(line, consumed)) {
+                valid = false;
+                continue;
+            }
+            hashes->ticks = (uint64_t)ticks;
+            memcpy(hashes->frame, value, sizeof value);
+            frame_records++;
+        } else if (sscanf(line, "audio transitions sha256 %64s%n", value, &consumed) == 1) {
+            if (strlen(value) != 64u || !runner_record_ending_is_exact(line, consumed)) {
+                valid = false;
+                continue;
+            }
+            memcpy(hashes->transitions, value, sizeof value);
+            transition_records++;
+        } else if (sscanf(line, "audio pcm sha256 %64s%n", value, &consumed) == 1) {
+            if (strlen(value) != 64u || !runner_record_ending_is_exact(line, consumed)) {
+                valid = false;
+                continue;
+            }
+            memcpy(hashes->pcm, value, sizeof value);
+            pcm_records++;
+        }
+    }
+    if (ferror(file))
+        valid = false;
+    fclose(file);
+    return valid && frame_records == 1u && transition_records == 1u && pcm_records == 1u;
+}
+
+struct runner_state_hash {
+    uint64_t ticks;
+    unsigned long long size;
+    char digest[65];
+};
+
+static bool read_runner_state_hash(const char *path, unsigned expected_frame,
+                                   struct runner_state_hash *hash)
+{
+    FILE *file = fopen(path, "rb");
+    char line[512];
+    unsigned records = 0u;
+    bool valid = file != NULL && hash != NULL;
+    if (!valid) {
+        if (file != NULL)
+            fclose(file);
+        return false;
+    }
+    memset(hash, 0, sizeof *hash);
+    while (fgets(line, sizeof line, file) != NULL) {
+        unsigned frame_number;
+        unsigned long long ticks;
+        unsigned long long size;
+        char digest[65];
+        int consumed = 0;
+        if (sscanf(line, "state %u ticks %llu size %llu sha256 %64s%n", &frame_number, &ticks,
+                   &size, digest, &consumed) == 4) {
+            if (frame_number != expected_frame || strlen(digest) != 64u ||
+                !runner_record_ending_is_exact(line, consumed)) {
+                valid = false;
+                continue;
+            }
+            hash->ticks = (uint64_t)ticks;
+            hash->size = size;
+            memcpy(hash->digest, digest, sizeof digest);
+            records++;
+        }
+    }
+    if (ferror(file))
+        valid = false;
+    fclose(file);
+    return valid && records == 1u;
+}
+
+static bool mmc2_write_file(const char *path, const uint8_t *bytes, size_t size)
+{
+    FILE *file = fopen(path, "wb");
+    bool ok;
+    if (file == NULL)
+        return false;
+    ok = fwrite(bytes, 1u, size, file) == size;
+    if (fclose(file) != 0)
+        ok = false;
+    return ok;
+}
+
+static void mmc2_hash_state(const uint8_t *state, size_t state_size, char hex[65])
+{
+    nesturbator_run_sha256 hash;
+    uint8_t digest[32];
+    nesturbator_run_sha256_init(&hash);
+    nesturbator_run_sha256_update(&hash, state, state_size);
+    nesturbator_run_sha256_final(&hash, digest);
+    nesturbator_run_sha256_hex(digest, hex);
+}
+
+static int mmc2_parity(const char *module_path, const char *runner_path, const char *work_dir)
+{
+    enum { MMC2_FRAMES = 8u, MMC2_CUT = 3u, MMC2_SUFFIX = MMC2_FRAMES - MMC2_CUT };
+    static uint8_t image[MMC2_FIXTURE_CAP];
+    static uint16_t direct_native[MMC2_FRAMES][W * H];
+    static uint32_t direct_xrgb[MMC2_FRAMES][W * H];
+    static int16_t direct_pcm[MMC2_FRAMES][AUDIO_CAPTURE_CAPACITY];
+    static size_t direct_pcm_count[MMC2_FRAMES];
+    static uint16_t replay_native[W * H];
+    static int16_t replay_pcm[AUDIO_CAPTURE_CAPACITY];
+    static uint32_t palette[512];
+    static const uint8_t nt_horizontal[] = {0u, 0u, 1u, 1u};
+    const size_t image_size = mmc2_fixture_build(image, sizeof image, 1u);
+    nesturbator *direct = NULL;
+    nesturbator_config config;
+    nesturbator_input input_state;
+    nesturbator_frame io;
+    struct retro_game_info game;
+    nesturbator_run_audio_hash cold_audio_hash;
+    nesturbator_run_audio_hash suffix_audio_hash;
+    nesturbator_run_audio_hash repeat_audio_hash;
+    struct runner_presentation_hashes cold_hashes;
+    struct runner_presentation_hashes resume_hashes;
+    struct runner_state_hash cold_state_hash;
+    struct runner_state_hash resume_state_hash;
+    uint8_t *state3 = NULL;
+    uint8_t *state8 = NULL;
+    uint8_t *module_state = NULL;
+    size_t state_size = 0u;
+    size_t direct_total_pcm = 0u;
+    size_t direct_suffix_pcm = 0u;
+    size_t module_total_pcm = 0u;
+    size_t module_suffix_pcm = 0u;
+    size_t direct_nonzero = 0u;
+    size_t direct_suffix_nonzero = 0u;
+    size_t module_nonzero = 0u;
+    size_t module_suffix_nonzero = 0u;
+    char image_path[4096], cold_output[4096], resume_output[4096];
+    char cold_dump[4096], resume_dump[4096], state_path[4096];
+    char cold_dump_arg[4096], resume_dump_arg[4096], state_arg[4096];
+    char direct_pcm_digest[65], suffix_pcm_digest[65], direct_state_digest[65];
+    char direct_frame_digest[65];
+    int opened = 0;
+    int initialized = 0;
+    int loaded = 0;
+    int result = 1;
+
+    CHECK(image_size == MMC2_FIXTURE_CAP);
+    if (image_size != MMC2_FIXTURE_CAP)
+        goto done;
+    CHECK(snprintf(image_path, sizeof image_path, "%s/mmc2-fixture.nes", work_dir) > 0);
+    CHECK(snprintf(cold_output, sizeof cold_output, "%s/runner-cold.txt", work_dir) > 0);
+    CHECK(snprintf(resume_output, sizeof resume_output, "%s/runner-resume.txt", work_dir) > 0);
+    CHECK(snprintf(cold_dump, sizeof cold_dump, "%s/runner-cold.ppm", work_dir) > 0);
+    CHECK(snprintf(resume_dump, sizeof resume_dump, "%s/runner-resume.ppm", work_dir) > 0);
+    CHECK(snprintf(state_path, sizeof state_path, "%s/frame-3.state", work_dir) > 0);
+    CHECK(snprintf(cold_dump_arg, sizeof cold_dump_arg, "8:%s", cold_dump) > 0);
+    CHECK(snprintf(resume_dump_arg, sizeof resume_dump_arg, "8:%s", resume_dump) > 0);
+    CHECK(snprintf(state_arg, sizeof state_arg, "3:%s", state_path) > 0);
+    if (!mmc2_write_file(image_path, image, image_size))
+        goto done;
+
+    memset(&config, 0, sizeof config);
+    config.size = (uint32_t)sizeof config;
+    config.abi = NESTURBATOR_ABI_VERSION;
+    CHECK_EQ_U64(nesturbator_create(&config, &direct), NESTURBATOR_OK);
+    if (direct == NULL)
+        goto done;
+    CHECK_EQ_U64(nesturbator_load_cartridge(direct, image, image_size), NESTURBATOR_OK);
+    state_size = nesturbator_state_size(direct);
+    CHECK(state_size > 64u);
+    state3 = (uint8_t *)malloc(state_size);
+    state8 = (uint8_t *)malloc(state_size);
+    module_state = (uint8_t *)malloc(state_size);
+    CHECK(state_size > 64u && state3 != NULL && state8 != NULL && module_state != NULL);
+    if (state_size <= 64u || state3 == NULL || state8 == NULL || module_state == NULL)
+        goto done;
+    nesturbator_get_palette(direct, palette, 512u);
+    memset(&input_state, 0, sizeof input_state);
+    input_state.size = (uint32_t)sizeof input_state;
+    nesturbator_run_audio_hash_init(&cold_audio_hash);
+    nesturbator_run_audio_hash_init(&suffix_audio_hash);
+    nesturbator_run_audio_hash_init(&repeat_audio_hash);
+
+    for (unsigned frame_index = 0u; frame_index < MMC2_FRAMES; ++frame_index) {
+        memset(&io, 0, sizeof io);
+        io.size = (uint32_t)sizeof io;
+        io.video = direct_native[frame_index];
+        io.video_pitch = W;
+        io.audio = direct_pcm[frame_index];
+        io.audio_capacity = AUDIO_CAPTURE_CAPACITY;
+        CHECK_EQ_U64(nesturbator_set_input(direct, &input_state), NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_run_frame(direct, &io), NESTURBATOR_OK);
+        CHECK_EQ_U64(io.frame_number, frame_index + 1u);
+        CHECK(io.audio_count > 0u && io.audio_count <= AUDIO_CAPTURE_CAPACITY);
+        if (io.audio_count > AUDIO_CAPTURE_CAPACITY)
+            goto done;
+        direct_pcm_count[frame_index] = io.audio_count;
+        direct_total_pcm += io.audio_count;
+        for (size_t sample_index = 0u; sample_index < io.audio_count; ++sample_index) {
+            direct_nonzero += direct_pcm[frame_index][sample_index] != 0;
+            if (frame_index >= MMC2_CUT)
+                direct_suffix_nonzero += direct_pcm[frame_index][sample_index] != 0;
+        }
+        if (frame_index >= MMC2_CUT)
+            direct_suffix_pcm += io.audio_count;
+        nesturbator_run_audio_hash_pcm(&cold_audio_hash, direct_pcm[frame_index], io.audio_count);
+        if (frame_index >= MMC2_CUT)
+            nesturbator_run_audio_hash_pcm(&suffix_audio_hash, direct_pcm[frame_index],
+                                           io.audio_count);
+        for (size_t pixel = 0u; pixel < W * H; ++pixel) {
+            const uint16_t native = direct_native[frame_index][pixel];
+            direct_xrgb[frame_index][pixel] = palette[native & 0x01ffu];
+        }
+        if (frame_index == 0u) {
+            /* PPUCTRL selects table $0000: in the visible FE tile, x=6 combines FD bank
+               5's A5 low-plane bit with FE bank 3's A3 high-plane bit after the trigger.
+               The resulting palette entry 6 is the literal $27. */
+            CHECK_EQ_HEX(direct_native[frame_index][6], 0x27u);
+        }
+        if (frame_index == MMC2_CUT - 1u) {
+            const struct nesturbator *nes = (const struct nesturbator *)direct;
+            size_t different_from_testcard = 0u;
+            CHECK_EQ_U64(nes->mapper.reg.mmc2.prg, 12u);
+            CHECK_EQ_U64(nes->mapper.reg.mmc2.chr[0], 5u);
+            CHECK_EQ_U64(nes->mapper.reg.mmc2.chr[1], 3u);
+            CHECK_EQ_U64(nes->mapper.reg.mmc2.chr[2], 9u);
+            CHECK_EQ_U64(nes->mapper.reg.mmc2.chr[3], 7u);
+            CHECK_EQ_U64(nes->mapper.reg.mmc2.mirror, 1u);
+            CHECK_EQ_U64(nes->mapper.reg.mmc2.latch[0], 0u);
+            CHECK_EQ_U64(nes->mapper.reg.mmc2.latch[1], 1u);
+            CHECK(memcmp(nes->map.nt, nt_horizontal, sizeof nt_horizontal) == 0);
+            CHECK_EQ_HEX(nes->map.chr_r[0][0], 0xa5u);
+            CHECK_EQ_HEX(nes->map.chr_r[4][0], 0xa7u);
+            for (size_t pixel = 0u; pixel < W * H; ++pixel) {
+                const uint32_t x = (uint32_t)(pixel % W);
+                const uint32_t y = (uint32_t)(pixel / W);
+                different_from_testcard +=
+                    direct_native[frame_index][pixel] != nesturbator__test_pixel(x, y);
+            }
+            CHECK(different_from_testcard > 0u);
+            CHECK_EQ_U64(nesturbator_save_state(direct, state3, state_size), NESTURBATOR_OK);
+        }
+        if (frame_index == MMC2_FRAMES - 1u)
+            CHECK_EQ_U64(nesturbator_save_state(direct, state8, state_size), NESTURBATOR_OK);
+    }
+    CHECK(direct_total_pcm > 0u && direct_nonzero > 0u);
+    CHECK(direct_suffix_pcm > 0u && direct_suffix_nonzero > 0u);
+    mmc2_hash_state(state8, state_size, direct_state_digest);
+    hash_native_presentation_frame(direct_native[MMC2_FRAMES - 1u], direct_frame_digest);
+    {
+        char transitions[65];
+        nesturbator_run_audio_hash_final(&cold_audio_hash, transitions, direct_pcm_digest);
+        nesturbator_run_audio_hash_final(&suffix_audio_hash, transitions, suffix_pcm_digest);
+    }
+
+    CHECK(module_open(module_path));
+    if (module == NULL)
+        goto done;
+    opened = 1;
+    resolve_all();
+    CHECK_EQ_U64(missing, 0u);
+    if (missing != 0)
+        goto done;
+    p_set_environment(env);
+    p_init();
+    initialized = 1;
+    p_set_video_refresh(video);
+    p_set_audio_sample(sample);
+    p_set_audio_sample_batch(batch);
+    p_set_input_poll(on_poll);
+    p_set_input_state(input);
+    memset(&game, 0, sizeof game);
+    game.data = image;
+    game.size = image_size;
+    if (!p_load_game(&game)) {
+        CHECK(0);
+        goto done;
+    }
+    loaded = 1;
+    CHECK_EQ_U64(p_get_region(), RETRO_REGION_NTSC);
+    CHECK_EQ_U64(p_serialize_size(), state_size);
+
+    for (unsigned frame_index = 0u; frame_index < MMC2_FRAMES; ++frame_index) {
+        video_calls = 0;
+        batch_calls = 0;
+        batch_frames = 0u;
+        batch_nonzero = 0;
+        memset(frame, 0xa5, sizeof frame);
+        host_buttons[0] = 0u;
+        host_buttons[1] = 0u;
+        p_run();
+        CHECK_EQ_U64(video_calls, 1u);
+        CHECK(video_data_nonnull && video_width == W && video_height == H && video_pitch >= W * 4u);
+        for (size_t pixel = 0u; pixel < W * H; ++pixel) {
+            CHECK(frame[pixel] != UINT32_C(0xa5a5a5a5));
+            CHECK_EQ_HEX(frame[pixel], direct_xrgb[frame_index][pixel]);
+        }
+        CHECK_EQ_U64(batch_calls, 1u);
+        CHECK_EQ_U64(batch_frames, direct_pcm_count[frame_index]);
+        CHECK(batch_frames > 0u && batch_nonzero > 0);
+        module_total_pcm += batch_frames;
+        module_nonzero += (size_t)batch_nonzero;
+        if (frame_index >= MMC2_CUT) {
+            module_suffix_pcm += batch_frames;
+            module_suffix_nonzero += (size_t)batch_nonzero;
+        }
+        if (batch_frames == direct_pcm_count[frame_index] &&
+            batch_frames <= AUDIO_CAPTURE_CAPACITY) {
+            for (size_t sample_index = 0u; sample_index < batch_frames; ++sample_index) {
+                CHECK_EQ_U64(batch_samples[2u * sample_index],
+                             direct_pcm[frame_index][sample_index]);
+                CHECK_EQ_U64(batch_samples[2u * sample_index + 1u],
+                             direct_pcm[frame_index][sample_index]);
+            }
+        }
+        if (frame_index == MMC2_CUT - 1u) {
+            CHECK(p_serialize(module_state, state_size));
+            CHECK(memcmp(module_state, state3, state_size) == 0);
+        }
+    }
+    CHECK(module_total_pcm == direct_total_pcm && module_nonzero > 0u);
+    CHECK(module_suffix_pcm == direct_suffix_pcm && module_suffix_nonzero > 0u);
+    CHECK(p_serialize(module_state, state_size));
+    CHECK(memcmp(module_state, state8, state_size) == 0);
+
+    for (unsigned repeat = 0u; repeat < 2u; ++repeat) {
+        size_t replay_module_pcm = 0u;
+        size_t replay_module_nonzero = 0u;
+        CHECK(p_unserialize(state3, state_size));
+        for (unsigned frame_index = MMC2_CUT; frame_index < MMC2_FRAMES; ++frame_index) {
+            video_calls = 0;
+            batch_calls = 0;
+            batch_frames = 0u;
+            batch_nonzero = 0;
+            memset(frame, 0xa5, sizeof frame);
+            host_buttons[0] = 0u;
+            host_buttons[1] = 0u;
+            p_run();
+            CHECK_EQ_U64(video_calls, 1u);
+            CHECK(video_data_nonnull && video_width == W && video_height == H &&
+                  video_pitch >= W * 4u);
+            for (size_t pixel = 0u; pixel < W * H; ++pixel) {
+                CHECK(frame[pixel] != UINT32_C(0xa5a5a5a5));
+                CHECK_EQ_HEX(frame[pixel], direct_xrgb[frame_index][pixel]);
+            }
+            CHECK_EQ_U64(batch_calls, 1u);
+            CHECK_EQ_U64(batch_frames, direct_pcm_count[frame_index]);
+            CHECK(batch_frames > 0u && batch_nonzero > 0);
+            replay_module_pcm += batch_frames;
+            replay_module_nonzero += (size_t)batch_nonzero;
+            if (batch_frames == direct_pcm_count[frame_index] &&
+                batch_frames <= AUDIO_CAPTURE_CAPACITY) {
+                for (size_t sample_index = 0u; sample_index < batch_frames; ++sample_index) {
+                    CHECK_EQ_U64(batch_samples[2u * sample_index],
+                                 direct_pcm[frame_index][sample_index]);
+                    CHECK_EQ_U64(batch_samples[2u * sample_index + 1u],
+                                 direct_pcm[frame_index][sample_index]);
+                }
+            }
+        }
+        CHECK(replay_module_pcm == direct_suffix_pcm && replay_module_nonzero > 0u);
+        CHECK(p_serialize(module_state, state_size));
+        CHECK(memcmp(module_state, state8, state_size) == 0);
+    }
+
+    /* Restore a deliberately advanced public-library instance twice, comparing every frame and
+       both the final serialized state and the independently hashed mono PCM suffix. */
+    for (unsigned repeat = 0u; repeat < 2u; ++repeat) {
+        CHECK_EQ_U64(nesturbator_load_state(direct, state3, state_size), NESTURBATOR_OK);
+        nesturbator_run_audio_hash_init(&repeat_audio_hash);
+        for (unsigned frame_index = MMC2_CUT; frame_index < MMC2_FRAMES; ++frame_index) {
+            memset(&io, 0, sizeof io);
+            io.size = (uint32_t)sizeof io;
+            io.video = replay_native;
+            io.video_pitch = W;
+            io.audio = replay_pcm;
+            io.audio_capacity = AUDIO_CAPTURE_CAPACITY;
+            CHECK_EQ_U64(nesturbator_set_input(direct, &input_state), NESTURBATOR_OK);
+            CHECK_EQ_U64(nesturbator_run_frame(direct, &io), NESTURBATOR_OK);
+            CHECK_EQ_U64(io.audio_count, direct_pcm_count[frame_index]);
+            CHECK(io.audio_count <= AUDIO_CAPTURE_CAPACITY);
+            if (io.audio_count > AUDIO_CAPTURE_CAPACITY)
+                goto done;
+            if (io.audio_count <= AUDIO_CAPTURE_CAPACITY) {
+                for (size_t sample_index = 0u; sample_index < io.audio_count; ++sample_index)
+                    CHECK_EQ_U64(replay_pcm[sample_index], direct_pcm[frame_index][sample_index]);
+            }
+            for (size_t pixel = 0u; pixel < W * H; ++pixel) {
+                CHECK_EQ_U64(replay_native[pixel], direct_native[frame_index][pixel]);
+                CHECK_EQ_HEX(palette[replay_native[pixel] & 0x01ffu],
+                             direct_xrgb[frame_index][pixel]);
+            }
+            nesturbator_run_audio_hash_pcm(&repeat_audio_hash, replay_pcm, io.audio_count);
+        }
+        {
+            char transitions[65];
+            char replay_pcm_digest[65];
+            nesturbator_run_audio_hash_final(&repeat_audio_hash, transitions, replay_pcm_digest);
+            CHECK(strcmp(replay_pcm_digest, suffix_pcm_digest) == 0);
+        }
+        CHECK(nesturbator_save_state(direct, module_state, state_size) == NESTURBATOR_OK);
+        CHECK(memcmp(module_state, state8, state_size) == 0);
+    }
+
+    /* Run the real headless executable once from cold load and once from frame 3. Each run emits
+       one frame/audio and state digest, while the sample assertions above keep the PCM hash from
+       becoming a vacuous equality. */
+    {
+        const char *const cold_command[] = {runner_path,
+                                            "--rom",
+                                            image_path,
+                                            "--frames",
+                                            "8",
+                                            "--hash-audio",
+                                            "--hash-frame",
+                                            "8",
+                                            "--dump-frame",
+                                            cold_dump_arg,
+                                            "--state-at-frame",
+                                            state_arg,
+                                            "--hash-state",
+                                            "8",
+                                            NULL};
+        const char *const resume_command[] = {runner_path,
+                                              "--rom",
+                                              image_path,
+                                              "--load-state",
+                                              state_path,
+                                              "--frames",
+                                              "8",
+                                              "--hash-audio",
+                                              "--hash-frame",
+                                              "8",
+                                              "--dump-frame",
+                                              resume_dump_arg,
+                                              "--hash-state",
+                                              "8",
+                                              NULL};
+        CHECK_EQ_U64(test_process_run(cold_command, cold_output), 0u);
+        CHECK_EQ_U64(test_process_run(resume_command, resume_output), 0u);
+        CHECK(read_runner_presentation_hashes(cold_output, MMC2_FRAMES, &cold_hashes));
+        CHECK(read_runner_presentation_hashes(resume_output, MMC2_FRAMES, &resume_hashes));
+        CHECK(read_runner_state_hash(cold_output, MMC2_FRAMES, &cold_state_hash));
+        CHECK(read_runner_state_hash(resume_output, MMC2_FRAMES, &resume_state_hash));
+        CHECK(strcmp(cold_hashes.frame, direct_frame_digest) == 0);
+        CHECK(strcmp(resume_hashes.frame, direct_frame_digest) == 0);
+        CHECK(strcmp(cold_hashes.pcm, direct_pcm_digest) == 0);
+        CHECK(strcmp(resume_hashes.pcm, suffix_pcm_digest) == 0);
+        CHECK(strcmp(cold_state_hash.digest, direct_state_digest) == 0);
+        CHECK(strcmp(resume_state_hash.digest, direct_state_digest) == 0);
+        CHECK_EQ_U64(cold_state_hash.size, state_size);
+        CHECK_EQ_U64(resume_state_hash.size, state_size);
+        memcpy(frame, direct_xrgb[MMC2_FRAMES - 1u], sizeof frame);
+        CHECK(frame_equals_ppm(cold_dump));
+        CHECK(frame_equals_ppm(resume_dump));
+    }
+
+    printf("libretro.mmc2.parity: frames=%u cut=%u audio_frames=%lu suffix_audio_frames=%lu "
+           "nonzero=%lu suffix_nonzero=%lu state_size=%lu\n",
+           MMC2_FRAMES, MMC2_CUT, (unsigned long)direct_total_pcm, (unsigned long)direct_suffix_pcm,
+           (unsigned long)direct_nonzero, (unsigned long)direct_suffix_nonzero,
+           (unsigned long)state_size);
+    result = check_failures == 0 ? 0 : 1;
+done:
+    if (loaded)
+        p_unload_game();
+    if (initialized)
+        p_deinit();
+    if (opened)
+        module_close();
+    nesturbator_destroy(direct);
+    free(state3);
+    free(state8);
+    free(module_state);
+    return result;
+}
+
 int main(int argc, char **argv)
 {
     struct retro_system_info sys;
@@ -3732,6 +4271,9 @@ int main(int argc, char **argv)
     if (argc == 2 && strcmp(argv[1], "--fixture-role-selftest") == 0) {
         return fixture_role_selftest();
     }
+    if (argc == 5 && strcmp(argv[1], "--mmc2-parity") == 0) {
+        return mmc2_parity(argv[2], argv[3], argv[4]);
+    }
     if (argc >= 6 && strcmp(argv[1], "--rom-parity") == 0) {
         return rom_parity(argc, argv);
     }
@@ -3744,6 +4286,7 @@ int main(int argc, char **argv)
     if (argc != 6) {
         fprintf(stderr, "usage: libretro.host --rom-parity <module> <rom> <frames> <ppm> "
                         "[--movie FILE] [--testcard PPM] [--sav-in FILE] [--sav-expect FILE]\n"
+                        "       libretro.host --mmc2-parity <module> <runner> <workdir>\n"
                         "       libretro.host --fixture-role-selftest\n"
                         "       libretro.host --serialize <module> <rom>...\n"
                         "       libretro.host --runahead <module> [--short] <rom>...\n"
