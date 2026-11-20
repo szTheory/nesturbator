@@ -270,6 +270,20 @@ reuse the existing hosted evidence validator and do not start a workflow:
       "-DRELEASE_EVIDENCE=$EVIDENCE/release-evidence.json" \
       -P "$SOURCE/tests/cmake/provider_receipt.cmake"
 
+For the published release reader only, a completed `pull_request` CI run can
+have a typed but empty `pull_requests` array after its PR has merged. The
+release-stage reader then checks the exact commit's associated PR list at
+`commits/{head_sha}/pulls` and matches one complete, unique entry against the
+current merged PR detail, the recorded implementation-main base, the tested
+head and merge, and the retained at-merge title digest. The run's `created_at`
+must be a valid UTC timestamp strictly before that PR's `merged_at`. Lists
+that may be truncated, malformed entries, duplicate matches, or any identity
+or title drift stop evidence writing. The reader stores the commit-associated
+list and merged PR detail as separate `linked_ci.release_pr_linkage` inputs to
+the resulting evidence record; it does not insert a guessed PR number into the
+workflow-run response. Candidate CI still requires its direct PR association,
+and push-stage run selection is unchanged.
+
 After publication, use the established MODE=hosted STAGE=release reader for
 the tagged source, release PR, archives and attestations. That route remains
 separate from the Phase 31 candidate/main modes. Historical hosted commands
