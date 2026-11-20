@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.14](https://github.com/szTheory/nesturbator/compare/v0.1.13...v0.1.14) (2026-11-20)
+
+
+### Features
+
+* **mmc2:** port bounded MMC2 support to mainline ([73f686f](https://github.com/szTheory/nesturbator/commit/73f686fd80f231e6cf03c03bfa29068401219ab3))
+
 ## [0.1.13](https://github.com/szTheory/nesturbator/compare/v0.1.12...v0.1.13) (2026-11-12)
 
 
