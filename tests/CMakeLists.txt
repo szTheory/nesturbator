@@ -2441,4 +2441,4 @@ add_test(NAME provider.receipt.controls
     -DMODE=selftest
     "-DWORK=${CMAKE_CURRENT_BINARY_DIR}"
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/provider_receipt.cmake)
-set_tests_properties(provider.receipt.controls PROPERTIES TIMEOUT 15)
+set_tests_properties(provider.receipt.controls PROPERTIES TIMEOUT 15 RUN_SERIAL TRUE)
